@@ -5,9 +5,7 @@
 #include <vector>
 
 // NOTE(phl): The glog operations may not work with Unity/Mono.
-#include "glog/logging.h"
 
-#define TRACE
 
 namespace principia {
 namespace integrators {
@@ -20,7 +18,6 @@ inline std::vector<T>* PointerOrNew(int const dimension,
   if (in == nullptr) {
     return new std::vector<T>(dimension);
   } else {
-    CHECK_EQ(dimension, in->size());
     return in;
   }
 }
@@ -50,7 +47,6 @@ inline void SPRKIntegrator::Solve(
       AutonomousRightHandSideComputation const compute_velocity,
       Parameters const& parameters,
       Solution* solution) {
-  CHECK_NOTNULL(solution);
 
   std::vector<double> const& a = parameters.coefficients[0];
   std::vector<double> const& b = parameters.coefficients[1];
@@ -183,10 +179,7 @@ inline void SPRKIntegrator::Solve(
 
   solution->momentum.resize(dimension);
   solution->position.resize(dimension);
-  CHECK_EQ(p.size(), q.size());
   for (size_t i = 0; i < p.size(); ++i) {
-    CHECK_EQ(dimension, q[i].size());
-    CHECK_EQ(dimension, p[i].size());
     for (int j = 0; j < dimension; ++j) {
       if (i == 0) {
         solution->position[j].quantities.reserve(q.size());
