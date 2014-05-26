@@ -10,7 +10,7 @@ namespace ConsoleApplication1 {
     static void Main(string[] args) {
       for (int i = 1; i <= 10; ++i) {
         Console.WriteLine(System.DateTime.Now);
-        principia.integrators.SPRKTests.Run();
+        principia.integrators.SPRKTests.Run(500);
         Console.WriteLine(System.DateTime.Now);
         Console.ReadLine();
       }

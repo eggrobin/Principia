@@ -28,7 +28,7 @@ inline void compute_harmonice_oscillator_velocity(std::vector<double> const& p,
 }  // namespace
 
 
-void SPRKTests::Run() {
+void SPRKTests::Run(System::Double tmax) {
   SPRKIntegrator integrator_;
   SPRKIntegrator::Parameters parameters_;
   SPRKIntegrator::Solution solution_;
@@ -38,11 +38,11 @@ void SPRKTests::Run() {
 #ifdef _DEBUG
   parameters_.tmax = 100.0;
 #else
-  parameters_.tmax = 1000.0;
+  parameters_.tmax = tmax;
 #endif
   parameters_.Δt = 1.0E-4;
   parameters_.coefficients = integrator_.Order5Optimal();
-  parameters_.sampling_period = 1;
+  parameters_.sampling_period = 0;
   integrator_.Solve(&compute_harmonic_oscillator_force,
                          &compute_harmonice_oscillator_velocity,
                          parameters_,

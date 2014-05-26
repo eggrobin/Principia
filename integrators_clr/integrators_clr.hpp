@@ -5,7 +5,7 @@ namespace integrators {
 
 public ref class SPRKTests abstract sealed {
  public:
-  static void Run();
+  static void Run(System::Double tmax);
 };
 
 }  // namespace integrators
