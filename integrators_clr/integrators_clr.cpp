@@ -29,7 +29,6 @@ inline void compute_harmonice_oscillator_velocity(std::vector<double> const& p,
 
 
 void SPRKTests::Run() {
-  std::vector<System::Int32> foo();
   SPRKIntegrator integrator_;
   SPRKIntegrator::Parameters parameters_;
   SPRKIntegrator::Solution solution_;

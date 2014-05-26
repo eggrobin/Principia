@@ -42,6 +42,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "integrators_clr", "integrators_clr\integrators_clr.vcxproj", "{B0CA3C11-282C-45E1-AF0C-1668BE9ED954}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApplication1", "ConsoleApplication1\ConsoleApplication1.csproj", "{34CA785F-B82B-4296-8AC9-F938C577D2A4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -181,6 +183,16 @@ Global
 		{B0CA3C11-282C-45E1-AF0C-1668BE9ED954}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{B0CA3C11-282C-45E1-AF0C-1668BE9ED954}.Release|Win32.ActiveCfg = Release|Win32
 		{B0CA3C11-282C-45E1-AF0C-1668BE9ED954}.Release|Win32.Build.0 = Release|Win32
+		{34CA785F-B82B-4296-8AC9-F938C577D2A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34CA785F-B82B-4296-8AC9-F938C577D2A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34CA785F-B82B-4296-8AC9-F938C577D2A4}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{34CA785F-B82B-4296-8AC9-F938C577D2A4}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{34CA785F-B82B-4296-8AC9-F938C577D2A4}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{34CA785F-B82B-4296-8AC9-F938C577D2A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34CA785F-B82B-4296-8AC9-F938C577D2A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34CA785F-B82B-4296-8AC9-F938C577D2A4}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{34CA785F-B82B-4296-8AC9-F938C577D2A4}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{34CA785F-B82B-4296-8AC9-F938C577D2A4}.Release|Win32.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

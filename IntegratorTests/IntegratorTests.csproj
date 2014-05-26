@@ -33,6 +33,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -57,6 +58,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\integrators_clr\integrators_clr.vcxproj">
+      <Project>{b0ca3c11-282c-45e1-af0c-1668be9ed954}</Project>
+      <Name>integrators_clr</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Integratorz\Integrators.csproj">
       <Project>{5b53b487-092c-43a0-97cb-765f89c8b7c8}</Project>
       <Name>Integrators</Name>
