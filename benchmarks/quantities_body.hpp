@@ -62,6 +62,8 @@ inline void DoubleDiscreteCosineTransform(
 }
 
 struct TestType {
+  TestType() = default;
+  TestType(double value) : value(value) {}
   double value;
 };
 
@@ -97,7 +99,7 @@ inline void TestTypeDiscreteCosineTransform(
     std::vector<TestType>* result) {;
   std::vector<TestType> input(dimension);
   for (std::size_t i = 0; i < dimension; ++i) {
-    input[i] = TestType {i};
+    input[i] = TestType {(double)i};
   }
   result->resize(dimension);
   TestType sign {1};
@@ -105,7 +107,7 @@ inline void TestTypeDiscreteCosineTransform(
   for (std::size_t k = 0; k < dimension; ++k, sign *= TestType{-1}) {
     sum = TestType {0};
     for (std::size_t n = 1; n < dimension - 1; ++n) {
-      sum += input[n] * Cos(Pi / TestType{(dimension - 1) * n * k});
+      sum += input[n] * Cos(Pi / TestType{(double)(dimension - 1) * n * k});
     }
     // We omit adding sum back to see whether the compiler will properly
     // optimise away the above loop.
