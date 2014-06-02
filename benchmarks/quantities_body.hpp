@@ -63,8 +63,11 @@ inline void DoubleDiscreteCosineTransform(
 
 class TestType {
  public:
+  __declspec(noalias)
   TestType() = default;
+  __declspec(noalias)
   TestType(double value) : value_(value) {}
+  __declspec(noalias)
   double value() const { return value_; }
  private:
   double value_;
@@ -72,26 +75,32 @@ class TestType {
 
 TestType const Pi {M_PI};
 
+__declspec(noalias)
 inline TestType Cos(TestType const& x) {
   return TestType {std::cos(x.value())};
 }
 
+__declspec(noalias)
 inline TestType operator*(TestType const& x, TestType const& y) {
   return TestType {x.value() * y.value()};
 }
 
+__declspec(noalias)
 inline TestType operator/(TestType const& x, TestType const& y) {
   return TestType {x.value() / y.value()};
 }
 
+__declspec(noalias)
 inline TestType operator+(TestType const& x, TestType const& y) {
   return TestType {x.value() + y.value()};
 }
 
+__declspec(noalias)
 inline TestType& operator*=(TestType& x, TestType const& y) {
   return x = x * y;
 }
 
+__declspec(noalias)
 inline TestType& operator+=(TestType& x, TestType const& y) {
   return x = x + y;
 }
