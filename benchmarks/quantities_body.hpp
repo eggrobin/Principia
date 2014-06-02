@@ -61,25 +61,55 @@ inline void DoubleDiscreteCosineTransform(
   }
 }
 
-typedef double TestType;
+struct TestType {
+  double value;
+};
+
+TestType const Pi {M_PI};
+
+inline TestType Cos(TestType const& x) {
+  return TestType {std::cos(x.value)};
+}
+
+inline TestType operator*(TestType const& x, TestType const& y) {
+  return TestType {x.value * y.value};
+}
+
+inline TestType operator/(TestType const& x, TestType const& y) {
+  return TestType {x.value / y.value};
+}
+
+inline TestType operator+(TestType const& x, TestType const& y) {
+  return TestType {x.value + y.value};
+}
+
+inline TestType& operator*=(TestType& x, TestType const& y) {
+  x.value *= y.value;
+  return x;
+}
+
+inline TestType& operator+=(TestType& x, TestType const& y) {
+  x.value += y.value;
+  return x;
+}
 
 inline void TestTypeDiscreteCosineTransform(
     std::vector<TestType>* result) {;
   std::vector<TestType> input(dimension);
   for (std::size_t i = 0; i < dimension; ++i) {
-    input[i] = i;
+    input[i] = TestType {i};
   }
   result->resize(dimension);
-  TestType sign = 1;
+  TestType sign {1};
   TestType sum;
-  for (std::size_t k = 0; k < dimension; ++k, sign *= -1) {
-    sum = 0;
+  for (std::size_t k = 0; k < dimension; ++k, sign *= TestType{-1}) {
+    sum = TestType {0};
     for (std::size_t n = 1; n < dimension - 1; ++n) {
-      sum += input[n] * std::cos(M_PI / (dimension - 1) * n * k);
+      sum += input[n] * Cos(Pi / TestType{(dimension - 1) * n * k});
     }
     // We omit adding sum back to see whether the compiler will properly
     // optimise away the above loop.
-    (*result)[k] = 0.5 * (input[0] + sign * input[dimension - 1]);  // + sum;
+    (*result)[k] = TestType{0.5} * (input[0] + sign * input[dimension - 1]);  // + sum;
   }
 }
 
