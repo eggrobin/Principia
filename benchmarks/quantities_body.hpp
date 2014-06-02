@@ -43,7 +43,6 @@ inline void DimensionfulDiscreteCosineTransform(
 
 inline void DoubleDiscreteCosineTransform(
     std::vector<double>* result) {;
-  static std::size_t const dimension = dimension;
   std::vector<double> input(dimension);
   for (std::size_t i = 0; i < dimension; ++i) {
     input[i] = i;
@@ -66,7 +65,6 @@ typedef double TestType;
 
 inline void TestTypeDiscreteCosineTransform(
     std::vector<TestType>* result) {;
-  static std::size_t const dimension = dimension;
   std::vector<TestType> input(dimension);
   for (std::size_t i = 0; i < dimension; ++i) {
     input[i] = i;
