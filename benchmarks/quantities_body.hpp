@@ -15,18 +15,19 @@
 namespace principia {
 namespace benchmarks {
 
+static std::size_t const dimension = 100;
+
 inline void DimensionfulDiscreteCosineTransform(
     std::vector<quantities::Momentum>* result) {
   using quantities::Cos;
   using quantities::Dimensionless;
   using quantities::Momentum;
   using si::Radian;
-  static std::size_t const dimension = 100;
-  std::vector<Momentum> input(100);
+  std::vector<Momentum> input(dimension);
   for (std::size_t i = 0; i < dimension; ++i) {
     input[i] = i * Momentum::SIUnit();
   }
-  result->resize(100);
+  result->resize(dimension);
   Dimensionless sign = 1;
   Momentum sum;
   for (std::size_t k = 0; k < dimension; ++k, sign *= -1) {
@@ -34,18 +35,20 @@ inline void DimensionfulDiscreteCosineTransform(
     for (std::size_t n = 1; n < dimension - 1; ++n) {
       sum += input[n] * quantities::Cos(π * Radian / (dimension - 1) * n * k);
     }
-    (*result)[k] = 0.5 * (input[0] + sign * input[dimension - 1]) + sum;
+    // We omit adding sum back to see whether the compiler will properly
+    // optimise away the above loop.
+    (*result)[k] = 0.5 * (input[0] + sign * input[dimension - 1]);  // + sum;
   }
 }
 
 inline void DoubleDiscreteCosineTransform(
     std::vector<double>* result) {;
-  static std::size_t const dimension = 100;
-  std::vector<double> input(100);
+  static std::size_t const dimension = dimension;
+  std::vector<double> input(dimension);
   for (std::size_t i = 0; i < dimension; ++i) {
     input[i] = i;
   }
-  result->resize(100);
+  result->resize(dimension);
   double sign = 1;
   double sum;
   for (std::size_t k = 0; k < dimension; ++k, sign *= -1) {
@@ -53,7 +56,9 @@ inline void DoubleDiscreteCosineTransform(
     for (std::size_t n = 1; n < dimension - 1; ++n) {
       sum += input[n] * std::cos(M_PI / (dimension - 1) * n * k);
     }
-    (*result)[k] = 0.5 * (input[0] + sign * input[dimension - 1]) + sum;
+    // We omit adding sum back to see whether the compiler will properly
+    // optimise away the above loop.
+    (*result)[k] = 0.5 * (input[0] + sign * input[dimension - 1]);  // + sum;
   }
 }
 
