@@ -64,44 +64,36 @@ inline void DoubleDiscreteCosineTransform(
 class TestType {
  public:
   TestType() = default;
-  TestType(double value) : value(value) {}
+  TestType(double value) : value_(value) {}
+  double value() const { return value_; }
  private:
-  double value;
-
-  friend TestType Cos(TestType const& x);
-  friend TestType operator*(TestType const& x, TestType const& y);
-  friend TestType operator/(TestType const& x, TestType const& y);
-  friend TestType operator+(TestType const& x, TestType const& y);
-  friend TestType& operator*=(TestType& x, TestType const& y);
-  friend TestType& operator+=(TestType& x, TestType const& y);
+  double value_;
 };
 
 TestType const Pi {M_PI};
 
 inline TestType Cos(TestType const& x) {
-  return TestType {std::cos(x.value)};
+  return TestType {std::cos(x.value())};
 }
 
 inline TestType operator*(TestType const& x, TestType const& y) {
-  return TestType {x.value * y.value};
+  return TestType {x.value() * y.value()};
 }
 
 inline TestType operator/(TestType const& x, TestType const& y) {
-  return TestType {x.value / y.value};
+  return TestType {x.value() / y.value()};
 }
 
 inline TestType operator+(TestType const& x, TestType const& y) {
-  return TestType {x.value + y.value};
+  return TestType {x.value() + y.value()};
 }
 
 inline TestType& operator*=(TestType& x, TestType const& y) {
-  x.value *= y.value;
-  return x;
+  return x = x * y;
 }
 
 inline TestType& operator+=(TestType& x, TestType const& y) {
-  x.value += y.value;
-  return x;
+  return x = x + y;
 }
 
 inline void TestTypeDiscreteCosineTransform(
