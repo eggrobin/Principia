@@ -21,5 +21,10 @@ void QuantitiesCLRBenchmark::DoubleDiscreteCosineTransform() {
   principia::benchmarks::DoubleDiscreteCosineTransform(&output);
 }
 
+void QuantitiesCLRBenchmark::TestTypeDiscreteCosineTransform() {
+  std::vector<principia::benchmarks::TestType> output;
+  principia::benchmarks::TestTypeDiscreteCosineTransform(&output);
+}
+
 }  // namespace clr_benchmarks_adapter
 }  // namespace principia

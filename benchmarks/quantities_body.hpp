@@ -62,6 +62,29 @@ inline void DoubleDiscreteCosineTransform(
   }
 }
 
+typedef double TestType;
+
+inline void TestTypeDiscreteCosineTransform(
+    std::vector<TestType>* result) {;
+  static std::size_t const dimension = dimension;
+  std::vector<TestType> input(dimension);
+  for (std::size_t i = 0; i < dimension; ++i) {
+    input[i] = i;
+  }
+  result->resize(dimension);
+  TestType sign = 1;
+  TestType sum;
+  for (std::size_t k = 0; k < dimension; ++k, sign *= -1) {
+    sum = 0;
+    for (std::size_t n = 1; n < dimension - 1; ++n) {
+      sum += input[n] * std::cos(M_PI / (dimension - 1) * n * k);
+    }
+    // We omit adding sum back to see whether the compiler will properly
+    // optimise away the above loop.
+    (*result)[k] = 0.5 * (input[0] + sign * input[dimension - 1]);  // + sum;
+  }
+}
+
 
 }  // namespace benchmarks
 }  // namespace principia
