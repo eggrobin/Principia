@@ -61,10 +61,19 @@ inline void DoubleDiscreteCosineTransform(
   }
 }
 
-struct TestType {
+class TestType {
+ public:
   TestType() = default;
   TestType(double value) : value(value) {}
+ private:
   double value;
+
+  friend TestType Cos(TestType const& x);
+  friend TestType operator*(TestType const& x, TestType const& y);
+  friend TestType operator/(TestType const& x, TestType const& y);
+  friend TestType operator+(TestType const& x, TestType const& y);
+  friend TestType& operator*=(TestType& x, TestType const& y);
+  friend TestType& operator+=(TestType& x, TestType const& y);
 };
 
 TestType const Pi {M_PI};
