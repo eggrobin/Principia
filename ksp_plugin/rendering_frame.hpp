@@ -1,6 +1,8 @@
 #pragma once
 
+#include "geometry/affine_map.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/rotation.hpp"
 #include "ksp_plugin/celestial.hpp"
 
 using principia::geometry::AngularVelocity;
@@ -12,12 +14,24 @@ struct Barycentre;
 
 class RenderingFrame {
  public:
+  // Returns a trajectory representing |actual_trajectory| as seen in the
+  // rendering frame, realized in the |Barycentre| frame.
   virtual std::unique_ptr<Trajectory<Barycentre>> const ApparentTrajectory(
       Trajectory<Barycentre> const& actual_trajectory) const = 0;
+ protected:
+  // The rendering frame.  The position and rotation with respect to
+  // |Barycentre| is implementation-defined and may depend on time.
+  // The orientation should be the same as that of |Barycentre|.
+  // NOTE(egg): "Apparent reference frame" is probably a Gallicism.
+  struct Apparent;
+  static Position<Apparent> const RenderingFrameOrigin() {
+    return Position<Apparent>();
+  }
 };
 
-class BodyCentredNonRotatingFrame : RenderingFrame {
+class BodyCentredNonRotatingFrame : public RenderingFrame {
  public:
+    
   explicit BodyCentredNonRotatingFrame(Celestial<Barycentre> const& body);
 
   std::unique_ptr<Trajectory<Barycentre>> const ApparentTrajectory(
