@@ -12,6 +12,9 @@ using principia::quantities::Time;
 namespace principia {
 namespace ksp_plugin {
 
+Position<RenderingFrame::Apparent> const RenderingFrame::kRenderingFrameOrigin =
+    Position<Apparent>;
+
 BodyCentredNonRotatingFrame::BodyCentredNonRotatingFrame(
     Celestial<Barycentre> const& body) : body_(body) {};
 
