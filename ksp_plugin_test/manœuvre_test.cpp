@@ -24,20 +24,19 @@ using ::testing::Lt;
 
 namespace ksp_plugin {
 
-class ManœuvreTest : public ::testing::Test {
- protected:
-  using World = Frame<serialization::Frame::TestTag,
-                      serialization::Frame::TEST1, true>;
-};
+class ManœuvreTest : public ::testing::Test {};
 
 TEST_F(ManœuvreTest, TimedBurn) {
   Instant const t0 = Instant();
-  Vector<double, World> e_y({0, 1, 0});
-  Manœuvre<World> manœuvre(1 * Newton, 2 * Kilogram, 1 * Metre / Second, e_y);
+  Vector<double, Barycentric> e_y({0, 1, 0});
+  Rotation<Frenet, Barycentric> frenet_to_barycentric =
+      Rotation<Frenet, Barycentric>::Identity();
+  Manœuvre manœuvre(1 * Newton, 2 * Kilogram, 1 * Metre / Second,
+                    frenet_to_barycentric.Inverse()(e_y));
   EXPECT_EQ(1 * Newton, manœuvre.thrust());
   EXPECT_EQ(2 * Kilogram, manœuvre.initial_mass());
   EXPECT_EQ(1 * Metre / Second, manœuvre.effective_exhaust_velocity());
-  EXPECT_EQ(e_y, manœuvre.direction());
+  EXPECT_EQ(e_y, frenet_to_barycentric(manœuvre.direction()));
   EXPECT_EQ(1 * Kilogram / Second, manœuvre.mass_flow());
 
   manœuvre.set_duration(1 * Second);
@@ -50,6 +49,8 @@ TEST_F(ManœuvreTest, TimedBurn) {
   EXPECT_EQ(t0, manœuvre.initial_time());
   EXPECT_EQ(t0 + 1 * Second, manœuvre.final_time());
   EXPECT_EQ(t0 + (2 - Sqrt(2)) * Second, manœuvre.time_of_half_Δv());
+
+  manœuvre.SetFrenetFrame(frenet_to_barycentric);
   EXPECT_EQ(
       0 * Metre / Pow<2>(Second),
       manœuvre.acceleration()(manœuvre.initial_time() - 1 * Second).Norm());
@@ -65,12 +66,15 @@ TEST_F(ManœuvreTest, TimedBurn) {
 
 TEST_F(ManœuvreTest, TargetΔv) {
   Instant const t0 = Instant();
-  Vector<double, World> e_y({0, 1, 0});
-  Manœuvre<World> manœuvre(1 * Newton, 2 * Kilogram, 1 * Metre / Second, e_y);
+  Vector<double, Barycentric> e_y({0, 1, 0});
+  Rotation<Frenet, Barycentric> frenet_to_barycentric =
+      Rotation<Frenet, Barycentric>::Identity();
+  Manœuvre manœuvre(1 * Newton, 2 * Kilogram, 1 * Metre / Second,
+                    frenet_to_barycentric.Inverse()(e_y));
   EXPECT_EQ(1 * Newton, manœuvre.thrust());
   EXPECT_EQ(2 * Kilogram, manœuvre.initial_mass());
   EXPECT_EQ(1 * Metre / Second, manœuvre.effective_exhaust_velocity());
-  EXPECT_EQ(e_y, manœuvre.direction());
+  EXPECT_EQ(e_y, frenet_to_barycentric(manœuvre.direction()));
   EXPECT_EQ(1 * Kilogram / Second, manœuvre.mass_flow());
 
   manœuvre.set_Δv(1 * Metre / Second);
@@ -83,6 +87,8 @@ TEST_F(ManœuvreTest, TargetΔv) {
   EXPECT_EQ(t0 - (2 - 2 / Sqrt(e)) * Second, manœuvre.initial_time());
   EXPECT_EQ(t0 + (2 / Sqrt(e) - 2 / e) * Second, manœuvre.final_time());
   EXPECT_EQ(t0, manœuvre.time_of_half_Δv());
+
+  manœuvre.SetFrenetFrame(frenet_to_barycentric);
   EXPECT_EQ(
       0 * Metre / Pow<2>(Second),
       manœuvre.acceleration()(manœuvre.initial_time() - 1 * Second).Norm());
@@ -134,11 +140,14 @@ TEST_F(ManœuvreTest, Apollo8SIVB) {
   Mass total_vehicle_at_s_ivb_2nd_eco               =  59285 * Kilogram;
 
   // An arbitrary direction, we're not testing this.
-  Vector<double, World> e_y({0, 1, 0});
+  Rotation<Frenet, Barycentric> frenet_to_barycentric =
+      Rotation<Frenet, Barycentric>::Identity();
+  Vector<double, Barycentric> e_y({0, 1, 0});
 
-  Manœuvre<World> first_burn(thrust_1st,
-                             total_vehicle_at_s_ivb_1st_90_percent_thrust,
-                             specific_impulse_1st, e_y);
+  Manœuvre first_burn(thrust_1st,
+                      total_vehicle_at_s_ivb_1st_90_percent_thrust,
+                      specific_impulse_1st,
+                      frenet_to_barycentric.Inverse()(e_y));
   EXPECT_THAT(RelativeError(lox_flowrate_1st + fuel_flowrate_1st,
                             first_burn.mass_flow()),
               Lt(1E-4));
@@ -151,6 +160,7 @@ TEST_F(ManœuvreTest, Apollo8SIVB) {
   first_burn.set_initial_time(s_ivb_1st_90_percent_thrust);
   EXPECT_EQ(s_ivb_1st_eco, first_burn.final_time());
 
+  first_burn.SetFrenetFrame(frenet_to_barycentric);
   // Accelerations from Figure 4-4. Ascent Trajectory Acceleration Comparison.
   // Final acceleration from Table 4-2. Comparison of Significant Trajectory
   // Events.
@@ -164,9 +174,10 @@ TEST_F(ManœuvreTest, Apollo8SIVB) {
               AllOf(Gt(7.03 * Metre / Pow<2>(Second)),
                     Lt(7.05 * Metre / Pow<2>(Second))));
 
-  Manœuvre<World> second_burn(thrust_2nd,
-                              total_vehicle_at_s_ivb_2nd_90_percent_thrust,
-                              specific_impulse_2nd, e_y);
+  Manœuvre second_burn(thrust_2nd,
+                       total_vehicle_at_s_ivb_2nd_90_percent_thrust,
+                       specific_impulse_2nd,
+                       frenet_to_barycentric.Inverse()(e_y));
   EXPECT_THAT(RelativeError(lox_flowrate_2nd + fuel_flowrate_2nd,
                             second_burn.mass_flow()),
               Lt(2E-4));
@@ -179,6 +190,7 @@ TEST_F(ManœuvreTest, Apollo8SIVB) {
   second_burn.set_initial_time(s_ivb_2nd_90_percent_thrust);
   EXPECT_EQ(s_ivb_2nd_eco, second_burn.final_time());
 
+  second_burn.SetFrenetFrame(frenet_to_barycentric);
   // Accelerations from Figure 4-9. Injection Phase Acceleration Comparison.
   // Final acceleration from Table 4-2. Comparison of Significant Trajectory
   // Events.

@@ -1,6 +1,9 @@
 ﻿#pragma once
 
+#include <optional.hpp>
+
 #include "geometry/named_quantities.hpp"
+#include "ksp_plugin/frames.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "quantities/named_quantities.hpp"
 
