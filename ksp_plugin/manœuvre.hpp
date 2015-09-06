@@ -7,6 +7,7 @@
 namespace principia {
 
 using geometry::Instant;
+using geometry::Rotation;
 using geometry::Vector;
 using physics::DiscreteTrajectory;
 using quantities::Force;
@@ -18,13 +19,12 @@ using quantities::Variation;
 namespace ksp_plugin {
 
 // This class represents a constant-thrust inertial burn.
-template<typename Frame>
 class Manœuvre {
  public:
   Manœuvre(Force thrust,
            Mass initial_mass,
            Speed effective_exhaust_velocity,
-           Vector<double, Frame> direction);
+           Vector<double, Frenet> direction);
   ~Manœuvre() = default;
 
   Force thrust() const;
@@ -36,7 +36,9 @@ class Manœuvre {
   // by the sum of the individual mass flows (where each mass flow is the
   // individual thrust divided by the exhaust velocity).
   Speed effective_exhaust_velocity() const;
-  Vector<double, Frame> direction() const;
+  Vector<double, Frenet> direction() const;
+
+  void SetFrenetFrame(Rotation<Frenet, Barycentric> const& rotation);
 
   // Equivalent characterizations of intensity.  Only one of the mutators may be
   // called, and only once.
@@ -64,11 +66,12 @@ class Manœuvre {
   Instant time_of_half_Δv() const;
 
   // Intensity and timing must have been set.
-  typename DiscreteTrajectory<Frame>::IntrinsicAcceleration
+  DiscreteTrajectory<Barycentric>::IntrinsicAcceleration
   acceleration() const;
 
  private:
-  Vector<double, Frame> const direction_;
+  Vector<double, Frenet> const frenet_initial_direction_;
+  std::experimental::optional<Vector<double, Barycentric>> inertial_direction_;
   Speed const effective_exhaust_velocity_;
   std::unique_ptr<Time const> duration_;  // optional.
   std::unique_ptr<Instant const> initial_time_;  // optional.

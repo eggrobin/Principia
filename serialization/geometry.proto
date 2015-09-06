@@ -138,6 +138,7 @@ message Frame {
     RENDERING = 4;
     WORLD = 5;
     WORLD_SUN = 6;
+    FRENET = 8;
   }
 
   // The frame tags used in the solar system simulation.

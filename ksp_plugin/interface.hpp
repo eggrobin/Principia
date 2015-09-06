@@ -247,7 +247,7 @@ int principia__ManœuvreCount(Plugin const* const plugin,
                              char const* const vessel_guid);
 
 extern "C" DLLEXPORT
-Manœuvre<Barycentric> const* principia__VesselManœuvre(
+Manœuvre const* principia__VesselManœuvre(
     Plugin const* const plugin,
     char const* const vessel_guid,
     int const index);
@@ -256,13 +256,13 @@ extern "C" DLLEXPORT
 void principia__SetVesselManœuvre(Plugin const* const plugin,
                                   char const* const vessel_guid,
                                   int const index,
-                                  Manœuvre<Barycentric> const** manœuvre);
+                                  Manœuvre const** manœuvre);
 
 extern "C" DLLEXPORT
 void principia__InsertVesselManœuvre(Plugin const* const plugin,
                                      char const* const vessel_guid,
                                      int const index,
-                                     Manœuvre<Barycentric> const** manœuvre);
+                                     Manœuvre const** manœuvre);
 
 extern "C" DLLEXPORT
 void principia__UpdatePrediction(Plugin const* const plugin,

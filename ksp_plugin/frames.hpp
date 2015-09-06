@@ -47,6 +47,11 @@ using Barycentric = Frame<serialization::Frame::PluginTag,
 using Rendering = Frame<serialization::Frame::PluginTag,
                         serialization::Frame::RENDERING, false>;
 
+// The frenet frame of a trajectory in a rendering frame.  It is defined from a
+// trajectory and |Transforms|.
+using Frenet = Frame<serialization::Frame::PluginTag,
+                     serialization::Frame::FRENET, false>;
+
 // A nonrotating referencence frame comoving with the sun with the same axes as
 // |AliceWorld|. Since it is nonrotating (though not inertial), differences
 // between velocities are consistent with those in an inertial reference frame.

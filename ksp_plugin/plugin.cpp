@@ -299,7 +299,7 @@ int Plugin::ManœuvreCount(GUID const & vessel_guid) const {
   return find_vessel_by_guid_or_die(vessel_guid)->manœuvres().size();
 }
 
-Manœuvre<Barycentric> const& Plugin::VesselManœuvre(GUID const& vessel_guid,
+Manœuvre const& Plugin::VesselManœuvre(GUID const& vessel_guid,
                                                     int const index) const {
   CHECK(!initializing_);
   return *find_vessel_by_guid_or_die(vessel_guid)->manœuvres()[index];
@@ -308,7 +308,7 @@ Manœuvre<Barycentric> const& Plugin::VesselManœuvre(GUID const& vessel_guid,
 void Plugin::SetVesselManœuvre(
     GUID const& vessel_guid,
     int const index,
-    not_null<std::unique_ptr<Manœuvre<Barycentric> const>> manœuvre) const {
+    not_null<std::unique_ptr<Manœuvre const>> manœuvre) const {
   CHECK(!initializing_);
   Vessel& vessel = *find_vessel_by_guid_or_die(vessel_guid);
   CHECK_GT(vessel.manœuvres().size(), index);
@@ -318,7 +318,7 @@ void Plugin::SetVesselManœuvre(
 void Plugin::InsertVesselManœuvre(
     GUID const& vessel_guid,
     int const index,
-    not_null<std::unique_ptr<Manœuvre<Barycentric> const>> manœuvre) const {
+    not_null<std::unique_ptr<Manœuvre const>> manœuvre) const {
   CHECK(!initializing_);
   Vessel& vessel = *find_vessel_by_guid_or_die(vessel_guid);
   CHECK_GE(vessel.manœuvres().size(), index);

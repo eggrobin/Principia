@@ -468,7 +468,7 @@ int principia__ManœuvreCount(Plugin const* const plugin,
   return CHECK_NOTNULL(plugin)->ManœuvreCount(vessel_guid);
 }
 
-Manœuvre<Barycentric> const* principia__VesselManœuvre(
+Manœuvre const* principia__VesselManœuvre(
     Plugin const* const plugin,
     char const* const vessel_guid,
     int const index) {
@@ -478,7 +478,7 @@ Manœuvre<Barycentric> const* principia__VesselManœuvre(
 void principia__SetVesselManœuvre(Plugin const* const plugin,
                                   char const* const vessel_guid,
                                   int const index,
-                                  Manœuvre<Barycentric> const** manœuvre) {
+                                  Manœuvre const** manœuvre) {
   CHECK_NOTNULL(plugin)->SetVesselManœuvre(vessel_guid,
                                            index,
                                            TakeOwnership(manœuvre));
@@ -487,7 +487,7 @@ void principia__SetVesselManœuvre(Plugin const* const plugin,
 void principia__InsertVesselManœuvre(Plugin const* const plugin,
                                      char const* const vessel_guid,
                                      int const index,
-                                     Manœuvre<Barycentric> const** manœuvre) {
+                                     Manœuvre const** manœuvre) {
   CHECK_NOTNULL(plugin)->InsertVesselManœuvre(vessel_guid,
                                               index,
                                               TakeOwnership(manœuvre));
