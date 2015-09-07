@@ -31,7 +31,7 @@ XYZ principia__Δv(Manœuvre const* manœuvre);
 extern "C" DLLEXPORT
 void principia__set_duration(Manœuvre* manœuvre, double duration);
 extern "C" DLLEXPORT
-void principia__set_Δv(Manœuvre const* manœuvre, double Δv);
+void principia__set_Δv(Manœuvre* manœuvre, double Δv);
 
 extern "C" DLLEXPORT
 double principia__initial_time(Manœuvre const* manœuvre);
