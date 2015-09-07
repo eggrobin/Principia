@@ -401,6 +401,14 @@ Transforms<FromFrame, ThroughFrame, ToFrame>::coordinate_frame(
   return std::bind(coordinate_frame_, last, _1);
 }
 
+template <typename FromFrame, typename ThroughFrame, typename ToFrame>
+Vector<Acceleration, ToFrame>
+Transforms<FromFrame, ThroughFrame, ToFrame>::FrameAcceleration(
+    DegreesOfFreedom<FromFrame> const& degrees_of_freedom,
+    Instant const& time) const {
+  return frame_acceleration_(degrees_of_freedom, time);
+}
+
 template<typename FromFrame, typename ThroughFrame, typename ToFrame>
 template<typename Frame1, typename Frame2>
 bool

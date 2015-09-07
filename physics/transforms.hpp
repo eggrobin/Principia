@@ -76,6 +76,13 @@ class Transforms {
   // |ToFrame| at time |last|.
   FrameField<ToFrame> coordinate_frame(Instant const& last) const;
 
+  // The acceleration on a test particle with the given |degrees_of_freedom|
+  // at the given |time| due to the rotation and acceleration of |ThroughFrame|,
+  // expressed in the coordinates of |ToFrame|.
+  Vector<Acceleration, ToFrame> FrameAcceleration(
+      DegreesOfFreedom<FromFrame> const& degrees_of_freedom,
+      Instant const& time) const;
+
  private:
   // Just like a |DiscreteTrajectory::Transform|, except that the first
   // parameter is only bound when we know if we must cache.
@@ -133,6 +140,10 @@ class Transforms {
   // |coordinate_frame| is called.
   std::function<Rotation<ToFrame, ToFrame>(
       Instant const& last, Position<ToFrame> const& q)> coordinate_frame_;
+
+  std::function<Vector<Acceleration, ToFrame>(
+      DegreesOfFreedom<FromFrame> const& degrees_of_freedom,
+      Instant const& time)> frame_acceleration_;
 
   // Hints for the continuous trajectories.
   std::list<typename ContinuousTrajectory<FromFrame>::Hint> from_hints_;
