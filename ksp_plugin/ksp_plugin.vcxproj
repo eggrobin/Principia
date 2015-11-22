@@ -156,6 +156,7 @@
   <ItemGroup>
     <ClInclude Include="celestial.hpp" />
     <ClInclude Include="celestial_body.hpp" />
+    <ClInclude Include="flight_plan_editor.hpp" />
     <ClInclude Include="frames.hpp" />
     <ClInclude Include="journal.hpp" />
     <ClInclude Include="journal_body.hpp" />
@@ -171,6 +172,7 @@
     <ClInclude Include="vessel_body.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="flight_plan_editor.cpp" />
     <ClCompile Include="interface.cpp" />
     <ClCompile Include="journal.cpp" />
     <ClCompile Include="mock_plugin.cpp" />
