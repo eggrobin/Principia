@@ -3,26 +3,22 @@
 #include <deque>
 #include <string>
 
-#include "ksp_plugin/interface.hpp"
-#include "ksp_plugin/plugin.hpp"
+#include "ksp_plugin/frames.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "quantities/named_quantities.hpp"
 
 namespace principia {
+
+using physics::DynamicFrame;
+using physics::Frenet;
+using quantities::Force;
+using quantities::Mass;
+using quantities::SpecificImpulse;
+using quantities::Time;
+
 namespace ksp_plugin {
 
-struct BurnInterface {
-  char const* const name;
-  // In s * g_0.
-  double const specific_impulse;
-  // In kN.
-  double const thrust;
-  // In m/s.
-  XYZ const Δv;
-  // In s.
-  double const initial_time_from_end_of_previous;
-};
-
-static_assert(std::is_standard_layout<BurnInterface>::value,
-              "BurnInterface is used for interfacing");
+struct BurnInterface;
 
 struct Burn {
   std::string name;
@@ -36,19 +32,11 @@ struct Burn {
 
 struct FlightPlanner {
   Mass const initial_mass;
-  Instant const start;
-  Instant end;
+  Instant const initial_time;
+  Instant final_time;
   std::deque<Burn> burns;
+  DynamicFrame<Barycentric, Rendering> const* frame;
 };
-
-extern "C" DLLEXPORT
-int CDECL AppendBurn(FlightPlanner* const planner, BurnInterface const burn);
-extern "C" DLLEXPORT
-void CDECL DeleteLastBurn(FlightPlanner* const planner, int const index);
-extern "C" DLLEXPORT
-void CDECL EditBurn(FlightPlanner* const planner,
-                    int const index,
-                    BurnInterface const burn);
 
 }  // namespace ksp_plugin
 }  // namespace principia

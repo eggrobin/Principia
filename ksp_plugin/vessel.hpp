@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/flight_planner.hpp"
 #include "ksp_plugin/manœuvre.hpp"
 #include "ksp_plugin/vessel.hpp"
 #include "ksp_plugin/part.hpp"
@@ -22,13 +23,11 @@ using quantities::GravitationalParameter;
 
 namespace ksp_plugin {
 
+struct FlightPlanner;
+
 // Represents a KSP |Vessel|.
 class Vessel {
  public:
-  using Manœuvres =
-      std::vector<
-          not_null<std::unique_ptr<Manœuvre<Barycentric, Rendering> const>>>;
-
   Vessel() = delete;
   Vessel(Vessel const&) = delete;
   Vessel(Vessel&&) = delete;
@@ -70,9 +69,6 @@ class Vessel {
   DiscreteTrajectory<Barycentric> const& prediction() const;
   bool has_prediction() const;
 
-  Manœuvres const& manœuvres() const;
-  not_null<Manœuvres*> mutable_manœuvres();
-
   // Creates an |owned_prolongation_| for this vessel and appends a point with
   // the given |time| and |degrees_of_freedom|.  The vessel must not satisfy
   // |is_initialized()| nor |is_synchronized()|, |owned_prolongation_| must be
@@ -96,6 +92,8 @@ class Vessel {
   // The vessel must satisfy |is_synchronized()| and |is_initialized()|,
   // |owned_prolongation_| must be null.
   void ResetProlongation(Instant const& time);
+
+  FlightPlanner* flight_planner();
 
   // Fills |flight_plan_| with predictions using the given |ephemeris| for
   // successive manœuvres, with the given prediction tolerances for the coasting
@@ -137,6 +135,9 @@ class Vessel {
       not_null<Celestial const*> const parent);
 
  private:
+  using Manœuvres =
+      std::vector<not_null<std::unique_ptr<Manœuvre<Barycentric, Rendering>>>>;
+
   MasslessBody const body_;
   // The parent body for the 2-body approximation. Not owning.
   not_null<Celestial const*> parent_;
@@ -160,7 +161,7 @@ class Vessel {
   // previous one, corresponding to successive manœuvres.  Trajectories at even
   // indices are burns, trajectories at odd indices are coast phases.
   std::vector<not_null<DiscreteTrajectory<Barycentric>*>> flight_plan_;
-  Manœuvres manœuvres_;
+  FlightPlanner flight_planner_;
 };
 
 }  // namespace ksp_plugin

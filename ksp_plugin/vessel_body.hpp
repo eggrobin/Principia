@@ -79,14 +79,6 @@ inline bool Vessel::has_prediction() const {
   return prediction_ != nullptr;
 }
 
-inline Vessel::Manœuvres const& Vessel::manœuvres() const {
-  return manœuvres_;
-}
-
-inline not_null<Vessel::Manœuvres*> Vessel::mutable_manœuvres() {
-  return &manœuvres_;
-}
-
 inline void Vessel::CreateProlongation(
     Instant const& time,
     DegreesOfFreedom<Barycentric> const& degrees_of_freedom) {
@@ -116,6 +108,10 @@ inline void Vessel::ResetProlongation(Instant const& time) {
   prolongation_ = history_->NewForkWithCopy(time);
 }
 
+inline FlightPlanner* Vessel::flight_planner() {
+  return &flight_planner_;
+}
+
 inline void Vessel::UpdateFlightPlan(
     not_null<Ephemeris<Barycentric>*> ephemeris,
     AdaptiveStepSizeIntegrator<
@@ -134,7 +130,24 @@ inline void Vessel::UpdateFlightPlan(
     flight_plan_.back()->Append(prolongation().last().time(),
                                 prolongation().last().degrees_of_freedom());
   }
-  for (auto const& manœuvre : manœuvres_) {
+  Manœuvres manœuvres;
+  Mass mass = flight_planner_.initial_mass;
+  Instant time = flight_planner_.initial_time;
+  for (auto const& burn : flight_planner_.burns) {
+    manœuvres.emplace_back(
+        make_not_null_unique<Manœuvre<Barycentric, Rendering>>(
+            burn.thrust,
+            mass,
+            burn.specific_impulse,
+            Normalize(burn.Δv),
+                                       flight_planner_.frame));
+    manœuvres.back()->set_Δv(burn.Δv.Norm());
+    mass = manœuvres.back()->final_mass();
+    manœuvres.back()->set_initial_time(time +
+                                       burn.initial_time_from_end_of_previous);
+    time = manœuvres.back()->final_time();
+  }
+  for (auto const& manœuvre : manœuvres) {
     not_null<DiscreteTrajectory<Barycentric>*> const coast_trajectory =
         flight_plan_.back();
     ephemeris->FlowWithAdaptiveStep(

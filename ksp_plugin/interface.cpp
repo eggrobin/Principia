@@ -54,6 +54,10 @@ using quantities::si::Tonne;
 
 namespace ksp_plugin {
 
+R3Element<double> ToR3Element(XYZ const& xyz) {
+  return {xyz.x, xyz.y, xyz.z};
+}
+
 namespace {
 
 int const kChunkSize = 64 << 10;
@@ -76,10 +80,6 @@ std::unique_ptr<T[]> TakeOwnershipArray(T** const pointer) {
   std::unique_ptr<T[]> owned_pointer(*pointer);
   *pointer = nullptr;
   return owned_pointer;
-}
-
-R3Element<double> ToR3Element(XYZ const& xyz) {
-  return {xyz.x, xyz.y, xyz.z};
 }
 
 XYZ ToXYZ(R3Element<double> const& r3_element) {
@@ -644,6 +644,22 @@ void principia__DeserializePlugin(char const* const serialization,
   if (byte_size == 0) {
     delete *deserializer;
   }
+}
+
+int AppendBurn(FlightPlanner* const planner, BurnInterface const burn) {
+  planner->burns.emplace_back(Burn(burn));
+  return planner->burns.size() - 1;
+}
+
+void DeleteLastBurn(FlightPlanner* const planner, int const index) {
+  planner->burns.pop_back();
+  CHECK_EQ(planner->burns.size(), index);
+}
+
+void EditBurn(FlightPlanner* const planner,
+              int const index,
+              BurnInterface const burn) {
+  planner->burns[index] = Burn(burn);
 }
 
 char const* principia__SayHello() {

@@ -1,10 +1,11 @@
-#pragma once
+﻿#pragma once
 
 #include <type_traits>
 
 #include "base/macros.hpp"
 #include "base/pull_serializer.hpp"
 #include "base/push_deserializer.hpp"
+#include "ksp_plugin/flight_planner.hpp"
 #include "ksp_plugin/plugin.hpp"
 
 namespace principia {
@@ -227,6 +228,10 @@ void CDECL principia__DeleteRenderingFrame(
     RenderingFrame** const rendering_frame);
 
 extern "C" DLLEXPORT
+FlightPlanner* principia__VesselFlightPlanner(Plugin const* const plugin,
+                                              char const* const vessel_guid);
+
+extern "C" DLLEXPORT
 void principia__UpdatePrediction(Plugin const* const plugin,
                                  char const* const vessel_guid);
 
@@ -378,9 +383,38 @@ void CDECL principia__DeserializePlugin(
     base::PushDeserializer** const deserializer,
     Plugin const** const plugin);
 
+// Flight planner utilities.
+
+struct BurnInterface {
+  char const* const name;
+  // In s * g_0.
+  double const specific_impulse;
+  // In kN.
+  double const thrust;
+  // In m/s.
+  XYZ const Δv;
+  // In s.
+  double const initial_time_from_end_of_previous;
+};
+
+static_assert(std::is_standard_layout<BurnInterface>::value,
+              "BurnInterface is used for interfacing");
+
+extern "C" DLLEXPORT
+int CDECL AppendBurn(FlightPlanner* const planner, BurnInterface const burn);
+extern "C" DLLEXPORT
+void CDECL DeleteLastBurn(FlightPlanner* const planner, int const index);
+extern "C" DLLEXPORT
+void CDECL EditBurn(FlightPlanner* const planner,
+                    int const index,
+                    BurnInterface const burn);
+
 // Says hello, convenient for checking that calls to the DLL work.
 extern "C" DLLEXPORT
 char const* CDECL principia__SayHello();
+
+// Utilities.
+R3Element<double> ToR3Element(XYZ const& xyz);
 
 }  // namespace ksp_plugin
 }  // namespace principia

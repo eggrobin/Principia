@@ -56,7 +56,7 @@
     <ClInclude Include="journal_body.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="flight_plan_editor.hpp">
+    <ClInclude Include="flight_planner.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -76,7 +76,7 @@
     <ClCompile Include="journal.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="flight_plan_editor.cpp">
+    <ClCompile Include="flight_planner.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -298,6 +298,10 @@ RelativeDegreesOfFreedom<AliceSun> Plugin::CelestialFromParent(
   return result;
 }
 
+FlightPlanner* Plugin::VesselFlightPlanner(GUID const& vessel_guid) const {
+  return find_vessel_by_guid_or_die(vessel_guid)->flight_planner();
+}
+
 void Plugin::UpdatePrediction(GUID const& vessel_guid) const {
   CHECK(!initializing_);
   find_vessel_by_guid_or_die(vessel_guid)->UpdatePrediction(
