@@ -18,6 +18,7 @@ class FlightPlanner {
   public void Render() {
     var old_skin = UnityEngine.GUI.skin;
     UnityEngine.GUI.skin = null;
+    UnityEngine.GUILayout.BeginVertical();
     foreach (BurnEditor burn_editor in burns_) {
       burn_editor.Render();
     } 

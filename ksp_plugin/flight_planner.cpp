@@ -1,4 +1,4 @@
-﻿#include "ksp_plugin/flight_plan_editor.hpp"
+﻿#include "ksp_plugin/flight_planner.hpp"
 
 #include "quantities/constants.hpp"
 
