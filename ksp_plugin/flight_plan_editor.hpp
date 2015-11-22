@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <deque>
 #include <string>
@@ -16,7 +16,7 @@ struct BurnInterface {
   // In kN.
   double const thrust;
   // In m/s.
-  XYZ const ?v;
+  XYZ const Δv;
   // In s.
   double const initial_time_from_end_of_previous;
 };
@@ -25,11 +25,11 @@ static_assert(std::is_standard_layout<BurnInterface>::value,
               "BurnInterface is used for interfacing");
 
 struct Burn {
-  std::string const name;
-  SpecificImpulse const specific_impulse;
-  Force const thrust;
-  Velocity<Frenet<Rendering>> const ?v;
-  Time const initial_time_from_end_of_previous;
+  std::string name;
+  SpecificImpulse specific_impulse;
+  Force thrust;
+  Velocity<Frenet<Rendering>> Δv;
+  Time initial_time_from_end_of_previous;
 
   explicit Burn(BurnInterface burn_interface);
 };
