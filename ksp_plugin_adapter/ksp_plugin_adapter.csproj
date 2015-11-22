@@ -57,6 +57,7 @@
   <ItemGroup>
     <Compile Include="burn_editor.cs" />
     <Compile Include="differential_slider.cs" />
+    <Compile Include="flight_planner.cs" />
     <Compile Include="ksp_plugin_adapter.cs" />
     <Compile Include="ksp_plugin_interface.cs" />
     <Compile Include="logging.cs" />
