@@ -1052,6 +1052,7 @@ public partial class PrincipiaPluginAdapter : ScenarioModule {
   }
 
   FlightPlanner test_flight_planner_;
+  ReferenceFrameSelector test_reference_frame_selector_;
 
   private void PredictionSettings() {
     bool changed_settings = false;
@@ -1069,6 +1070,10 @@ public partial class PrincipiaPluginAdapter : ScenarioModule {
       test_flight_planner_ = new FlightPlanner();
     }
     test_flight_planner_.Render();
+    if (test_reference_frame_selector_ == null) {
+      test_reference_frame_selector_ = new ReferenceFrameSelector();
+    }
+    test_reference_frame_selector_.Render();
   }
 
   private void KSPFeatures() {
