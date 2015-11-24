@@ -15,6 +15,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\ksp_plugin\flight_planner.cpp" />
     <ClCompile Include="..\ksp_plugin\interface.cpp" />
     <ClCompile Include="..\ksp_plugin\journal.cpp" />
     <ClCompile Include="..\ksp_plugin\mock_plugin.cpp" />

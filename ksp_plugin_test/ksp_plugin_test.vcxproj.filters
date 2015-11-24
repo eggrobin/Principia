@@ -59,6 +59,9 @@
     <ClCompile Include="..\ksp_plugin\journal.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ksp_plugin\flight_planner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="pre_bourbaki.proto.hex">
