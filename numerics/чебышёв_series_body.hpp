@@ -97,18 +97,19 @@ Vector ЧебышёвSeries<Vector>::Evaluate(Instant const& t) const {
   // loop below.  But it's more efficient to copy pointers than |Vector|s.
   // Also, we can save some memory by noticing that |b_k| and |b_kplus2| are
   // never needed at the same time and overlaying them.
-  Vector b_kplus2_vector{};
-  Vector b_kplus1_vector{};
-  Vector* b_kplus2 = &b_kplus2_vector;
-  Vector* b_kplus1 = &b_kplus1_vector;
-  Vector* const& b_k = b_kplus2;  // An overlay.
-  for (int k = degree_; k >= 1; --k) {
-    *b_k = coefficients_[k] + two_scaled_t * *b_kplus1 - *b_kplus2;
-    Vector* const last_b_k = b_k;
-    b_kplus2 = b_kplus1;
-    b_kplus1 = last_b_k;
+  Vector b_kplus2{};
+  Vector b_kplus1{};
+  int k = degree_ - 1;
+  for (; k >= 1; k -= 2) {
+    b_kplus2 = coefficients_[k + 1] + two_scaled_t * b_kplus1 - b_kplus2;
+    b_kplus1 = coefficients_[k] + two_scaled_t * b_kplus2 - b_kplus1;
   }
-  return coefficients_[0] + scaled_t * *b_kplus1 - *b_kplus2;
+  if (k == 0) {
+    b_kplus2 = coefficients_[1] + two_scaled_t * b_kplus1 - b_kplus2;
+    return coefficients_[0] + scaled_t * b_kplus2 - b_kplus1;
+  } else {
+    return coefficients_[0] + scaled_t * b_kplus1 - b_kplus2;
+  }
 }
 
 template<typename Vector>
