@@ -37,9 +37,11 @@ class ReferenceFrameSelector : WindowRenderer {
   public ReferenceFrameSelector(
       ManagerInterface manager,
       IntPtr plugin,
-      Callback on_change) : base(manager) {
+      Callback on_change,
+      string text) : base(manager) {
     plugin_ = plugin;
     on_change_ = on_change;
+    this.text = text;
     frame_type = FrameType.BODY_CENTRED_NON_ROTATING;
     expanded_ = new Dictionary<CelestialBody, bool>();
     foreach (CelestialBody celestial in FlightGlobals.Bodies) {
@@ -59,12 +61,14 @@ class ReferenceFrameSelector : WindowRenderer {
     ResetFrame();
   }
 
+  public string text { get; set; }
+
   public FrameType frame_type { get; private set; }
 
   public void RenderButton() {
     var old_skin = UnityEngine.GUI.skin;
     UnityEngine.GUI.skin = null;
-    if (UnityEngine.GUILayout.Button("Reference frame selection...")) {
+    if (UnityEngine.GUILayout.Button(text + "...")) {
       show_selector_ = !show_selector_;
     }
     UnityEngine.GUI.skin = old_skin;
@@ -78,7 +82,7 @@ class ReferenceFrameSelector : WindowRenderer {
                               id         : this.GetHashCode(),
                               screenRect : window_rectangle_,
                               func       : RenderSelector,
-                              text       : "Reference frame selection");
+                              text       : text);
     }
     UnityEngine.GUI.skin = old_skin;
   }

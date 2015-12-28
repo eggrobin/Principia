@@ -25,9 +25,30 @@ internal abstract class WindowRenderer : IDisposable {
     GC.SuppressFinalize(this);
   }
 
-  abstract protected void RenderWindow();
+  protected abstract void RenderWindow();
 
   private ManagerInterface manager_;
+}
+
+internal abstract class ToggleableWindowRenderer : WindowRenderer {
+  public ToggleableWindowRenderer(ManagerInterface manager) : base(manager) {}
+
+  protected override void RenderWindow() {
+    if (show_) {
+      window_rectangle_ = UnityEngine.GUILayout.Window(
+                              id         : this.GetHashCode(),
+                              screenRect : window_rectangle_,
+                              func       : RenderContents,
+                              text       : window_title);
+    }
+  }
+
+  protected abstract void RenderContents(int window_id);
+  protected abstract string window_title { get; }
+
+  protected bool show_;
+
+  private UnityEngine.Rect window_rectangle_;
 }
 
 internal struct Controlled<T> where T : IDisposable {

@@ -431,7 +431,8 @@ public partial class PrincipiaPluginAdapter
       plotting_frame_selector_.all =
           new ReferenceFrameSelector(this,
                                      plugin_,
-                                     UpdateRenderingFrame);
+                                     UpdateRenderingFrame,
+                                     "Plotting frame");
 
       plugin_construction_ = DateTime.Now;
       plugin_source_ = PluginSource.SAVED_STATE;
@@ -1265,7 +1266,8 @@ public partial class PrincipiaPluginAdapter
     plotting_frame_selector_.all =
         new ReferenceFrameSelector(this,
                                    plugin_,
-                                   UpdateRenderingFrame);
+                                   UpdateRenderingFrame,
+                                   "Plotting frame");
     VesselProcessor insert_vessel = vessel => {
       Log.Info("Inserting " + vessel.name + "...");
       bool inserted =
