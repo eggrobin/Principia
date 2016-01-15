@@ -174,8 +174,9 @@ class ResonanceTest : public ::testing::Test {
     file.close();
   }
 
-  // Compute and log the measured periods of the moons.
-  void LogPeriods(Ephemeris<KSP> const& ephemeris) {
+  // Compute and log the measured periods of the moons.  Return whether that's
+  // close enough to integer.
+  bool LogPeriods(Ephemeris<KSP> const& ephemeris) {
     auto const position = [this, &ephemeris](
         not_null<MassiveBody const*> body, Instant const& t) {
       return ephemeris.trajectory(body)->EvaluatePosition(t, nullptr);
@@ -196,6 +197,7 @@ class ResonanceTest : public ::testing::Test {
     LOG(INFO) << barycentric_position(laythe_, game_epoch_);
     LOG(INFO) << barycentric_position(vall_, game_epoch_);
     LOG(INFO) << barycentric_position(tylo_, game_epoch_);
+    std::map<not_null<MassiveBody const*>, Time> period;
     for (auto const moon : {laythe_, vall_, tylo_}) {
       auto const moon_y = [&barycentric_position, moon,
                            this](Instant const& t) {
@@ -233,7 +235,18 @@ class ResonanceTest : public ::testing::Test {
       LOG(INFO) << "expected period : " << expected_period;
       LOG(INFO) << "error           :"
                 << RelativeError(expected_period, actual_period);
+      period[moon] = actual_period;
     }
+    double const rv = period[vall_] / period[laythe_];
+    double const rt = period[tylo_] / period[laythe_];
+    LOG(INFO) << "Ratios:";
+    LOG(INFO) << rv;
+    LOG(INFO) << rt;
+    double garbage;
+    bool looks_resonant =
+        std::modf(rv, &garbage) < 0.1 && std::modf(rt, &garbage) < 0.1;
+    LOG(INFO) << (looks_resonant ? "looks resonant" : "skipping");
+    return looks_resonant;
   }
 
   Ephemeris<KSP> MakeEphemeris(std::vector<DegreesOfFreedom<KSP>> states) {
@@ -319,6 +332,18 @@ class ResonanceTest : public ::testing::Test {
     return initial_states;
   }
 
+  bool Escape(Ephemeris<KSP> const& ephemeris) {
+    auto const t = ephemeris.t_max();
+    auto const position = [&ephemeris, t](not_null<MassiveBody const*> body) {
+      return ephemeris.trajectory(body)->EvaluatePosition(t, nullptr);
+    };
+    bool escape = false;
+    for (auto const moon : {laythe_, vall_, tylo_}) {
+      escape |= (position(jool_) - position(moon)).Norm() > 4E8 * Metre;
+    }
+    return escape;
+  }
+
   std::vector<not_null<std::unique_ptr<MassiveBody const>>> owned_bodies_;
   not_null<MassiveBody const *> const sun_, jool_, laythe_, vall_, tylo_, bop_,
       pol_;
@@ -383,6 +408,75 @@ TEST_F(ResonanceTest, Corrected) {
   ephemeris.Prolong(long_time_);
   ephemeris.Prolong(comparison_);
   LogEphemeris(ephemeris, /*reference=*/false, "corrected");
+}
+
+struct ResonanceSearchParameters {
+  double n_tylo_offset, n_vall_offset;
+  Angle ma_tylo_offset, ma_vall_offset;
+};
+
+class ResonanceSearchTest
+    : public ResonanceTest,
+      public ::testing::WithParamInterface<ResonanceSearchParameters> {};
+
+std::vector<ResonanceSearchParameters> ResonanceSearchSpace() {
+  std::vector<ResonanceSearchParameters> result;
+  for (double n_tylo_offset = 0.9; n_tylo_offset <= 1.2;
+       n_tylo_offset += 0.01) {
+    for (double n_vall_offset = 0.9; n_vall_offset <= 1.2;
+         n_vall_offset += 0.01) {
+      for (Angle ma_tylo_offset = -0 * Degree; ma_tylo_offset <= 0 * Degree;
+           ma_tylo_offset += 1 * Degree) {
+        for (Angle ma_vall_offset = -0 * Degree; ma_vall_offset <= 0 * Degree;
+             ma_vall_offset += 1 * Degree) {
+          result.push_back(
+              {n_tylo_offset, n_vall_offset, ma_tylo_offset, ma_vall_offset});
+        }
+      }
+    }
+  }
+  return result;
+}
+
+INSTANTIATE_TEST_CASE_P(ALaRechercheDeLaResonancePerdue,
+                        ResonanceSearchTest,
+                        ::testing::ValuesIn(ResonanceSearchSpace()));
+
+TEST_P(ResonanceSearchTest, LaplaceWhereAreYou) {
+  ComputeStockOrbits();
+  UseStockMeanMotions();
+  AngularFrequency stock_n_laythe = *elements_[laythe_].conic.mean_motion;
+
+  elements_[laythe_].conic.mean_motion = stock_n_laythe;
+  elements_[tylo_].conic.mean_motion =
+      *elements_[laythe_].conic.mean_motion / 2 * GetParam().n_tylo_offset;
+  *elements_[vall_].conic.mean_motion =
+      *elements_[tylo_].conic.mean_motion / 2 * GetParam().n_vall_offset;
+
+  elements_[tylo_].mean_anomaly = 3.14 * Radian + GetParam().ma_tylo_offset;
+  elements_[vall_].mean_anomaly = 0 * Radian + GetParam().ma_vall_offset;
+
+  LOG(INFO) << NAMED(GetParam().n_tylo_offset);
+  LOG(INFO) << NAMED(GetParam().n_vall_offset);
+  LOG(INFO) << NAMED(GetParam().ma_tylo_offset);
+  LOG(INFO) << NAMED(GetParam().ma_vall_offset);
+
+  UglyStaticApocalypse = false;
+  auto ephemeris = MakeEphemeris(JacobiInitialStates());
+  ephemeris.Prolong(game_epoch_ + 90 * Day);
+  if (UglyStaticApocalypse || Escape(ephemeris) || !LogPeriods(ephemeris)) {
+    return;
+  }
+  for (Time t = 1 * JulianYear;
+       t <= 100 * JulianYear && !Escape(ephemeris) && !UglyStaticApocalypse;
+       t += 1 * JulianYear) {
+    ephemeris.Prolong(game_epoch_ + t);
+  }
+  LOG(INFO) << ephemeris.t_max();
+  if (ephemeris.t_max() >= game_epoch_ + 100 * JulianYear) {
+    LOG(INFO) << "Stable?";
+    LOG(FATAL) << "have a look at this";
+  }
 }
 
 #endif

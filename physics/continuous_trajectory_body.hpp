@@ -267,6 +267,8 @@ ContinuousTrajectory<Frame>::Hint::Hint()
 template<typename Frame>
 ContinuousTrajectory<Frame>::ContinuousTrajectory() {}
 
+static bool UglyStaticApocalypse = false;
+
 template<typename Frame>
 void ContinuousTrajectory<Frame>::ComputeBestNewhallApproximation(
     Instant const& time,
@@ -351,10 +353,9 @@ void ContinuousTrajectory<Frame>::ComputeBestNewhallApproximation(
   }
 
   // A check that the tolerance did not explode.
-  CHECK_LT(adjusted_tolerance_, 1E6 * previous_adjusted_tolerance)
-      << "Apocalypse occurred at " << time
-      << ", displacements are: " << q
-      << ", velocities are: " << v;
+  if(adjusted_tolerance_ >= 1E6 * previous_adjusted_tolerance) {
+    UglyStaticApocalypse = true;
+  }
 
   ++degree_age_;
 }
