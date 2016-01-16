@@ -440,10 +440,10 @@ class ResonanceSearchTest
 
 std::vector<ResonanceSearchParameters> ResonanceSearchSpace() {
   std::vector<ResonanceSearchParameters> result;
-  for (double n_tylo_offset = 1.96; n_tylo_offset <= 2.11;
-       n_tylo_offset += 0.01) {
-    for (double n_vall_offset = 2.38; n_vall_offset <= 2.55;
-         n_vall_offset += 0.01) {
+  for (double n_tylo_offset = 1.5; n_tylo_offset <= 3;
+       n_tylo_offset += 0.05*0.5) {
+    for (double n_vall_offset = 1.5; n_vall_offset <= 3;
+         n_vall_offset += 0.05*0.5) {
       for (Angle ma_tylo_offset = -0 * Degree; ma_tylo_offset <= 0 * Degree;
            ma_tylo_offset += 1 * Degree) {
         for (Angle ma_vall_offset = -0 * Degree; ma_vall_offset <= 0 * Degree;
