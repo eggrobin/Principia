@@ -415,16 +415,34 @@ struct ResonanceSearchParameters {
   Angle ma_tylo_offset, ma_vall_offset;
 };
 
+static Time longest_life = 0 * Second;
+static ResonanceSearchParameters longest_lived_parameters;
+static std::vector<std::vector<double>> search_results;
+
 class ResonanceSearchTest
     : public ResonanceTest,
-      public ::testing::WithParamInterface<ResonanceSearchParameters> {};
+      public ::testing::WithParamInterface<ResonanceSearchParameters> {
+ public:
+  static void TearDownTestCase() {
+    LOG(INFO) << NAMED(longest_life) << "\n"
+              << NAMED(longest_lived_parameters.n_tylo_offset) << "\n"
+              << NAMED(longest_lived_parameters.n_vall_offset) << "\n"
+              << NAMED(longest_lived_parameters.ma_tylo_offset) << "\n"
+              << NAMED(longest_lived_parameters.ma_vall_offset);
+
+    std::ofstream file;
+    file.open("resonance_search.generated.wl");
+    file << mathematica::Assign("results", search_results);
+    file.close();
+  }
+};
 
 std::vector<ResonanceSearchParameters> ResonanceSearchSpace() {
   std::vector<ResonanceSearchParameters> result;
-  for (double n_tylo_offset = 0.9; n_tylo_offset <= 1.2;
-       n_tylo_offset += 0.01) {
-    for (double n_vall_offset = 0.9; n_vall_offset <= 1.2;
-         n_vall_offset += 0.01) {
+  for (double n_tylo_offset = 1.05; n_tylo_offset <= 1.09;
+       n_tylo_offset += 0.001) {
+    for (double n_vall_offset = 0.91; n_vall_offset <= 0.95;
+         n_vall_offset += 0.001) {
       for (Angle ma_tylo_offset = -0 * Degree; ma_tylo_offset <= 0 * Degree;
            ma_tylo_offset += 1 * Degree) {
         for (Angle ma_vall_offset = -0 * Degree; ma_vall_offset <= 0 * Degree;
@@ -448,10 +466,10 @@ TEST_P(ResonanceSearchTest, LaplaceWhereAreYou) {
   AngularFrequency stock_n_laythe = *elements_[laythe_].conic.mean_motion;
 
   elements_[laythe_].conic.mean_motion = stock_n_laythe;
-  elements_[tylo_].conic.mean_motion =
+  elements_[vall_].conic.mean_motion =
       *elements_[laythe_].conic.mean_motion / 2 * GetParam().n_tylo_offset;
-  *elements_[vall_].conic.mean_motion =
-      *elements_[tylo_].conic.mean_motion / 2 * GetParam().n_vall_offset;
+  *elements_[tylo_].conic.mean_motion =
+      *elements_[vall_].conic.mean_motion / 2 * GetParam().n_vall_offset;
 
   elements_[tylo_].mean_anomaly = 3.14 * Radian + GetParam().ma_tylo_offset;
   elements_[vall_].mean_anomaly = 0 * Radian + GetParam().ma_vall_offset;
@@ -463,8 +481,10 @@ TEST_P(ResonanceSearchTest, LaplaceWhereAreYou) {
 
   UglyStaticApocalypse = false;
   auto ephemeris = MakeEphemeris(JacobiInitialStates());
-  ephemeris.Prolong(game_epoch_ + 90 * Day);
+  ephemeris.Prolong(game_epoch_ + 60 * Day);
   if (UglyStaticApocalypse || Escape(ephemeris) || !LogPeriods(ephemeris)) {
+    search_results.push_back(
+        {GetParam().n_tylo_offset, GetParam().n_vall_offset, 0});
     return;
   }
   for (Time t = 1 * JulianYear;
@@ -472,7 +492,14 @@ TEST_P(ResonanceSearchTest, LaplaceWhereAreYou) {
        t += 1 * JulianYear) {
     ephemeris.Prolong(game_epoch_ + t);
   }
+  search_results.push_back({GetParam().n_tylo_offset,
+                            GetParam().n_vall_offset,
+                            (ephemeris.t_max() - game_epoch_) / Second});
   LOG(INFO) << ephemeris.t_max();
+  if (ephemeris.t_max() - game_epoch_ > longest_life) {
+    longest_life = ephemeris.t_max() - game_epoch_;
+    longest_lived_parameters = GetParam();
+  }
   if (ephemeris.t_max() >= game_epoch_ + 100 * JulianYear) {
     LOG(INFO) << "Stable?";
     LOG(FATAL) << "have a look at this";
