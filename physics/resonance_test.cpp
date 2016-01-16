@@ -174,9 +174,9 @@ class ResonanceTest : public ::testing::Test {
     file.close();
   }
 
-  // Compute and log the measured periods of the moons.  Return whether that's
-  // close enough to integer.
-  bool LogPeriods(Ephemeris<KSP> const& ephemeris) {
+  // Compute and log the measured periods of the moons.  Return the residual
+  // from integer ratios.
+  double LogPeriods(Ephemeris<KSP> const& ephemeris) {
     auto const position = [this, &ephemeris](
         not_null<MassiveBody const*> body, Instant const& t) {
       return ephemeris.trajectory(body)->EvaluatePosition(t, nullptr);
@@ -242,11 +242,10 @@ class ResonanceTest : public ::testing::Test {
     LOG(INFO) << "Ratios:";
     LOG(INFO) << rv;
     LOG(INFO) << rt;
-    double garbage;
-    bool looks_resonant =
-        std::modf(rv, &garbage) < 0.1 && std::modf(rt, &garbage) < 0.1;
-    LOG(INFO) << (looks_resonant ? "looks resonant" : "skipping");
-    return looks_resonant;
+    auto const residual = [](double const x) {
+      return std::abs(x - std::round(x));
+    };
+    return std::max(residual(rv), residual(rt));
   }
 
   Ephemeris<KSP> MakeEphemeris(std::vector<DegreesOfFreedom<KSP>> states) {
@@ -418,6 +417,7 @@ struct ResonanceSearchParameters {
 static Time longest_life = 0 * Second;
 static ResonanceSearchParameters longest_lived_parameters;
 static std::vector<std::vector<double>> search_results;
+static std::vector<std::vector<double>> resonance_residuals;
 
 class ResonanceSearchTest
     : public ResonanceTest,
@@ -432,7 +432,8 @@ class ResonanceSearchTest
 
     std::ofstream file;
     file.open("resonance_search.generated.wl");
-    file << mathematica::Assign("results", search_results);
+    //file << mathematica::Assign("results", search_results);
+    file << mathematica::Assign("residuals", resonance_residuals);
     file.close();
   }
 };
@@ -440,9 +441,9 @@ class ResonanceSearchTest
 std::vector<ResonanceSearchParameters> ResonanceSearchSpace() {
   std::vector<ResonanceSearchParameters> result;
   for (double n_tylo_offset = 1.96; n_tylo_offset <= 2.11;
-       n_tylo_offset += 0.002) {
+       n_tylo_offset += 0.01) {
     for (double n_vall_offset = 2.38; n_vall_offset <= 2.55;
-         n_vall_offset += 0.005) {
+         n_vall_offset += 0.01) {
       for (Angle ma_tylo_offset = -0 * Degree; ma_tylo_offset <= 0 * Degree;
            ma_tylo_offset += 1 * Degree) {
         for (Angle ma_vall_offset = -0 * Degree; ma_vall_offset <= 0 * Degree;
@@ -483,9 +484,20 @@ TEST_P(ResonanceSearchTest, LaplaceWhereAreYou) {
   UglyStaticApocalypse = false;
   auto ephemeris = MakeEphemeris(JacobiInitialStates());
   ephemeris.Prolong(game_epoch_ + 60 * Day);
-  if (UglyStaticApocalypse || Escape(ephemeris) || !LogPeriods(ephemeris)) {
+  if (UglyStaticApocalypse || Escape(ephemeris)) {
     search_results.push_back(
         {GetParam().n_tylo_offset, GetParam().n_vall_offset, 0});
+    resonance_residuals.push_back({GetParam().n_tylo_offset,
+                                   GetParam().n_vall_offset,
+                                   0.5});
+    return;
+  } else {
+    double const residual = LogPeriods(ephemeris);
+    search_results.push_back(
+        {GetParam().n_tylo_offset, GetParam().n_vall_offset, 0});
+    resonance_residuals.push_back({GetParam().n_tylo_offset,
+                                   GetParam().n_vall_offset,
+                                   residual});
     return;
   }
   for (Time t = 1 * JulianYear;
