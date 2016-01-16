@@ -439,10 +439,10 @@ class ResonanceSearchTest
 
 std::vector<ResonanceSearchParameters> ResonanceSearchSpace() {
   std::vector<ResonanceSearchParameters> result;
-  for (double n_tylo_offset = 0.8; n_tylo_offset <= 1.2;
-       n_tylo_offset += 0.01) {
-    for (double n_vall_offset =  0.8; n_vall_offset <= 1.2;
-         n_vall_offset += 0.01) {
+  for (double n_tylo_offset = 1.6; n_tylo_offset <= 2.6;
+       n_tylo_offset += 0.02) {
+    for (double n_vall_offset = 1.6; n_vall_offset <= 2.6;
+         n_vall_offset += 0.02) {
       for (Angle ma_tylo_offset = -0 * Degree; ma_tylo_offset <= 0 * Degree;
            ma_tylo_offset += 1 * Degree) {
         for (Angle ma_vall_offset = -0 * Degree; ma_vall_offset <= 0 * Degree;
@@ -467,9 +467,9 @@ TEST_P(ResonanceSearchTest, LaplaceWhereAreYou) {
 
   elements_[laythe_].conic.mean_motion = stock_n_laythe;
   elements_[vall_].conic.mean_motion =
-      *elements_[laythe_].conic.mean_motion / 2 * GetParam().n_tylo_offset;
+      *elements_[laythe_].conic.mean_motion / GetParam().n_tylo_offset;
   *elements_[tylo_].conic.mean_motion =
-      *elements_[vall_].conic.mean_motion / 2 * GetParam().n_vall_offset;
+      *elements_[vall_].conic.mean_motion / GetParam().n_vall_offset;
 
   elements_[laythe_].mean_anomaly =  π * Radian;
   elements_[tylo_].mean_anomaly = π * Radian + GetParam().ma_tylo_offset;
@@ -506,7 +506,7 @@ TEST_P(ResonanceSearchTest, LaplaceWhereAreYou) {
     LogEphemeris(ephemeris, true, "search");
     ephemeris.Prolong(comparison_);
     LogEphemeris(ephemeris, false, "search");
-    LOG(FATAL) << "have a look at this";
+    //LOG(FATAL) << "have a look at this";
   }
 }
 
