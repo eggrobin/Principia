@@ -439,10 +439,10 @@ class ResonanceSearchTest
 
 std::vector<ResonanceSearchParameters> ResonanceSearchSpace() {
   std::vector<ResonanceSearchParameters> result;
-  for (double n_tylo_offset = 1.05; n_tylo_offset <= 1.084;
-       n_tylo_offset += 0.0005) {
-    for (double n_vall_offset = 0.915; n_vall_offset <= 0.95;
-         n_vall_offset += 0.0005) {
+  for (double n_tylo_offset = 0.8; n_tylo_offset <= 1.2;
+       n_tylo_offset += 0.01) {
+    for (double n_vall_offset =  0.8; n_vall_offset <= 1.2;
+         n_vall_offset += 0.01) {
       for (Angle ma_tylo_offset = -0 * Degree; ma_tylo_offset <= 0 * Degree;
            ma_tylo_offset += 1 * Degree) {
         for (Angle ma_vall_offset = -0 * Degree; ma_vall_offset <= 0 * Degree;
@@ -503,6 +503,9 @@ TEST_P(ResonanceSearchTest, LaplaceWhereAreYou) {
   }
   if (ephemeris.t_max() >= game_epoch_ + 100 * JulianYear) {
     LOG(INFO) << "Stable?";
+    LogEphemeris(ephemeris, true, "search");
+    ephemeris.Prolong(comparison_);
+    LogEphemeris(ephemeris, false, "search");
     LOG(FATAL) << "have a look at this";
   }
 }
