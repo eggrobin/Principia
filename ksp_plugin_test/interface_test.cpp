@@ -6,6 +6,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "base/not_null.hpp"
 #include "experimental/filesystem"
@@ -15,6 +16,7 @@
 #include "geometry/named_quantities.hpp"
 #include "geometry/point.hpp"
 #include "geometry/quaternion.hpp"
+#include "geometry/r3_element.hpp"
 #include "geometry/rotation.hpp"
 #include "glog/logging.h"
 #include "gmock/gmock-actions.h"
@@ -30,10 +32,10 @@
 #include "integrators/ordinary_differential_equations.hpp"
 #include "journal/recorder.hpp"
 #include "ksp_plugin/burn.hpp"
-#include "ksp_plugin/celestial.hpp"
 #include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/interface.hpp"
 #include "ksp_plugin/part.hpp"
+#include "ksp_plugin/plugin.hpp"
 #include "ksp_plugin_test/mock_flight_plan.hpp"
 #include "ksp_plugin_test/mock_plugin.hpp"
 #include "ksp_plugin_test/mock_vessel.hpp"

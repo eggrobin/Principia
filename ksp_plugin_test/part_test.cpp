@@ -1,9 +1,16 @@
 ﻿
 #include <sstream>
 
+#include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
 #include "gtest/gtest.h"
+#include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/part.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/massive_body.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
 #include "serialization/ksp_plugin.pb.h"

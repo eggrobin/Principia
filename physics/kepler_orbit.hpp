@@ -3,6 +3,7 @@
 
 #include <experimental/optional>
 
+#include "astronomy/frames.hpp"
 #include "experimental/optional"
 #include "geometry/named_quantities.hpp"
 #include "geometry/r3_element.hpp"

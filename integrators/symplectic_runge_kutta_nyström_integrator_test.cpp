@@ -29,6 +29,10 @@
 
 namespace principia {
 
+namespace integrators {
+struct SimpleHarmonicMotionTestInstance;
+}  // namespace integrators
+
 using quantities::Acceleration;
 using quantities::AngularFrequency;
 using quantities::Cos;

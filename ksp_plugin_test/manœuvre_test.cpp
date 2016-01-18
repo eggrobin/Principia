@@ -1,11 +1,15 @@
 ﻿
 #include <cmath>
 #include <functional>
+#include <memory>
 #include <sstream>
 #include <type_traits>
 
+#include "base/not_null.hpp"
 #include "geometry/affine_map.hpp"
 #include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
 #include "geometry/orthogonal_map.hpp"
 #include "geometry/point.hpp"
 #include "geometry/rotation.hpp"
@@ -15,13 +19,18 @@
 #include "gmock/gmock-matchers.h"
 #include "gmock/gmock-spec-builders.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "ksp_plugin/manœuvre.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/discrete_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/massive_body.hpp"
 #include "physics/mock_dynamic_frame.hpp"
 #include "physics/rigid_motion.hpp"
 #include "quantities/elementary_functions.hpp"
+#include "quantities/named_quantities.hpp"
 #include "quantities/numbers.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "quantities/uk.hpp"
 #include "serialization/geometry.pb.h"

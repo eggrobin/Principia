@@ -10,6 +10,7 @@
 
 namespace principia {
 namespace geometry {
+template <typename Scalar> struct R3Element;
 template <typename Scalar, typename Frame, int rank> class Multivector;
 template <typename Vector> class Point;
 }  // namespace geometry

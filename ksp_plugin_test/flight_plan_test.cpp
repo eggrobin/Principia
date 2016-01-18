@@ -1,25 +1,34 @@
 ﻿
+#include <functional>
 #include <memory>
 #include <sstream>
 #include <type_traits>
 #include <vector>
 
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
 #include "geometry/point.hpp"
 #include "gtest/gtest.h"
 #include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
 #include "ksp_plugin/burn.hpp"
 #include "ksp_plugin/flight_plan.hpp"
+#include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/manœuvre.hpp"
 #include "physics/barycentric_rotating_dynamic_frame.hpp"
 #include "physics/body_centered_non_rotating_dynamic_frame.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
+#include "physics/ephemeris.hpp"
 #include "physics/forkable.hpp"
 #include "physics/massive_body.hpp"
 #include "physics/rigid_motion.hpp"
+#include "quantities/named_quantities.hpp"
 #include "quantities/numbers.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 
 namespace principia {

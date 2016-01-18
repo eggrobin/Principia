@@ -8,12 +8,20 @@
 #include "serialization/journal.pb.h"
 
 struct Burn;
+struct Burn;
+struct KSPPart;
 struct KSPPart;
 struct NavigationFrameParameters;
+struct NavigationFrameParameters;
+struct NavigationManoeuvre;
 struct NavigationManoeuvre;
 struct QP;
+struct QP;
+struct WXYZ;
 struct WXYZ;
 struct XYZ;
+struct XYZ;
+struct XYZSegment;
 struct XYZSegment;
 
 namespace principia {

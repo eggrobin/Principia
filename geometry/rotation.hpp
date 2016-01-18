@@ -25,9 +25,9 @@ namespace principia {
 namespace geometry {
 
 class R3x3Matrix;
-template <typename FromFrame, typename ToFrame> class Rotation;
 template<typename FromFrame, typename ToFrame>
 class OrthogonalMap;
+template <typename FromFrame, typename ToFrame> class Rotation;
 
 template<typename FromFrame, typename ToFrame>
 std::ostream& operator<<(std::ostream& out,

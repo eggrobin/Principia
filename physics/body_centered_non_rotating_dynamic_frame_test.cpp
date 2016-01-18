@@ -17,6 +17,7 @@
 #include "gmock/gmock-matchers.h"
 #include "google/protobuf/extension_set.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
 #include "physics/body_centered_non_rotating_dynamic_frame.hpp"
 #include "physics/degrees_of_freedom.hpp"

@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
@@ -20,6 +21,12 @@
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "serialization/ksp_plugin.pb.h"
+
+namespace principia {
+namespace physics {
+template <typename Frame> class DegreesOfFreedom;
+}  // namespace physics
+}  // namespace principia
 
 namespace google {
 namespace protobuf {

@@ -16,6 +16,7 @@
 namespace principia {
 namespace geometry {
 class Quaternion;
+template <typename Scalar> struct R3Element;
 template <typename Vector> class Point;
 }  // namespace geometry
 namespace quantities {

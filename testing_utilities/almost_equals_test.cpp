@@ -4,6 +4,7 @@
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
 #include "geometry/quaternion.hpp"
+#include "geometry/r3_element.hpp"
 #include "gtest/gtest.h"
 #include "quantities/bipm.hpp"
 #include "quantities/cgs.hpp"

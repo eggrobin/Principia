@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
 #include "numerics/чебышёв_series.hpp"
