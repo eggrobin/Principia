@@ -163,7 +163,7 @@ IWYU_NOSAFE_HEADERS := --nosafe_headers
 REMOVE_BOM := for f in `ls */*.hpp && ls */*.cpp`; do awk 'NR==1{sub(/^\xef\xbb\xbf/,"")}1' $$f | awk NF{p=1}p > $$f.nobom; mv $$f.nobom $$f; done
 SINGLE_NL := for f in `ls */*.hpp && ls */*.cpp`; do awk 'NR==1{sub(/^/,"\n")}1' $$f > $$f.withnl; mv $$f.withnl $$f; done
 RESTORE_BOM := for f in `ls */*.hpp && ls */*.cpp`; do awk 'NR==1{sub(/^/,"\xef\xbb\xbf")}1' $$f > $$f.withbom; mv $$f.withbom $$f; done
-FIX_INCLUDES := deps/include-what-you-use/bin/fix_includes.py
+FIX_INCLUDES := deps/include-what-you-use/bin/fix_includes.py --ignore_re='^journal/profiles\.hpp$$'
 IWYU_CHECK_ERROR := tee /dev/tty | test ! "`grep ' error: '`"
 IWYU_TARGETS := $(wildcard */*.cpp)
 IWYU_CLEAN := rm iwyu_generated_mappings.imp; rm */*.iwyu
