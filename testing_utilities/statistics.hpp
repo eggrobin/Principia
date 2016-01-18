@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "geometry/point.hpp"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
 #include "quantities/quantities.hpp"
 
 // Various statistics on finite populations stored as |std::vector|s of

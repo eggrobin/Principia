@@ -1,22 +1,30 @@
-#include "physics/discrete_trajectory.hpp"
-
-#include <functional>
+﻿#include <functional>
 #include <list>
 #include <map>
-#include <string>
+#include <sstream>
 #include <vector>
 
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/point.hpp"
-#include "geometry/r3_element.hpp"
-#include "gmock/gmock.h"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
+#include "serialization/geometry.pb.h"
+#include "serialization/physics.pb.h"
 
 namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+template <typename Scalar> struct R3Element;
+}  // namespace geometry
 
 using geometry::Frame;
 using geometry::Instant;

@@ -1,22 +1,49 @@
-#pragma once
+﻿#pragma once
 
+#include <stddef.h>
 #include <experimental/optional>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
 #include "geometry/orthogonal_map.hpp"
 #include "geometry/rotation.hpp"
 #include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/part.hpp"
 #include "ksp_plugin/vessel.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/forkable.hpp"
+#include "physics/massless_body.hpp"
+#include "quantities/named_quantities.hpp"
 #include "serialization/ksp_plugin.pb.h"
 
 namespace principia {
+namespace ksp_plugin {
+class Vessel;
+}  // namespace ksp_plugin
+}  // namespace principia
+
+namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+template <typename Vector> class Point;
+}  // namespace geometry
+namespace ksp_plugin {
+class Celestial;
+}  // namespace ksp_plugin
+namespace serialization {
+class PhysicsBubble;
+}  // namespace serialization
 
 using base::not_null;
 using geometry::OrthogonalMap;

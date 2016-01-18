@@ -1,8 +1,12 @@
-#pragma once
+﻿#pragma once
 
 #include <functional>
 
+#include "astronomy/frames.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/rotation.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/rotating_body.hpp"
 
 namespace principia {
 

@@ -1,10 +1,24 @@
 ﻿#pragma once
 
-#include "quantities/parser.hpp"
-
+#include <cstdlib>
+#include <ostream>
 #include <string>
 
+#include "astronomy/frames.hpp"
+#include "base/macros.hpp"
+#include "geometry/epoch.hpp"
+#include "geometry/r3_element.hpp"
+#include "glog/logging.h"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/oblate_body.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/parser.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 
 namespace principia {

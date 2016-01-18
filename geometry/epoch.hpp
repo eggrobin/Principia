@@ -1,7 +1,11 @@
-#pragma once
+﻿#pragma once
 
+#include "astronomy/frames.hpp"
 #include "geometry/named_quantities.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
+#include "tools/generate_configuration.hpp"
 
 // Epochs for expressing instants of Temps Atomique International (or Terrestial
 // Time, which is parallel to it).

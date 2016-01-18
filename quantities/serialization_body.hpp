@@ -1,11 +1,15 @@
-#pragma once
-
-#include "quantities/serialization.hpp"
+﻿#pragma once
 
 #include "base/not_null.hpp"
+#include "glog/logging.h"
 #include "quantities/quantities.hpp"
+#include "quantities/serialization.hpp"
 
 namespace principia {
+
+namespace quantities {
+template <typename T, typename Message> class DoubleOrQuantitySerializer;
+}  // namespace quantities
 
 using base::not_null;
 

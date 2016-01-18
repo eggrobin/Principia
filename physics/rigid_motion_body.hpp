@@ -1,10 +1,24 @@
-#pragma once
+﻿#pragma once
 
-#include "physics/rigid_motion.hpp"
-
+#include "geometry/affine_map.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/linear_map.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/orthogonal_map.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/rigid_motion.hpp"
+#include "physics/rotating_body.hpp"
+#include "quantities/si.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class LinearMap;
+template <typename FromFrame, typename ToFrame> class OrthogonalMap;
+}  // namespace geometry
+namespace physics {
+template <typename FromFrame, typename ToFrame> class RigidMotion;
+}  // namespace physics
 
 using geometry::LinearMap;
 

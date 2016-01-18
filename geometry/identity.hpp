@@ -1,10 +1,26 @@
-#pragma once
+﻿#pragma once
 
 #include "base/mappable.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/linear_map.hpp"
+#include "geometry/orthogonal_map.hpp"
+#include "geometry/r3_element.hpp"
 #include "geometry/sign.hpp"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "numerics/чебышёв_series.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/kepler_orbit.hpp"
+#include "physics/rigid_motion.hpp"
 #include "serialization/geometry.pb.h"
+
+namespace principia {
+namespace serialization {
+class Identity;
+class LinearMap;
+}  // namespace serialization
+}  // namespace principia
 
 namespace principia {
 namespace geometry {

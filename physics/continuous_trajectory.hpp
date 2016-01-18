@@ -1,16 +1,31 @@
 ﻿#pragma once
 
 #include <experimental/optional>
-#include <vector>
+#include <memory>
 #include <utility>
+#include <vector>
 
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/sign.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "numerics/чебышёв_series.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/forkable.hpp"
 #include "quantities/quantities.hpp"
 #include "serialization/physics.pb.h"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
+
+namespace numerics {
+template <typename Vector> class ЧебышёвSeries;
+}  // namespace numerics
+namespace serialization {
+class ContinuousTrajectory;
+}  // namespace serialization
 
 using geometry::Instant;
 using quantities::Length;

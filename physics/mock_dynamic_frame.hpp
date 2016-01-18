@@ -1,11 +1,31 @@
-#pragma once
+﻿#pragma once
 
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "geometry/rotation.hpp"
+#include "gmock/gmock-generated-function-mockers.h"
+#include "gmock/gmock-matchers.h"
+#include "ksp_plugin/manœuvre.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
 #include "physics/rigid_motion.hpp"
+#include "physics/rotating_body.hpp"
+#include "quantities/named_quantities.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename FrameTag, FrameTag frame_tag, bool frame_is_inertial> class Frame;
+}  // namespace geometry
+namespace physics {
+template <typename FromFrame, typename ToFrame> class RigidMotion;
+}  // namespace physics
+namespace serialization {
+class DynamicFrame;
+}  // namespace serialization
 
 using geometry::Instant;
 using geometry::Vector;

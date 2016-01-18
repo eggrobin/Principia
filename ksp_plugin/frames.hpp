@@ -2,10 +2,14 @@
 
 #include <functional>
 
+#include "astronomy/frames.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/named_quantities.hpp"
 #include "ksp_plugin/manœuvre.hpp"
 #include "physics/dynamic_frame.hpp"
+#include "physics/forkable.hpp"
+#include "serialization/geometry.pb.h"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
 

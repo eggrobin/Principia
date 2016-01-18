@@ -1,11 +1,23 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 #include <string>
 
+#include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
 #include "google/protobuf/descriptor.h"
 #include "serialization/geometry.pb.h"
+
+namespace google {
+namespace protobuf {
+class EnumValueDescriptor;
+}  // namespace protobuf
+}  // namespace google
+namespace principia {
+namespace serialization {
+class Frame;
+}  // namespace serialization
+}  // namespace principia
 
 namespace principia {
 namespace geometry {

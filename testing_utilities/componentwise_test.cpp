@@ -1,20 +1,22 @@
-﻿#include "testing_utilities/componentwise.hpp"
-
-#include <limits>
+﻿#include <sstream>
 
 #include "geometry/grassmann.hpp"
 #include "geometry/pair.hpp"
+#include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
-#include "glog/logging.h"
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
+#include "testing_utilities/componentwise.hpp"
 #include "testing_utilities/vanishes_before.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+}  // namespace geometry
 
 using geometry::Bivector;
 using geometry::Pair;

@@ -1,11 +1,18 @@
-#pragma once
+﻿#pragma once
 
-#include "mathematica/mathematica.hpp"
-
+#include <stddef.h>
 #include <cmath>
 #include <string>
 #include <tuple>
 #include <vector>
+
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "mathematica/mathematica.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "quantities/quantities.hpp"
 
 namespace principia {
 

@@ -1,23 +1,35 @@
-﻿#include "physics/ephemeris.hpp"
-
-#include <limits>
+﻿#include <limits>
 #include <map>
+#include <sstream>
+#include <string>
+#include <type_traits>
 #include <vector>
 
 #include "astronomy/frames.hpp"
 #include "base/macros.hpp"
 #include "geometry/barycentre_calculator.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/frame.hpp"
-#include "gmock/gmock.h"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
 #include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/forkable.hpp"
 #include "physics/massive_body.hpp"
+#include "physics/massless_body.hpp"
 #include "physics/oblate_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/solar_system.hpp"
 #include "quantities/astronomy.hpp"
 #include "quantities/constants.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/numbers.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
 #include "serialization/physics.pb.h"
@@ -26,6 +38,10 @@
 #include "testing_utilities/solar_system_factory.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+}  // namespace geometry
 
 using astronomy::ICRFJ2000Equator;
 using astronomy::kSolarSystemBarycentreEquator;

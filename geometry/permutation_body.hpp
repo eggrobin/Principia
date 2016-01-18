@@ -1,17 +1,24 @@
-#pragma once
+﻿#pragma once
 
 #include <map>
 #include <utility>
 
+#include "base/mappable.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/linear_map.hpp"
 #include "geometry/quaternion.hpp"
 #include "geometry/r3_element.hpp"
 #include "geometry/sign.hpp"
+#include "glog/logging.h"
+#include "google/protobuf/extension_set.h"
 #include "quantities/elementary_functions.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 namespace geometry {
+
+template <typename FromFrame, typename ToFrame> class Permutation;
 
 template<typename FromFrame, typename ToFrame>
 Permutation<FromFrame, ToFrame>::Permutation(

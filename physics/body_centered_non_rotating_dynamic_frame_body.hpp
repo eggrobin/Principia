@@ -1,10 +1,33 @@
-#pragma once
+﻿#pragma once
 
-#include "physics/body_centered_non_rotating_dynamic_frame.hpp"
+#include <memory>
 
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/identity.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/sign.hpp"
+#include "google/protobuf/extension_set.h"
+#include "physics/body.hpp"
+#include "physics/body_centered_non_rotating_dynamic_frame.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/forkable.hpp"
+#include "physics/rigid_motion.hpp"
+#include "physics/rotating_body.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "serialization/physics.pb.h"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
+
+namespace physics {
+class MassiveBody;
+template <typename Frame> class Ephemeris;
+template <typename InertialFrame, typename ThisFrame> class BodyCentredNonRotatingDynamicFrame;
+}  // namespace physics
 
 using geometry::Identity;
 

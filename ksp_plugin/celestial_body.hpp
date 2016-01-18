@@ -1,9 +1,31 @@
-#pragma once
+﻿#pragma once
 
+#include <memory>
+
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "glog/logging.h"
 #include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/frames.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/forkable.hpp"
+#include "tools/generate_configuration.hpp"
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+}  // namespace physics
+}  // namespace principia
 
 namespace principia {
 namespace ksp_plugin {
+
+class Celestial;
 
 inline Celestial::Celestial(not_null<MassiveBody const*> body)
     : body_(body),

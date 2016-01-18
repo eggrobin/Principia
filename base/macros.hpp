@@ -1,7 +1,13 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdlib>
+#include <ostream>
 #include <string>
+#include <utility>
+
+#include "base/not_null.hpp"
+#include "glog/logging.h"
+#include "glog/stl_logging.h"
 
 namespace principia {
 namespace base {

@@ -1,7 +1,8 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 
+#include "astronomy/frames.hpp"
 #include "geometry/named_quantities.hpp"
 
 namespace principia {

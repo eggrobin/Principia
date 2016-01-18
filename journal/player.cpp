@@ -1,12 +1,13 @@
-#include "journal/player.hpp"
-
+﻿#include <string.h>
 #include <string>
 
 #include "base/array.hpp"
 #include "base/get_line.hpp"
 #include "base/hexadecimal.hpp"
-#include "journal/profiles.hpp"
+#include "experimental/filesystem"
 #include "glog/logging.h"
+#include "journal/player.hpp"
+#include "serialization/journal.pb.h"
 
 namespace principia {
 
@@ -28,6 +29,7 @@ bool Player::Play() {
   }
 
 #include "journal/player.generated.cc"
+
   return true;
 }
 

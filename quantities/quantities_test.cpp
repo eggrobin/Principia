@@ -1,17 +1,29 @@
 ﻿
+#include <cmath>
 #include <functional>
+#include <sstream>
 #include <string>
 
-#include "google/protobuf/stubs/common.h"
+#include "geometry/r3_element.hpp"
 #include "glog/logging.h"
+#include "gmock/gmock-matchers.h"
+#include "google/protobuf/stubs/logging.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/astronomy.hpp"
-#include "quantities/bipm.hpp"
 #include "quantities/constants.hpp"
 #include "quantities/elementary_functions.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/numbers.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "quantities/uk.hpp"
+#include "serialization/quantities.pb.h"
 #include "testing_utilities/algebra.hpp"
 #include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/numerics.hpp"

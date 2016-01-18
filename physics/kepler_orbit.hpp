@@ -1,13 +1,25 @@
-#pragma once
+﻿#pragma once
 
+#include <experimental/optional>
+
+#include "astronomy/frames.hpp"
 #include "experimental/optional"
-
+#include "geometry/named_quantities.hpp"
+#include "geometry/r3_element.hpp"
 #include "physics/body.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
 namespace physics {
 
+
+class Body;
 
 template<typename Frame>
 struct KeplerianElements {

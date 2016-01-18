@@ -1,19 +1,31 @@
-#pragma once
+﻿#pragma once
 
 #include <experimental/filesystem>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
+#include "geometry/named_quantities.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/manœuvre.hpp"
 #include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/ephemeris.hpp"
 #include "physics/massive_body.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "serialization/astronomy.pb.h"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
 namespace physics {
+
+template <typename Frame> class ContinuousTrajectory;
 
 template<typename Frame>
 class SolarSystem {

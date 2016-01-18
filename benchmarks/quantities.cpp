@@ -1,10 +1,8 @@
-
+﻿
+#include "benchmark/benchmark_api.h"
 #include "benchmarks/quantities.hpp"
 
 #include<vector>
-
-// Must come last to avoid conflicts when defining the CHECK macros.
-#include "benchmark/benchmark.h"
 
 namespace principia {
 namespace quantities {

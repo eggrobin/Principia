@@ -1,11 +1,14 @@
-#pragma once
+﻿#pragma once
 
-#include "journal/method.hpp"
-
+#include <functional>
 #include <list>
+#include <memory>
 
 #include "glog/logging.h"
+#include "google/protobuf/extension_set.h"
+#include "journal/method.hpp"
 #include "journal/recorder.hpp"
+#include "serialization/journal.pb.h"
 
 namespace principia {
 namespace journal {

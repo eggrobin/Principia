@@ -1,13 +1,39 @@
 ﻿#pragma once
 
-#include "ksp_plugin/vessel.hpp"
-
+#include <functional>
+#include <memory>
+#include <ostream>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "base/macros.hpp"
+#include "base/not_null.hpp"
+#include "geometry/named_quantities.hpp"
+#include "glog/logging.h"
+#include "ksp_plugin/flight_plan.hpp"
+#include "ksp_plugin/frames.hpp"
+#include "ksp_plugin/vessel.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/forkable.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/massless_body.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
+#include "serialization/ksp_plugin.pb.h"
 #include "testing_utilities/make_not_null.hpp"
 
 namespace principia {
+
+namespace integrators {
+template <typename DifferentialEquation> class AdaptiveStepSizeIntegrator;
+}  // namespace integrators
+namespace ksp_plugin {
+class Celestial;
+class Vessel;
+}  // namespace ksp_plugin
 
 using quantities::si::Kilogram;
 

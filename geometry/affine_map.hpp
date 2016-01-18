@@ -1,8 +1,17 @@
-#pragma once
+﻿#pragma once
 
-#include "geometry/point.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
+#include "mathematica/mathematica.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "serialization/geometry.pb.h"
+
+namespace principia {
+namespace serialization {
+class AffineMap;
+}  // namespace serialization
+}  // namespace principia
 
 namespace principia {
 namespace geometry {

@@ -1,10 +1,22 @@
-#pragma once
+﻿#pragma once
 
 #include <experimental/filesystem>
 #include <fstream>
 
 #include "base/not_null.hpp"
 #include "serialization/journal.pb.h"
+
+namespace principia {
+namespace base {
+template <typename OtherPointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace serialization {
+class Method;
+}  // namespace serialization
+}  // namespace principia
 
 namespace principia {
 namespace journal {

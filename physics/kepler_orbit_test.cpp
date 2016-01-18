@@ -1,11 +1,17 @@
-﻿#include "physics/kepler_orbit.hpp"
+﻿#include <fstream>
+#include <memory>
 
 #include "astronomy/frames.hpp"
+#include "experimental/filesystem"
 #include "geometry/epoch.hpp"
-#include "gmock/gmock.h"
+#include "geometry/grassmann.hpp"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
-#include "mathematica/mathematica.hpp"
+#include "ksp_plugin/plugin.hpp"
+#include "physics/kepler_orbit.hpp"
 #include "physics/solar_system.hpp"
+#include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
 
 namespace principia {

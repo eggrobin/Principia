@@ -1,8 +1,15 @@
-﻿#include "quantities/parser.hpp"
+﻿#include <sstream>
 
-#include "gmock/gmock.h"
+#include "geometry/r3_element.hpp"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/parser.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
 

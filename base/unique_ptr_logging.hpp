@@ -1,5 +1,6 @@
-#pragma once
+﻿#pragma once
 
+#include <iosfwd>
 #include <memory>
 
 // We need to pollute the |::| namespace in order for lookup to work, like

@@ -1,11 +1,9 @@
-﻿#include "testing_utilities/almost_equals.hpp"
-
-#include <sstream>
+﻿#include <sstream>
 
 #include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
 #include "geometry/quaternion.hpp"
-#include "glog/logging.h"
-#include "gmock/gmock.h"
+#include "geometry/r3_element.hpp"
 #include "gtest/gtest.h"
 #include "quantities/bipm.hpp"
 #include "quantities/cgs.hpp"
@@ -13,6 +11,7 @@
 #include "quantities/numbers.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/uk.hpp"
+#include "testing_utilities/almost_equals.hpp"
 
 namespace principia {
 namespace testing_utilities {

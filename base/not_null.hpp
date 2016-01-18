@@ -1,5 +1,7 @@
-#pragma once
+﻿#pragma once
 
+#include <cstddef>
+#include <iosfwd>
 #include <memory>
 #include <type_traits>
 
@@ -265,15 +267,15 @@ class not_null {
 // |not_null<Pointer> const| and |not_null<Pointer const>| etc. equivalent
 // easily.
 
-// Use |not_null<Pointer> const| instead.
-template<typename Pointer>
-class not_null<Pointer const>;
-// Use |not_null<Pointer>&| instead.
-template<typename Pointer>
-class not_null<Pointer&>;
 // Use |not_null<Pointer>&&| instead.
 template<typename Pointer>
 class not_null<Pointer&&>;
+// Use |not_null<Pointer>&| instead.
+template<typename Pointer>
+class not_null<Pointer&>;
+// Use |not_null<Pointer> const| instead.
+template<typename Pointer>
+class not_null<Pointer const>;
 
 // Factory taking advantage of template argument deduction.  Returns a
 // |not_null<Pointer>| to |*pointer|.  |CHECK|s that |pointer| is not null.

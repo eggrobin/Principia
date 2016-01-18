@@ -1,28 +1,44 @@
-﻿#include "ksp_plugin/plugin.hpp"
-
-#include <algorithm>
-#include <cmath>
+﻿#include <stddef.h>
 #include <map>
+#include <ostream>
+#include <set>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
-#include <set>
 
+#include "base/macros.hpp"
 #include "base/map_util.hpp"
 #include "base/not_null.hpp"
-#include "base/unique_ptr_logging.hpp"
 #include "geometry/affine_map.hpp"
-#include "geometry/barycentre_calculator.hpp"
+#include "geometry/frame.hpp"
 #include "geometry/identity.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/pair.hpp"
 #include "geometry/permutation.hpp"
+#include "geometry/point.hpp"
+#include "geometry/sign.hpp"
 #include "glog/logging.h"
-#include "glog/stl_logging.h"
 #include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
-#include "physics/barycentric_rotating_dynamic_frame_body.hpp"
+#include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/physics_bubble.hpp"
+#include "ksp_plugin/plugin.hpp"
+#include "ksp_plugin/vessel.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
 #include "physics/body_centered_non_rotating_dynamic_frame.hpp"
+#include "physics/continuous_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
+#include "physics/forkable.hpp"
+#include "physics/rigid_motion.hpp"
+#include "quantities/numbers.hpp"
+#include "serialization/ksp_plugin.pb.h"
+
+namespace principia {
+namespace geometry {
+template <typename Vector, typename Scalar> class BarycentreCalculator;
+}  // namespace geometry
+}  // namespace principia
 
 namespace principia {
 namespace ksp_plugin {

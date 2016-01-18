@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 
@@ -13,6 +13,8 @@ namespace base {
 // |input.size|.  The range
 // [&output.data[input.size << 1], &output.data[output.size][ is left
 // unmodified.
+template <typename Element> struct Array;
+
 inline void HexadecimalEncode(Array<std::uint8_t const> input,
                               Array<std::uint8_t> output);
 

@@ -1,6 +1,8 @@
-#pragma once
+﻿#pragma once
 
+#include "base/not_null.hpp"
 #include "geometry/linear_map.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 namespace geometry {

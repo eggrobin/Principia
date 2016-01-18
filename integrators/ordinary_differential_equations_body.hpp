@@ -1,12 +1,23 @@
 ﻿#pragma once
 
+#include "astronomy/frames.hpp"
 #include "base/macros.hpp"
+#include "base/not_null.hpp"
+#include "geometry/named_quantities.hpp"
+#include "glog/logging.h"
 #include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "numerics/double_precision.hpp"
+#include "physics/forkable.hpp"
+#include "serialization/integrators.pb.h"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
 namespace integrators {
+
+template <typename DifferentialEquation> class AdaptiveStepSizeIntegrator;
+template <typename DifferentialEquation> class FixedStepSizeIntegrator;
 
 template<typename Position>
 void

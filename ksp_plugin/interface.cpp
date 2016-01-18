@@ -1,14 +1,41 @@
-﻿#include "ksp_plugin/interface.hpp"
-
-#include <cctype>
-#include <cstring>
+﻿#include <chrono>
+#include <cstdint>
+#include <cstdio>
+#include <ctime>
+#include <functional>
+#include <iomanip>
+#include <memory>
+#include <ostream>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
+
+#include "astronomy/frames.hpp"
+#include "experimental/filesystem"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "geometry/rotation.hpp"
+#include "glog/log_severity.h"
+#include "glog/logging.h"
+#include "google/protobuf/extension_set.h"
+#include "google/protobuf/stubs/logging.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/interface.hpp"
+#include "mathematica/mathematica.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/massive_body.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
+#include "serialization/physics.pb.h"
 #if OS_WIN
 #define NOGDI
-#include <windows.h>
 #include <psapi.h>
+#include <windows.h>
 #endif
 
 #include "base/array.hpp"
@@ -26,6 +53,18 @@
 #include "quantities/parser.hpp"
 #include "serialization/astronomy.pb.h"
 #include "serialization/ksp_plugin.pb.h"
+
+namespace google {
+namespace protobuf {
+class Message;
+}  // namespace protobuf
+}  // namespace google
+namespace principia {
+namespace physics {
+template <typename Frame> class OblateBody;
+template <typename Frame> class RotatingBody;
+}  // namespace physics
+}  // namespace principia
 
 namespace principia {
 

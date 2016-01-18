@@ -1,16 +1,19 @@
-#include "tools/journal_proto_processor.hpp"
-
-#include <algorithm>
+﻿#include <algorithm>
 #include <cctype>
 #include <fstream>
-#include <iostream>
+#include <iterator>
 #include <map>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "glog/logging.h"
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/descriptor.pb.h"
+#include "google/protobuf/extension_set.h"
 #include "serialization/journal.pb.h"
+#include "tools/journal_proto_processor.hpp"
 
 namespace principia {
 namespace tools {

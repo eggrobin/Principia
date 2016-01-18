@@ -1,4 +1,4 @@
-
+﻿
 // .\Release\benchmarks.exe --benchmark_min_time=2 --benchmark_repetitions=10 --benchmark_filter=codePi  // NOLINT(whitespace/line_length)
 // Benchmarking on 1 X 2672 MHz CPU
 // 2015/02/14-23:12:32
@@ -30,15 +30,14 @@
 // BM_DecodePi_stddev     203016     882904        262                                 1                 // NOLINT(whitespace/line_length)
 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
-#include "base/hexadecimal.hpp"
-
+#include <ostream>
 #include <string>
+#include <type_traits>
 #include <vector>
 
+#include "base/hexadecimal.hpp"
 #include "base/not_null.hpp"
-
-// Must come last to avoid conflicts when defining the CHECK macros.
-#include "benchmark/benchmark.h"
+#include "benchmark/benchmark_api.h"
 
 namespace principia {
 namespace base {

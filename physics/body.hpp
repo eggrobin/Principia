@@ -1,10 +1,16 @@
 ﻿#ifndef PRINCIPIA_PHYSICS_BODY_HPP_
 #define PRINCIPIA_PHYSICS_BODY_HPP_
 
+#include <memory>
+
 #include "base/not_null.hpp"
 #include "serialization/physics.pb.h"
 
 namespace principia {
+
+namespace serialization {
+class Body;
+}  // namespace serialization
 
 using base::not_null;
 

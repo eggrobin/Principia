@@ -1,10 +1,17 @@
 ﻿#pragma once
 
 #include <experimental/filesystem>
+#include <fstream>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "base/macros.hpp"
+#include "base/not_null.hpp"
+#include "glog/logging.h"
+#include "physics/solar_system.hpp"
 #include "testing_utilities/solar_system_factory.hpp"
 
 namespace principia {

@@ -1,6 +1,23 @@
-#pragma once
+﻿#pragma once
 
+#include <deque>
+#include <experimental/optional>
+#include <iterator>
+#include <map>
+#include <memory>
+#include <ostream>
+
+#include "astronomy/frames.hpp"
+#include "base/macros.hpp"
+#include "base/not_null.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "geometry/sign.hpp"
+#include "glog/logging.h"
 #include "physics/forkable.hpp"
+#include "quantities/quantities.hpp"
+#include "serialization/physics.pb.h"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
 namespace physics {

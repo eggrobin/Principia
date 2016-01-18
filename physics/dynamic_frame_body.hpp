@@ -1,12 +1,42 @@
-#pragma once
+﻿#pragma once
 
+#include <memory>
+#include <ostream>
+
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/r3x3_matrix.hpp"
+#include "geometry/rotation.hpp"
+#include "geometry/sign.hpp"
+#include "glog/logging.h"
+#include "google/protobuf/extension_set.h"
 #include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/body.hpp"
 #include "physics/body_centered_non_rotating_dynamic_frame.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
+#include "physics/forkable.hpp"
+#include "physics/kepler_orbit.hpp"
+#include "physics/rotating_body.hpp"
 #include "quantities/elementary_functions.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
+#include "serialization/physics.pb.h"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename FrameTag, FrameTag frame_tag, bool frame_is_inertial> class Frame;
+}  // namespace geometry
+namespace physics {
+template <typename Frame> class Ephemeris;
+template <typename InertialFrame, typename ThisFrame> class DynamicFrame;
+}  // namespace physics
 
 using geometry::Bivector;
 using geometry::InnerProduct;

@@ -1,18 +1,40 @@
-﻿#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
-
+﻿#include <stddef.h>
 #include <algorithm>
-#include <vector>
+#include <cmath>
+#include <functional>
+#include <sstream>
 #include <string>
+#include <vector>
 
-#include "gmock/gmock.h"
+#include "astronomy/frames.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "glog/logging.h"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-param-test.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "numerics/double_precision.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "quantities/elementary_functions.hpp"
+#include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/numerics.hpp"
 #include "testing_utilities/statistics.hpp"
 #include "testing_utilities/vanishes_before.hpp"
 
 namespace principia {
+
+namespace integrators {
+struct SimpleHarmonicMotionTestInstance;
+}  // namespace integrators
 
 using quantities::Acceleration;
 using quantities::AngularFrequency;

@@ -1,18 +1,38 @@
 ﻿#pragma once
 
+#include <functional>
 #include <memory>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
+#include "geometry/named_quantities.hpp"
 #include "ksp_plugin/celestial.hpp"
 #include "ksp_plugin/flight_plan.hpp"
+#include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/part.hpp"
+#include "physics/degrees_of_freedom.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/ephemeris.hpp"
+#include "physics/forkable.hpp"
+#include "physics/massive_body.hpp"
 #include "physics/massless_body.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "serialization/ksp_plugin.pb.h"
 
 namespace principia {
+
+namespace integrators {
+template <typename DifferentialEquation> class AdaptiveStepSizeIntegrator;
+}  // namespace integrators
+namespace ksp_plugin {
+class Celestial;
+template <typename InertialFrame, typename Frame> class Manœuvre;
+}  // namespace ksp_plugin
+namespace serialization {
+class Vessel;
+}  // namespace serialization
 
 using physics::DiscreteTrajectory;
 using physics::Ephemeris;

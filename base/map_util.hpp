@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // This code comes from:
 // https://github.com/google/protobuf/blob/master/src/google/protobuf/stubs/map_util.h
@@ -36,6 +36,9 @@
 
 // from google3/util/gtl/map_util.h
 // Author: Anton Carver
+
+#include <ostream>
+#include <string>
 
 #include "glog/logging.h"
 

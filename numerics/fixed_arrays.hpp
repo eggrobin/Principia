@@ -1,9 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include <array>
 #include <initializer_list>
 #include <vector>
 
+#include "geometry/point.hpp"
 #include "quantities/quantities.hpp"
 
 namespace principia {

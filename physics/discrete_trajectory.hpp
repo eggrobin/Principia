@@ -1,19 +1,32 @@
-#pragma once
+﻿#pragma once
 
 #include <functional>
 #include <list>
 #include <map>
 #include <memory>
 
+#include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/forkable.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "serialization/physics.pb.h"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
+
+namespace physics {
+namespace internal {
+template <typename Tr4jectory> struct ForkableTraits;
+}  // namespace internal
+template <typename Frame> class DegreesOfFreedom;
+}  // namespace physics
+namespace serialization {
+class Trajectory;
+}  // namespace serialization
 
 using base::not_null;
 using geometry::Instant;

@@ -1,9 +1,22 @@
-#pragma once
+﻿#pragma once
 
+#include <ostream>
+
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
+#include "ksp_plugin/celestial.hpp"
 #include "part.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/massive_body.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "serialization/ksp_plugin.pb.h"
 
 namespace principia {
 namespace ksp_plugin {
+
+template <typename Frame> class Part;
 
 template<typename Frame>
 Part<Frame>::Part(

@@ -1,21 +1,40 @@
-#pragma once
-
-#include "testing_utilities/almost_equals.hpp"
+﻿#pragma once
 
 #include <float.h>
 #include <math.h>
 #include <stdint.h>
-
 #include <algorithm>
+#include <ostream>
 #include <string>
 
 #include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
+#include "geometry/quaternion.hpp"
 #include "geometry/r3_element.hpp"
+#include "geometry/serialization.hpp"
+#include "glog/logging.h"
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "ksp_plugin/plugin.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/kepler_orbit.hpp"
+#include "quantities/quantities.hpp"
+#include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/numerics.hpp"
 
 namespace principia {
+namespace quantities {
+template <typename D> class Quantity;
+}  // namespace quantities
+}  // namespace principia
+
+namespace principia {
 namespace testing_utilities {
+
+template <typename T> class AlmostEqualsMatcher;
 
 template<typename T>
 testing::PolymorphicMatcher<AlmostEqualsMatcher<T>> AlmostEquals(

@@ -1,14 +1,30 @@
 ﻿#pragma once
 
 #include <experimental/optional>
+#include <memory>
 
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/sign.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "physics/body.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
 #include "physics/ephemeris.hpp"
+#include "physics/forkable.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename FrameTag, FrameTag frame_tag, bool frame_is_inertial> class Frame;
+template <typename Scalar, typename Frame, int rank> class Multivector;
+}  // namespace geometry
 
 using geometry::Instant;
 using geometry::Vector;

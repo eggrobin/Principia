@@ -1,14 +1,22 @@
 ﻿#pragma once
 
-#include "geometry/grassmann.hpp"
-
+#include <ostream>
 #include <string>
 
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/permutation.hpp"
+#include "geometry/r3_element.hpp"
 #include "geometry/rotation.hpp"
+#include "geometry/sign.hpp"
+#include "glog/logging.h"
+#include "quantities/quantities.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 namespace geometry {
+
+template <typename Scalar, typename Frame, int rank> class Multivector;
 
 namespace {
 

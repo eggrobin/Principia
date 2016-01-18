@@ -1,7 +1,16 @@
 ﻿#pragma once
 
+#include <iosfwd>
+
+#include "base/not_null.hpp"
 #include "geometry/r3_element.hpp"
 #include "serialization/geometry.pb.h"
+
+namespace principia {
+namespace serialization {
+class Quaternion;
+}  // namespace serialization
+}  // namespace principia
 
 namespace principia {
 namespace geometry {

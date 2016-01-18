@@ -1,5 +1,9 @@
-#pragma once
+﻿#pragma once
 
+#include "base/not_null.hpp"
+#include "geometry/sign.hpp"
+#include "physics/body.hpp"
+#include "quantities/quantities.hpp"
 #include "testing_utilities/make_not_null.hpp"
 
 namespace principia {

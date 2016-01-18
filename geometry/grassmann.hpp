@@ -11,12 +11,15 @@
 
 namespace principia {
 
+namespace serialization {
+class Multivector;
+}  // namespace serialization
+
 using base::not_null;
 
 namespace geometry {
 
 template<typename FromFrame, typename ToFrame> class Permutation;
-
 // A multivector of rank |rank| on a three-dimensional real inner product
 // space bearing the dimensionality of |Scalar|, i.e., an element of
 // ⋀ⁿ Scalar³. Do not use this type for |rank == 0| (scalars), use the |Scalar|

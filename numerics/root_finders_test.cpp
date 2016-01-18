@@ -1,8 +1,18 @@
-﻿#include "numerics/root_finders.hpp"
+﻿#include <sstream>
 
+#include "astronomy/frames.hpp"
 #include "geometry/named_quantities.hpp"
-#include "gmock/gmock.h"
+#include "geometry/point.hpp"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "numerics/root_finders.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "quantities/elementary_functions.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
 
 namespace principia {

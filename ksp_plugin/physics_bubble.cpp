@@ -1,19 +1,26 @@
-﻿#include "ksp_plugin/physics_bubble.hpp"
-
-#include <map>
+﻿#include <map>
+#include <ostream>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "base/macros.hpp"
 #include "base/map_util.hpp"
-#include "base/unique_ptr_logging.hpp"
 #include "geometry/barycentre_calculator.hpp"
 #include "geometry/identity.hpp"
-#include "glog/stl_logging.h"
+#include "geometry/pair.hpp"
+#include "geometry/point.hpp"
+#include "glog/logging.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/celestial.hpp"
 #include "ksp_plugin/frames.hpp"
+#include "ksp_plugin/physics_bubble.hpp"
+#include "ksp_plugin/vessel.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/quantities.hpp"
+#include "serialization/ksp_plugin.pb.h"
 
 namespace principia {
 

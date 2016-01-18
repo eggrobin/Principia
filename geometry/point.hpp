@@ -1,15 +1,25 @@
-#pragma once
+﻿#pragma once
 
+#include <iosfwd>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "base/not_null.hpp"
 #include "geometry/barycentre_calculator.hpp"
+#include "geometry/grassmann.hpp"
 #include "quantities/quantities.hpp"
 #include "serialization/geometry.pb.h"
 
 namespace principia {
+
+namespace geometry {
+template <typename Vector, typename Scalar> class BarycentreCalculator;
+}  // namespace geometry
+namespace serialization {
+class Point;
+}  // namespace serialization
 
 using quantities::is_quantity;
 

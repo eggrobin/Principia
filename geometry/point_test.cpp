@@ -1,12 +1,20 @@
-#include "geometry/point.hpp"
-
+﻿#include <sstream>
 #include <vector>
 
-#include "geometry/frame.hpp"
+#include "astronomy/frames.hpp"
+#include "geometry/barycentre_calculator.hpp"
 #include "geometry/epoch.hpp"
-#include "gmock/gmock.h"
-#include "quantities/quantities.hpp"
+#include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-death-test.h"
+#include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
 #include "testing_utilities/almost_equals.hpp"

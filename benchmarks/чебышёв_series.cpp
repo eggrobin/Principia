@@ -28,18 +28,26 @@
 // BM_NewhallApproximation/8         657        624    2000000
 // BM_NewhallApproximation/16        754        741    2000000
 
+#include <iosfwd>
 #include <random>
+#include <string>
 #include <vector>
 
 #include "astronomy/frames.hpp"
+#include "benchmark/benchmark_api.h"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/r3_element.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "numerics/чебышёв_series.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 
-// Must come last to avoid conflicts when defining the CHECK macros.
-#include "benchmark/benchmark.h"
-
 namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+}  // namespace geometry
 
 using astronomy::ICRFJ2000Ecliptic;
 using geometry::Displacement;

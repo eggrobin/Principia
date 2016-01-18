@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#include "ksp_plugin/manœuvre.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/numbers.hpp"
 #include "quantities/quantities.hpp"

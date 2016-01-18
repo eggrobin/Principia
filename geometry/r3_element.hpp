@@ -10,6 +10,10 @@
 
 namespace principia {
 
+namespace serialization {
+class R3Element;
+}  // namespace serialization
+
 using base::not_null;
 using quantities::Angle;
 

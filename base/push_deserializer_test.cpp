@@ -1,19 +1,24 @@
-#include "base/push_deserializer.hpp"
-
-#include <algorithm>
+﻿#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <functional>
 #include <list>
+#include <sstream>
 #include <string>
-#include <thread>
-#include <vector>
+#include <type_traits>
 
 #include "base/array.hpp"
 #include "base/not_null.hpp"
 #include "base/pull_serializer.hpp"
-#include "gmock/gmock.h"
+#include "base/push_deserializer.hpp"
+#include "glog/logging.h"
+#include "gmock/gmock-matchers.h"
+#include "google/protobuf/message.h"
+#include "gtest/gtest-death-test.h"
+#include "gtest/gtest.h"
+#include "serialization/geometry.pb.h"
 #include "serialization/physics.pb.h"
+#include "serialization/quantities.pb.h"
 
 namespace principia {
 

@@ -1,5 +1,11 @@
-#pragma once
+﻿#pragma once
 
+#include "geometry/epoch.hpp"
+#include "ksp_plugin/manœuvre.hpp"
+#include "ksp_plugin/vessel.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/constants.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/numbers.hpp"

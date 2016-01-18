@@ -1,11 +1,24 @@
-#pragma once
+﻿#pragma once
 
 #include <cmath>
 #include <cstdint>
-
+#include <cstdlib>
 #include <functional>
 #include <limits>
+
+#include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "geometry/serialization.hpp"
+#include "mathematica/mathematica.hpp"
 #include "numerics.hpp"
+#include "quantities/quantities.hpp"
+
+namespace principia {
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+}  // namespace geometry
+}  // namespace principia
 
 namespace principia {
 namespace testing_utilities {

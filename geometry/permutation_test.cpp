@@ -1,14 +1,18 @@
-#include "geometry/permutation.hpp"
-
+﻿#include <sstream>
 #include <vector>
 
 #include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/identity.hpp"
 #include "geometry/orthogonal_map.hpp"
+#include "geometry/permutation.hpp"
 #include "geometry/r3_element.hpp"
-#include "glog/logging.h"
-#include "gmock/gmock.h"
+#include "gmock/gmock-matchers.h"
+#include "google/protobuf/extension_set.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "physics/discrete_trajectory.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
 #include "testing_utilities/almost_equals.hpp"
@@ -156,6 +160,7 @@ TEST_F(PermutationTest, Forget) {
 
 TEST_F(PermutationTest, Compose) {
   struct World3;
+
   using Orth12 = OrthogonalMap<World1, World2>;
   using Orth13 = OrthogonalMap<World1, World3>;
   using Orth23 = OrthogonalMap<World2, World3>;

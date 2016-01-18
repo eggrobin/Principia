@@ -1,15 +1,34 @@
 ﻿
 #pragma once
 
-#include "physics/oblate_body.hpp"
-
 #include <algorithm>
+#include <memory>
+#include <ostream>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/r3_element.hpp"
+#include "geometry/sign.hpp"
+#include "glog/logging.h"
+#include "google/protobuf/extension_set.h"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/forkable.hpp"
+#include "physics/oblate_body.hpp"
 #include "quantities/constants.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
+#include "serialization/physics.pb.h"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
+
+namespace physics {
+template <typename Frame> class OblateBody;
+}  // namespace physics
 
 using quantities::si::Radian;
 using quantities::si::Second;

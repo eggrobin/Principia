@@ -1,15 +1,14 @@
-﻿#include "testing_utilities/vanishes_before.hpp"
-
-#include <limits>
+﻿#include <limits>
 #include <sstream>
 
-#include "glog/logging.h"
-#include "gmock/gmock.h"
+#include "geometry/point.hpp"
 #include "gtest/gtest.h"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/bipm.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/numbers.hpp"
 #include "quantities/quantities.hpp"
+#include "testing_utilities/vanishes_before.hpp"
 
 namespace principia {
 

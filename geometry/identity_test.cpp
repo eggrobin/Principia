@@ -1,16 +1,15 @@
-#include "geometry/identity.hpp"
-
-#include <vector>
+﻿#include <sstream>
 
 #include "geometry/frame.hpp"
+#include "geometry/identity.hpp"
 #include "geometry/orthogonal_map.hpp"
 #include "geometry/r3_element.hpp"
-#include "glog/logging.h"
-#include "gmock/gmock.h"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
-#include "testing_utilities/almost_equals.hpp"
 
 namespace principia {
 
@@ -86,6 +85,7 @@ TEST_F(IdentityTest, Forget) {
 
 TEST_F(IdentityTest, Compose) {
   struct World3;
+
   using Orth12 = OrthogonalMap<World1, World2>;
   using Orth13 = OrthogonalMap<World1, World3>;
   using Orth23 = OrthogonalMap<World2, World3>;

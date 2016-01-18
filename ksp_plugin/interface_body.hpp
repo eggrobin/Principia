@@ -1,5 +1,7 @@
-#pragma once
+﻿#pragma once
 
+#include "geometry/quaternion.hpp"
+#include "geometry/r3_element.hpp"
 #include "ksp_plugin/interface.hpp"
 
 namespace principia {

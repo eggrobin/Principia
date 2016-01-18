@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // This code comes from:
 // https://code.google.com/p/or-tools/source/browse/trunk/src/base/fingerprint2011.h
@@ -17,6 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <stddef.h>
 #include <cstdint>
 
 namespace principia {

@@ -1,11 +1,29 @@
-#pragma once
+﻿#pragma once
 
+#include <iosfwd>
+#include <ostream>
 #include <string>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/pair.hpp"
+#include "geometry/point.hpp"
 #include "physics/degrees_of_freedom.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename Vector, typename Scalar> class BarycentreCalculator;
+}  // namespace geometry
+namespace physics {
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class RelativeDegreesOfFreedom;
+}  // namespace physics
+namespace serialization {
+class Pair;
+}  // namespace serialization
 
 using geometry::BarycentreCalculator;
 

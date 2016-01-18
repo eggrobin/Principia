@@ -1,15 +1,40 @@
 ﻿#pragma once
 
 #include <algorithm>
+#include <experimental/optional>
 #include <limits>
+#include <memory>
+#include <ostream>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "base/macros.hpp"
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "geometry/sign.hpp"
+#include "glog/logging.h"
 #include "glog/stl_logging.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "mathematica/mathematica.hpp"
+#include "numerics/чебышёв_series.hpp"
 #include "physics/continuous_trajectory.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/forkable.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
+#include "serialization/physics.pb.h"
 #include "testing_utilities/numerics.hpp"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
+
+namespace physics {
+template <typename Frame> class ContinuousTrajectory;
+}  // namespace physics
 
 using quantities::si::Metre;
 using quantities::si::Second;

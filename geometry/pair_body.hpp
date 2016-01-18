@@ -1,13 +1,22 @@
-#pragma once
+﻿#pragma once
 
-#include "geometry/pair.hpp"
+#include <ostream>
+#include <type_traits>
 
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
+#include "geometry/pair.hpp"
 #include "geometry/point.hpp"
 #include "geometry/serialization.hpp"
+#include "glog/logging.h"
+#include "numerics/double_precision.hpp"
+#include "quantities/quantities.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 namespace geometry {
+
+template <typename T1, typename T2> class Pair;
 
 template<typename T1, typename T2>
 Pair<T1, T2>::Pair(T1 const& t1, T2 const& t2)

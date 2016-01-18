@@ -1,9 +1,8 @@
-#include "testing_utilities/algebra.hpp"
+﻿#include <functional>
+#include <sstream>
 
-#include <functional>
-
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "testing_utilities/algebra.hpp"
 
 namespace principia {
 namespace testing_utilities {

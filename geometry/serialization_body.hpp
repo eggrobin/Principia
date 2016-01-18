@@ -1,14 +1,25 @@
-#pragma once
-
-#include "geometry/serialization.hpp"
+﻿#pragma once
 
 #include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "geometry/serialization.hpp"
+#include "glog/logging.h"
 #include "quantities/quantities.hpp"
 #include "quantities/serialization.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+template <typename T, typename Message> class DoubleOrQuantityOrMultivectorSerializer;
+template <typename T, typename Message> class PointOrMultivectorSerializer;
+template <typename T, typename Message> class QuantityOrMultivectorSerializer;
+}  // namespace geometry
+namespace quantities {
+template <typename D> class Quantity;
+}  // namespace quantities
 
 using base::not_null;
 using quantities::DoubleOrQuantitySerializer;

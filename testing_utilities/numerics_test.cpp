@@ -1,16 +1,20 @@
-﻿#include "testing_utilities/numerics.hpp"
-
-#include <cmath>
+﻿#include <cmath>
 #include <limits>
+#include <type_traits>
 
 #include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
-#include "glog/logging.h"
-#include "gmock/gmock.h"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
+#include "testing_utilities/numerics.hpp"
 
 namespace principia {
 namespace testing_utilities {
@@ -27,10 +31,6 @@ using testing::Eq;
 using testing::Gt;
 using testing::Lt;
 using testing::Ne;
-
-namespace {
-struct World;
-}  // namespace
 
 class NumericsTest : public testing::Test {
  protected:

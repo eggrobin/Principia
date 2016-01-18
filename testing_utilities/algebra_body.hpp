@@ -1,8 +1,16 @@
 ﻿#pragma once
 
-#include "testing_utilities/algebra.hpp"
+#include <stdint.h>
+#include <ostream>
 
+#include "geometry/grassmann.hpp"
+#include "geometry/quaternion.hpp"
+#include "geometry/r3_element.hpp"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-message.h"
 #include "gtest/gtest.h"
+#include "quantities/quantities.hpp"
+#include "testing_utilities/algebra.hpp"
 #include "testing_utilities/almost_equals.hpp"
 
 namespace principia {

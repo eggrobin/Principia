@@ -1,12 +1,18 @@
-#include "base/pull_serializer.hpp"
-
-#include <cstring>
+﻿#include <cstring>
 #include <list>
+#include <sstream>
 #include <string>
+#include <type_traits>
 #include <vector>
 
-#include "gmock/gmock.h"
+#include "base/pull_serializer.hpp"
+#include "glog/logging.h"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest.h"
+#include "serialization/geometry.pb.h"
 #include "serialization/physics.pb.h"
+#include "serialization/quantities.pb.h"
 
 namespace principia {
 

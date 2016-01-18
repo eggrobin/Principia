@@ -1,8 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 #include <cstring>
+#include <ostream>
 
+#include "base/array.hpp"
 #include "base/hexadecimal.hpp"
 #include "glog/logging.h"
 

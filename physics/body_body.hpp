@@ -1,13 +1,22 @@
-#pragma once
+﻿#pragma once
 
+#include <memory>
+#include <ostream>
+
+#include "base/macros.hpp"
+#include "base/not_null.hpp"
+#include "glog/logging.h"
 #include "physics/body.hpp"
-
-#include "physics/oblate_body.hpp"
 #include "physics/massive_body.hpp"
 #include "physics/massless_body.hpp"
+#include "physics/oblate_body.hpp"
+#include "serialization/physics.pb.h"
 
 namespace principia {
 namespace physics {
+
+class Body;
+template <typename Frame> class OblateBody;
 
 template<typename Frame>
 bool Body::is_compatible_with() const {

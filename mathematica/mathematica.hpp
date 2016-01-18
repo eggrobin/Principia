@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 #include <tuple>
@@ -6,9 +6,18 @@
 
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
+#include "geometry/serialization.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/quantities.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename Vector> class Point;
+}  // namespace geometry
+namespace quantities {
+template <typename D> class Quantity;
+}  // namespace quantities
 
 using geometry::Point;
 using geometry::Vector;

@@ -1,4 +1,7 @@
-#pragma once
+﻿#pragma once
+
+#include <iosfwd>
+#include <memory>
 
 #include "base/unique_ptr_logging.hpp"
 

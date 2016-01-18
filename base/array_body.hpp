@@ -1,11 +1,17 @@
-#pragma once
+﻿#pragma once
+
+#include <stdint.h>
+#include <cstring>
+#include <memory>
 
 #include "base/array.hpp"
-
 #include "glog/logging.h"
 
 namespace principia {
 namespace base {
+
+template <typename Element> struct Array;
+template <typename Element> struct UniqueArray;
 
 template<typename Element>
 Array<Element>::Array() : data(nullptr), size(0) {}

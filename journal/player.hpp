@@ -1,11 +1,18 @@
-#pragma once
+﻿#pragma once
 
+#include <stdint.h>
 #include <experimental/filesystem>
 #include <fstream>
 #include <map>
 #include <memory>
 
 #include "serialization/journal.pb.h"
+
+namespace principia {
+namespace serialization {
+class Method;
+}  // namespace serialization
+}  // namespace principia
 
 namespace principia {
 namespace journal {

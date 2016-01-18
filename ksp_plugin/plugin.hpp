@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <set>
@@ -7,28 +8,65 @@
 #include <utility>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/monostable.hpp"
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/orthogonal_map.hpp"
 #include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "geometry/rotation.hpp"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "ksp_plugin/celestial.hpp"
 #include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/manœuvre.hpp"
+#include "ksp_plugin/part.hpp"
 #include "ksp_plugin/physics_bubble.hpp"
 #include "ksp_plugin/vessel.hpp"
-#include "integrators/ordinary_differential_equations.hpp"
 #include "physics/body.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
 #include "physics/ephemeris.hpp"
+#include "physics/forkable.hpp"
 #include "physics/frame_field.hpp"
-#include "quantities/quantities.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/ksp_plugin.pb.h"
 
 namespace principia {
+namespace ksp_plugin {
+class Celestial;
+}  // namespace ksp_plugin
+}  // namespace principia
+
+namespace google {
+namespace protobuf {
+template <typename Element> class RepeatedPtrField;
+}  // namespace protobuf
+}  // namespace google
+
+namespace principia {
+
+namespace geometry {
+template <typename FrameTag, FrameTag frame_tag, bool frame_is_inertial> class Frame;
+template <typename Scalar, typename Frame, int rank> class Multivector;
+template <typename Vector> class Point;
+}  // namespace geometry
+namespace ksp_plugin {
+class PhysicsBubble;
+class Vessel;
+}  // namespace ksp_plugin
+namespace physics {
+class Body;
+}  // namespace physics
+namespace serialization {
+class Plugin;
+}  // namespace serialization
 
 using geometry::Displacement;
 using geometry::Instant;
