@@ -13,8 +13,21 @@
 #include "physics/rotating_body.hpp"
 
 namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
 namespace physics {
 class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
 template <typename Frame> class DegreesOfFreedom;
 template <typename Frame> class Ephemeris;
 }  // namespace physics

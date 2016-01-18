@@ -9,6 +9,7 @@
 #include "astronomy/frames.hpp"
 #include "base/macros.hpp"
 #include "geometry/barycentre_calculator.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"

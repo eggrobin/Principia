@@ -5,6 +5,7 @@
 
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest-death-test.h"

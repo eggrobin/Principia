@@ -12,7 +12,17 @@
 #include "physics/dynamic_frame.hpp"
 
 namespace principia {
+namespace physics {
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+}  // namespace principia
+
+namespace principia {
 namespace serialization {
+class BodyCentredNonRotatingDynamicFrame;
+class DynamicFrame;
 class BodyCentredNonRotatingDynamicFrame;
 class DynamicFrame;
 }  // namespace serialization
@@ -23,8 +33,8 @@ namespace physics {
 class MassiveBody;
 class MassiveBody;
 template <typename Frame> class DegreesOfFreedom;
-template <typename Frame> class Ephemeris;
 template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
 template <typename Frame> class Ephemeris;
 }  // namespace physics
 namespace serialization {

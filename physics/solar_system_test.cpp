@@ -5,6 +5,7 @@
 #include <sstream>
 
 #include "astronomy/frames.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/point.hpp"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
