@@ -1,6 +1,7 @@
 ﻿
 #include <stdint.h>
 #include <experimental/filesystem>
+#include <fstream>  // IWYU pragma: keep
 #include <memory>
 #include <set>
 #include <sstream>

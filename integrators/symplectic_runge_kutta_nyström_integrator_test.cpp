@@ -29,10 +29,6 @@
 
 namespace principia {
 
-namespace integrators {
-struct SimpleHarmonicMotionTestInstance;
-}  // namespace integrators
-
 using quantities::Acceleration;
 using quantities::AngularFrequency;
 using quantities::Cos;
@@ -406,6 +402,7 @@ void TestTimeReversibility(Integrator const& integrator) {
   }
 }
 
+// IWYU pragma: no_forward_declare SimpleHarmonicMotionTestInstance
 struct SimpleHarmonicMotionTestInstance {
  public:
   template<typename Integrator>

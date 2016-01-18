@@ -8,6 +8,7 @@
 #include "experimental/filesystem"
 #include "glog/logging.h"
 #include "journal/player.hpp"
+#include "journal/profiles.hpp"  // IWYU pragma: keep
 #include "serialization/journal.pb.h"
 
 namespace principia {
