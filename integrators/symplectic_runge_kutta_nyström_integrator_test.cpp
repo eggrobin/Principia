@@ -406,7 +406,59 @@ void TestTimeReversibility(Integrator const& integrator) {
   }
 }
 
-// IWYU pragma: no_forward_declare SimpleHarmonicMotionTestInstance
+// This allows the test output to be legible, i.e.,
+// "where GetParam() = Leapfrog" rather than
+// "where GetParam() = n-byte object <hex>"
+std::ostream& operator<<(std::ostream& stream,
+                         SimpleHarmonicMotionTestInstance instance) {
+  return stream << instance.name();
+}
+
+std::vector<SimpleHarmonicMotionTestInstance> Instances() {
+  return {INSTANCE(McLachlanAtela1992Order4Optimal,
+                   1.0 * Second,
+                   +1.88161985992252310e-13 * Metre,
+                   +1.88491583452687910e-13 * Metre / Second,
+                   +7.52285331973023830e-07 * Joule),
+          INSTANCE(McLachlan1995SB3A4,
+                   1.0 * Second,
+                   +1.21597176772070270e-13 * Metre,
+                   +1.21782792183999790e-13 * Metre / Second,
+                   +2.52639347009253610e-06 * Joule),
+          INSTANCE(McLachlan1995SB3A5,
+                   1.0 * Second,
+                   +1.37754391227318250e-13 * Metre,
+                   +1.37848066295021000e-13 * Metre / Second,
+                   +1.70551544109720510e-07 * Joule),
+          INSTANCE(BlanesMoan2002SRKN6B,
+                   1.0 * Second,
+                   +1.18405285576272950e-13 * Metre,
+                   +1.18564880136062810e-13 * Metre / Second,
+                   +1.55706381121945010e-09 * Joule),
+          INSTANCE(McLachlanAtela1992Order5Optimal,
+                   1.1 * Second,
+                   +7.51005160837259210e-14 * Metre,
+                   +7.50823014872281650e-14 * Metre / Second,
+                   +3.06327349042234690e-08 * Joule),
+          INSTANCE(OkunborSkeel1994Order6Method13,
+                   1.1 * Second,
+                   +1.54723456269323380e-13 * Metre,
+                   +1.54959378662056220e-13 * Metre / Second,
+                   +2.28626773068896230e-09 * Joule),
+          INSTANCE(BlanesMoan2002SRKN11B,
+                   1.0 * Second,
+                   +1.11972930927350940e-13 * Metre,
+                   +1.12035380972486110e-13 * Metre / Second,
+                   +9.14945896823837760e-12 * Joule),
+          INSTANCE(BlanesMoan2002SRKN14A,
+                   1.0 * Second,
+                   +1.11001485780803930e-13 * Metre,
+                   +1.11063935825939100e-13 * Metre / Second,
+                   +6.29052365752613700e-13 * Joule)};
+}
+
+}  // namespace
+
 struct SimpleHarmonicMotionTestInstance {
  public:
   template<typename Integrator>
@@ -467,59 +519,6 @@ struct SimpleHarmonicMotionTestInstance {
   std::function<void()> test_time_reversibility_;
   std::string name_;
 };
-
-// This allows the test output to be legible, i.e.,
-// "where GetParam() = Leapfrog" rather than
-// "where GetParam() = n-byte object <hex>"
-std::ostream& operator<<(std::ostream& stream,
-                         SimpleHarmonicMotionTestInstance instance) {
-  return stream << instance.name();
-}
-
-std::vector<SimpleHarmonicMotionTestInstance> Instances() {
-  return {INSTANCE(McLachlanAtela1992Order4Optimal,
-                   1.0 * Second,
-                   +1.88161985992252310e-13 * Metre,
-                   +1.88491583452687910e-13 * Metre / Second,
-                   +7.52285331973023830e-07 * Joule),
-          INSTANCE(McLachlan1995SB3A4,
-                   1.0 * Second,
-                   +1.21597176772070270e-13 * Metre,
-                   +1.21782792183999790e-13 * Metre / Second,
-                   +2.52639347009253610e-06 * Joule),
-          INSTANCE(McLachlan1995SB3A5,
-                   1.0 * Second,
-                   +1.37754391227318250e-13 * Metre,
-                   +1.37848066295021000e-13 * Metre / Second,
-                   +1.70551544109720510e-07 * Joule),
-          INSTANCE(BlanesMoan2002SRKN6B,
-                   1.0 * Second,
-                   +1.18405285576272950e-13 * Metre,
-                   +1.18564880136062810e-13 * Metre / Second,
-                   +1.55706381121945010e-09 * Joule),
-          INSTANCE(McLachlanAtela1992Order5Optimal,
-                   1.1 * Second,
-                   +7.51005160837259210e-14 * Metre,
-                   +7.50823014872281650e-14 * Metre / Second,
-                   +3.06327349042234690e-08 * Joule),
-          INSTANCE(OkunborSkeel1994Order6Method13,
-                   1.1 * Second,
-                   +1.54723456269323380e-13 * Metre,
-                   +1.54959378662056220e-13 * Metre / Second,
-                   +2.28626773068896230e-09 * Joule),
-          INSTANCE(BlanesMoan2002SRKN11B,
-                   1.0 * Second,
-                   +1.11972930927350940e-13 * Metre,
-                   +1.12035380972486110e-13 * Metre / Second,
-                   +9.14945896823837760e-12 * Joule),
-          INSTANCE(BlanesMoan2002SRKN14A,
-                   1.0 * Second,
-                   +1.11001485780803930e-13 * Metre,
-                   +1.11063935825939100e-13 * Metre / Second,
-                   +6.29052365752613700e-13 * Joule)};
-}
-
-}  // namespace
 
 class SymplecticRungeKuttaNyströmIntegratorTest
     : public ::testing::TestWithParam<SimpleHarmonicMotionTestInstance> {
