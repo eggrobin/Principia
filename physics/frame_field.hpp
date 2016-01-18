@@ -4,8 +4,13 @@
 #include <functional>
 
 #include "geometry/named_quantities.hpp"
+#include "physics/rotating_body.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
 
 using geometry::Instant;
 using geometry::Position;

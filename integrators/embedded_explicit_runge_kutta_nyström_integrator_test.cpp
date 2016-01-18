@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/point.hpp"
@@ -13,8 +14,8 @@
 #include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
 #include "numerics/double_precision.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/massive_body.hpp"
-#include "physics/oblate_body.hpp"
 #include "quantities/numbers.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/integration.hpp"

@@ -1,6 +1,7 @@
 ﻿
 #pragma once
 
+#include <sys/types.h>
 #include <condition_variable>
 #include <cstdint>
 #include <functional>

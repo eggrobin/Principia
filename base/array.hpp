@@ -1,9 +1,11 @@
 ﻿
 #pragma once
 
+#include <sys/types.h>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <type_traits>
 
 namespace principia {
 namespace base {

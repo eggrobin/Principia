@@ -14,6 +14,7 @@
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
 #include "numerics/чебышёв_series.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"

@@ -1,8 +1,15 @@
 ﻿
 #pragma once
 
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/sign.hpp"
+
+namespace principia {
+namespace serialization {
+class LinearMap;
+}  // namespace serialization
+}  // namespace principia
 
 namespace principia {
 namespace geometry {

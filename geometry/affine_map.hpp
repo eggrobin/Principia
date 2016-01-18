@@ -4,6 +4,7 @@
 #include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "serialization/geometry.pb.h"
 
 namespace principia {

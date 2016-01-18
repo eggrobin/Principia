@@ -1,14 +1,24 @@
 ﻿
 #pragma once
 
+#include <ostream>
 #include <string>
+#include <type_traits>
 #include <vector>
 
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
+#include "geometry/r3_element.hpp"
 #include "glog/logging.h"
 #include "quantities/quantities.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+template <typename Vector> class Point;
+}  // namespace geometry
 
 using quantities::Product;
 using quantities::Quantity;

@@ -1,16 +1,35 @@
 ﻿
 #pragma once
 
-#include "physics/discrete_trajectory.hpp"
-
 #include <algorithm>
+#include <functional>
 #include <list>
 #include <map>
+#include <memory>
+#include <ostream>
 
+#include "astronomy/frames.hpp"
+#include "base/macros.hpp"
+#include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
 #include "glog/logging.h"
+#include "google/protobuf/repeated_field.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/forkable.hpp"
+#include "quantities/quantities.hpp"
+#include "serialization/physics.pb.h"
 
 namespace principia {
+
+namespace physics {
+namespace internal {
+template <typename Frame> class DiscreteTrajectoryIterator;
+}  // namespace internal
+template <typename Frame> class DiscreteTrajectory;
+}  // namespace physics
 
 using base::make_not_null_unique;
 using geometry::Instant;

@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/monostable.hpp"
 #include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"

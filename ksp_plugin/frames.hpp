@@ -3,10 +3,13 @@
 
 #include <functional>
 
+#include "astronomy/frames.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/named_quantities.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "ksp_plugin/manœuvre.hpp"
 #include "physics/dynamic_frame.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 

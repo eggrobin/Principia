@@ -7,6 +7,7 @@
 #include "geometry/r3_element.hpp"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "physics/rigid_motion.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/numbers.hpp"

@@ -1,17 +1,29 @@
 ﻿
 #pragma once
 
+#include <math.h>
 #include <algorithm>
+#include <iosfwd>
 
+#include "base/macros.hpp"
+#include "base/mappable.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/linear_map.hpp"
 #include "geometry/quaternion.hpp"
 #include "geometry/r3_element.hpp"
+#include "geometry/r3x3_matrix.hpp"
 #include "geometry/sign.hpp"
+#include "glog/logging.h"
+#include "google/protobuf/extension_set.h"
 #include "quantities/elementary_functions.hpp"
+#include "quantities/quantities.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 namespace geometry {
+
+template <typename FromFrame, typename ToFrame> class Rotation;
 
 namespace {
 

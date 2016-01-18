@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
@@ -25,6 +26,12 @@
 #include "physics/massless_body.hpp"
 #include "quantities/named_quantities.hpp"
 #include "serialization/ksp_plugin.pb.h"
+
+namespace principia {
+namespace ksp_plugin {
+class Vessel;
+}  // namespace ksp_plugin
+}  // namespace principia
 
 namespace principia {
 

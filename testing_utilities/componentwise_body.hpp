@@ -1,15 +1,30 @@
 ﻿
 #pragma once
 
-#include "testing_utilities/componentwise.hpp"
-
+#include <ostream>
 #include <string>
 
+#include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "geometry/serialization.hpp"
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/kepler_orbit.hpp"
 #include "quantities/quantities.hpp"
+#include "testing_utilities/componentwise.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename T1, typename T2> class Pair;
+}  // namespace geometry
+namespace testing_utilities {
+template <typename T1Matcher, typename T2Matcher> class ComponentwiseMatcher2;
+template <typename XMatcher, typename YMatcher, typename ZMatcher> class ComponentwiseMatcher3;
+}  // namespace testing_utilities
 
 using geometry::Point;
 using quantities::Quantity;

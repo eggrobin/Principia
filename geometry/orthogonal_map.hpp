@@ -8,6 +8,10 @@
 #include "geometry/r3_element.hpp"
 #include "geometry/rotation.hpp"
 #include "geometry/sign.hpp"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/kepler_orbit.hpp"
+#include "physics/rotating_body.hpp"
 #include "serialization/geometry.pb.h"
 
 namespace principia {

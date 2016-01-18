@@ -8,6 +8,12 @@
 #include "serialization/journal.pb.h"
 
 namespace principia {
+namespace base {
+template <typename OtherPointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
 namespace serialization {
 class Method;
 }  // namespace serialization

@@ -1,15 +1,21 @@
 ﻿
 #pragma once
 
-#include "base/not_null.hpp"
-
 #include <algorithm>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <ostream>
+#include <type_traits>
 #include <utility>
 
+#include "base/not_null.hpp"
 #include "glog/logging.h"
 
 namespace principia {
 namespace base {
+
+template <typename Pointer> class not_null;
 
 template<typename Pointer>
 template<typename OtherPointer, typename>

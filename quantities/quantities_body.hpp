@@ -1,14 +1,23 @@
 ﻿
 #pragma once
 
+#include <stdint.h>
+#include <sys/types.h>
 #include <cmath>
 #include <cstdio>
+#include <ostream>
 #include <string>
+#include <type_traits>
 
 #include "base/macros.hpp"
+#include "base/not_null.hpp"
+#include "glog/logging.h"
+#include "serialization/quantities.pb.h"
 
 namespace principia {
 namespace quantities {
+
+template <typename D> class Quantity;
 
 template<int64_t LengthExponent, int64_t MassExponent, int64_t TimeExponent,
          int64_t CurrentExponent, int64_t TemperatureExponent,

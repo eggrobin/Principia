@@ -1,21 +1,32 @@
 ﻿
 #pragma once
 
-#include "testing_utilities/vanishes_before.hpp"
-
 #include <float.h>
 #include <math.h>
 #include <stdint.h>
-
 #include <algorithm>
 #include <limits>
+#include <ostream>
 #include <string>
 
+#include "glog/logging.h"
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "quantities/quantities.hpp"
 #include "testing_utilities/numerics.hpp"
+#include "testing_utilities/vanishes_before.hpp"
+
+namespace principia {
+namespace quantities {
+template <typename D> class Quantity;
+}  // namespace quantities
+}  // namespace principia
 
 namespace principia {
 namespace testing_utilities {
+
+template <typename T> class VanishesBeforeMatcher;
 
 template<typename T>
 testing::PolymorphicMatcher<VanishesBeforeMatcher<T>> VanishesBefore(

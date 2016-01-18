@@ -10,6 +10,7 @@
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "testing_utilities/componentwise.hpp"

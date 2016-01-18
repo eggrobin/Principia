@@ -4,6 +4,7 @@
 
 #include "geometry/point.hpp"
 #include "gtest/gtest.h"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/bipm.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/numbers.hpp"

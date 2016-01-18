@@ -1,8 +1,11 @@
 ﻿
 #pragma once
 
-#include "geometry/point.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
+#include "geometry/rotation.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 namespace geometry {
@@ -10,6 +13,8 @@ namespace geometry {
 // The map is represented as x ↦ linear_map(x - from_origin) + to_origin.  This
 // numerically better behaved than x ↦ linear_map(x) + translation with
 // translation = to_origin - linear_map(from_origin).
+template <typename FromFrame, typename ToFrame, typename Scalar, template <typename , typename > class LinearMap> class AffineMap;
+
 template<typename FromFrame, typename ToFrame, typename Scalar,
          template<typename, typename> class LinearMap>
 AffineMap<FromFrame, ToFrame, Scalar, LinearMap>::AffineMap(

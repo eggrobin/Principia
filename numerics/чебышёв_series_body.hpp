@@ -1,16 +1,34 @@
 ﻿
-#include "numerics/чебышёв_series.hpp"
-
+#include <ostream>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
 #include "geometry/serialization.hpp"
 #include "glog/logging.h"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "numerics/fixed_arrays.hpp"
 #include "numerics/newhall.mathematica.h"
+#include "numerics/чебышёв_series.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "serialization/numerics.pb.h"
 
 namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+}  // namespace geometry
+namespace numerics {
+namespace internal {
+template <typename Vector> class EvaluationHelper;
+}  // namespace internal
+}  // namespace numerics
 
 using geometry::DoubleOrQuantityOrMultivectorSerializer;
 using geometry::Multivector;

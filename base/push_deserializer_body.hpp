@@ -1,11 +1,24 @@
 ﻿
 #pragma once
 
-#include "base/push_deserializer.hpp"
-
+#include <stddef.h>
+#include <stdint.h>
+#include <sys/types.h>
 #include <algorithm>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <ostream>
+#include <queue>
+#include <set>
+#include <thread>
+#include <type_traits>
 
+#include "base/array.hpp"
+#include "base/not_null.hpp"
+#include "base/push_deserializer.hpp"
 #include "glog/logging.h"
+#include "google/protobuf/message.h"
 
 namespace principia {
 

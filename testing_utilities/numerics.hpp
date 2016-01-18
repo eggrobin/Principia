@@ -1,11 +1,13 @@
 ﻿
 #pragma once
 
+#include <sys/types.h>
 #include <cstdint>
 
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
+#include "geometry/serialization.hpp"
 #include "quantities/quantities.hpp"
 
 namespace principia {

@@ -1,6 +1,7 @@
 ﻿
 #include <sstream>
 
+#include "astronomy/frames.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
@@ -9,6 +10,7 @@
 #include "gmock/gmock-matchers.h"
 #include "google/protobuf/extension_set.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "physics/body.hpp"
 #include "physics/massive_body.hpp"
 #include "physics/massless_body.hpp"

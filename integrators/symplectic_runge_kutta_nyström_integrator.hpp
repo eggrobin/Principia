@@ -8,12 +8,347 @@
 #include "quantities/quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
+#include "serialization/integrators.pb.h"
 #include "serialization/integrators.pb.h"
 #include "serialization/integrators.pb.h"
 #include "serialization/integrators.pb.h"
 
 namespace principia {
 namespace integrators {
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
 template <typename ODE> struct IntegrationProblem;
 template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
 

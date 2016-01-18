@@ -4,6 +4,7 @@
 #include <functional>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
@@ -15,6 +16,12 @@
 #include "physics/massive_body.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
+
+namespace principia {
+namespace integrators {
+template <typename DifferentialEquation> class AdaptiveStepSizeIntegrator;
+}  // namespace integrators
+}  // namespace principia
 
 namespace principia {
 

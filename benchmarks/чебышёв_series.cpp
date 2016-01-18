@@ -38,6 +38,7 @@
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/r3_element.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "numerics/чебышёв_series.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"

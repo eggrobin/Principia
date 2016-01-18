@@ -1,9 +1,14 @@
 ﻿
 #pragma once
 
-#include "base/get_line.hpp"
-
+#include <stddef.h>
+#include <fstream>
+#include <memory>
 #include <string>
+#include <type_traits>
+
+#include "base/get_line.hpp"
+#include "base/not_null.hpp"
 
 namespace principia {
 namespace base {

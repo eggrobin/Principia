@@ -4,6 +4,7 @@
 #include <cmath>
 #include <type_traits>
 
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 
 namespace principia {

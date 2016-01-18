@@ -1,15 +1,32 @@
 ﻿
 #pragma once
 
-#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
-
+#include <algorithm>
+#include <ostream>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
 #include "geometry/sign.hpp"
+#include "glog/logging.h"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "numerics/double_precision.hpp"
 #include "quantities/quantities.hpp"
+#include "serialization/integrators.pb.h"
 #include "testing_utilities/numerics.hpp"
 
 namespace principia {
+
+namespace integrators {
+template <typename ODE> struct IntegrationProblem;
+template <typename Position, int order_, bool time_reversible_, int evaluations_, principia::integrators::CompositionMethod composition_> class SymplecticRungeKuttaNyströmIntegrator;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+namespace numerics {
+template <typename Scalar, int size> class FixedVector;
+}  // namespace numerics
 
 using geometry::Sign;
 using quantities::Abs;

@@ -2,6 +2,7 @@
 #include <sstream>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "geometry/barycentre_calculator.hpp"
 #include "geometry/epoch.hpp"
 #include "geometry/frame.hpp"
@@ -11,6 +12,8 @@
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"

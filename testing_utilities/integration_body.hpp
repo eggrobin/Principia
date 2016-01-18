@@ -3,11 +3,17 @@
 
 #include <vector>
 
-#include "testing_utilities/integration.hpp"
-
+#include "astronomy/frames.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/elementary_functions.hpp"
-#include "quantities/quantities.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "testing_utilities/integration.hpp"
 
 namespace principia {
 

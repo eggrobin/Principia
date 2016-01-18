@@ -38,6 +38,9 @@
 // from google3/util/gtl/map_util.h
 // Author: Anton Carver
 
+#include <ostream>
+#include <string>
+
 #include "glog/logging.h"
 
 namespace principia {

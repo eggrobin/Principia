@@ -1,9 +1,16 @@
 ﻿
 #pragma once
 
+#include <list>
+
+#include "google/protobuf/extension_set.h"
 #include "journal/player.hpp"
 
-#include <list>
+namespace principia {
+namespace serialization {
+class Method;
+}  // namespace serialization
+}  // namespace principia
 
 namespace principia {
 namespace journal {

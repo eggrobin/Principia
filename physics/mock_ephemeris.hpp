@@ -3,11 +3,36 @@
 
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "gmock/gmock-generated-function-mockers.h"
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
+#include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/manœuvre.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/ephemeris.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+
+namespace principia {
+namespace integrators {
+template <typename DifferentialEquation> class AdaptiveStepSizeIntegrator;
+template <typename DifferentialEquation> class FixedStepSizeIntegrator;
+}  // namespace integrators
+namespace serialization {
+class Ephemeris;
+}  // namespace serialization
+}  // namespace principia
 
 namespace principia {
 namespace physics {
+
+class MassiveBody;
+template <typename Frame> class ContinuousTrajectory;
 
 template<typename Frame>
 class MockEphemeris : public Ephemeris<Frame> {

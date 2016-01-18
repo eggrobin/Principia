@@ -1,11 +1,10 @@
 ﻿
 #pragma once
 
-#include "root_finders.hpp"
-
 #include "geometry/barycentre_calculator.hpp"
 #include "geometry/sign.hpp"
 #include "glog/logging.h"
+#include "root_finders.hpp"
 
 namespace principia {
 

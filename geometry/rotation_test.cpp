@@ -13,6 +13,7 @@
 #include "google/protobuf/extension_set.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
 #include "testing_utilities/almost_equals.hpp"

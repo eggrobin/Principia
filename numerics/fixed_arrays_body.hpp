@@ -1,15 +1,23 @@
 ﻿
 #pragma once
 
-#include "numerics/fixed_arrays.hpp"
-
 #include <algorithm>
+#include <array>
+#include <initializer_list>
 #include <vector>
 
+#include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
 #include "glog/logging.h"
+#include "numerics/fixed_arrays.hpp"
+#include "quantities/quantities.hpp"
 
 namespace principia {
 namespace numerics {
+
+template <typename Scalar, int rows, int columns> class FixedMatrix;
+template <typename Scalar, int rows> class FixedStrictlyLowerTriangularMatrix;
+template <typename Scalar, int size> class FixedVector;
 
 template<typename Scalar, int size>
 constexpr FixedVector<Scalar, size>::FixedVector() {

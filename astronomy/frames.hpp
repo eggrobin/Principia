@@ -4,7 +4,12 @@
 #include <functional>
 
 #include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "geometry/rotation.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
 

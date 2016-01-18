@@ -16,6 +16,7 @@
 #include "numerics/чебышёв_series.hpp"
 #include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/rotating_body.hpp"
 #include "quantities/astronomy.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"

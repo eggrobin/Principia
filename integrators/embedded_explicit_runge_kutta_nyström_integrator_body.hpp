@@ -1,18 +1,35 @@
 ﻿
 #pragma once
 
-#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
-
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <ctime>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
 #include "geometry/sign.hpp"
 #include "glog/logging.h"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "numerics/double_precision.hpp"
 #include "quantities/quantities.hpp"
+#include "serialization/integrators.pb.h"
 
 namespace principia {
+
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position, int higher_order, int lower_order, int stages, bool first_same_as_last> class EmbeddedExplicitRungeKuttaNyströmIntegrator;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+namespace numerics {
+template <typename Scalar, int rows> class FixedStrictlyLowerTriangularMatrix;
+template <typename Scalar, int size> class FixedVector;
+}  // namespace numerics
 
 using geometry::Sign;
 using quantities::Difference;

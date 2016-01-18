@@ -3,10 +3,20 @@
 
 #include<vector>
 
+#include "astronomy/frames.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/massive_body.hpp"
-#include "quantities/quantities.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+}  // namespace physics
+}  // namespace principia
 
 namespace principia {
 

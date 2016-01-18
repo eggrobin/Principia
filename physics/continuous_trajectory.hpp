@@ -9,10 +9,18 @@
 #include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "numerics/чебышёв_series.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/quantities.hpp"
 #include "serialization/physics.pb.h"
+
+namespace principia {
+namespace numerics {
+template <typename Vector> class ЧебышёвSeries;
+}  // namespace numerics
+}  // namespace principia
 
 namespace principia {
 

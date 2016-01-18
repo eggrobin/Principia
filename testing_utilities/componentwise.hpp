@@ -11,6 +11,9 @@
 #include "geometry/r3_element.hpp"
 #include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/kepler_orbit.hpp"
 #include "quantities/quantities.hpp"
 
 namespace principia {

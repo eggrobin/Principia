@@ -1,10 +1,17 @@
 ﻿
 #pragma once
 
+#include <iosfwd>
+
+#include "base/not_null.hpp"
 #include "quantities/quantities.hpp"
 #include "serialization/numerics.pb.h"
 
 namespace principia {
+
+namespace serialization {
+class DoublePrecision;
+}  // namespace serialization
 
 using quantities::Difference;
 

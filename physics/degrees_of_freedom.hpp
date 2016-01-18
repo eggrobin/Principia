@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/mappable.hpp"
 #include "geometry/barycentre_calculator.hpp"
 #include "geometry/grassmann.hpp"

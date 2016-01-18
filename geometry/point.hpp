@@ -9,6 +9,7 @@
 
 #include "base/not_null.hpp"
 #include "geometry/barycentre_calculator.hpp"
+#include "geometry/grassmann.hpp"
 #include "quantities/quantities.hpp"
 #include "serialization/geometry.pb.h"
 

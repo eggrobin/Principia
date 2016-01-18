@@ -9,6 +9,7 @@
 #include "geometry/r3_element.hpp"
 #include "physics/body.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/massive_body.hpp"
 #include "physics/oblate_body.hpp"
 #include "physics/rotating_body.hpp"

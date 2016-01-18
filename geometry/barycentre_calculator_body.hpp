@@ -1,10 +1,11 @@
 ﻿
 #pragma once
 
-#include "geometry/barycentre_calculator.hpp"
-
+#include <stddef.h>
+#include <ostream>
 #include <vector>
 
+#include "geometry/barycentre_calculator.hpp"
 #include "glog/logging.h"
 
 namespace principia {

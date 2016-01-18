@@ -2,6 +2,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <sys/types.h>
 // We use ostream for logging purposes.
 #include <iostream>  // NOLINT(readability/streams)
 #include <limits>

@@ -1,6 +1,12 @@
 ﻿
 #pragma once
 
+#include "geometry/epoch.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/constants.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/numbers.hpp"

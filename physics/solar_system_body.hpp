@@ -1,15 +1,19 @@
 ﻿
 #pragma once
 
-#include "physics/solar_system.hpp"
-
+#include <algorithm>
 #include <fstream>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "astronomy/frames.hpp"
+#include "base/map_util.hpp"
+#include "base/not_null.hpp"
+#include "experimental/filesystem"
 #include "geometry/epoch.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
@@ -17,15 +21,29 @@
 #include "glog/logging.h"
 #include "google/protobuf/io/zero_copy_stream_impl.h"
 #include "google/protobuf/text_format.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/manœuvre.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/kepler_orbit.hpp"
 #include "physics/massive_body.hpp"
 #include "physics/oblate_body.hpp"
 #include "physics/rotating_body.hpp"
+#include "physics/solar_system.hpp"
+#include "quantities/named_quantities.hpp"
 #include "quantities/parser.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/astronomy.pb.h"
 
 namespace principia {
+
+namespace physics {
+template <typename Frame> class ContinuousTrajectory;
+}  // namespace physics
 
 using geometry::Bivector;
 using geometry::Instant;

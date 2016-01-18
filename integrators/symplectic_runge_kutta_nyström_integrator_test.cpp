@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
@@ -18,6 +19,9 @@
 #include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
 #include "numerics/double_precision.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/rotating_body.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"

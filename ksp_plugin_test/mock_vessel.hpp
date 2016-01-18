@@ -1,11 +1,38 @@
 ﻿
 #pragma once
 
+#include <functional>
+
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "gmock/gmock-generated-function-mockers.h"
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/vessel.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+
+namespace principia {
+namespace physics {
+class MasslessBody;
+}  // namespace physics
+namespace serialization {
+class Vessel;
+}  // namespace serialization
+}  // namespace principia
 
 namespace principia {
 namespace ksp_plugin {
+
+class Celestial;
+class FlightPlan;
 
 class MockVessel : public Vessel {
  public:

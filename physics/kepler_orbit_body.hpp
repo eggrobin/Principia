@@ -1,13 +1,33 @@
 ﻿
 #pragma once
 
-#include "physics/kepler_orbit.hpp"
+#include <ostream>
 
+#include "astronomy/frames.hpp"
+#include "base/macros.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/r3_element.hpp"
 #include "geometry/rotation.hpp"
+#include "glog/logging.h"
 #include "numerics/root_finders.hpp"
+#include "physics/body.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/kepler_orbit.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/oblate_body.hpp"
+#include "physics/rotating_body.hpp"
 #include "quantities/elementary_functions.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 
 namespace principia {
+
+namespace physics {
+template <typename Frame> struct KeplerianElements;
+}  // namespace physics
 
 using geometry::Bivector;
 using numerics::Bisect;

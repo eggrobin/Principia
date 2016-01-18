@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
 #include "experimental/filesystem"
 #include "geometry/epoch.hpp"

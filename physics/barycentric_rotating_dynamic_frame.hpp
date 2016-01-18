@@ -5,11 +5,151 @@
 // parent.
 #ifndef PRINCIPIA_PHYSICS_DYNAMIC_FRAME_HPP_
 #include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
 
 #include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "astronomy/frames.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
 #include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/rotating_body.hpp"
 #include "physics/rotating_body.hpp"
 
 namespace principia {
@@ -25,10 +165,746 @@ class DynamicFrame;
 namespace principia {
 namespace physics {
 class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
 class MassiveBody;
 template <typename Frame> class DegreesOfFreedom;
 template <typename Frame> class Ephemeris;
 template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
+namespace serialization {
+class BarycentricRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
 template <typename Frame> class Ephemeris;
 }  // namespace physics
 namespace serialization {

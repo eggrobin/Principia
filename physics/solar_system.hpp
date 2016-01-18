@@ -11,6 +11,8 @@
 #include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/manœuvre.hpp"
 #include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/discrete_trajectory.hpp"

@@ -6,11 +6,672 @@
 #ifndef PRINCIPIA_INTEGRATORS_ORDINARY_DIFFERENTIAL_EQUATIONS_HPP_
 #include "integrators/ordinary_differential_equations.hpp"
 #include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/quantities.hpp"
 
 namespace principia {
 namespace integrators {
 template <typename ODE> struct AdaptiveStepSize;
 template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+template <typename Pointer> class not_null;
+}  // namespace base
+}  // namespace principia
+
+namespace principia {
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
 template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
 }  // namespace integrators
 }  // namespace principia

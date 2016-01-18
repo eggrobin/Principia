@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "experimental/filesystem"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"

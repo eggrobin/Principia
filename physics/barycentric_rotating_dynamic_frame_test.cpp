@@ -24,6 +24,7 @@
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/dynamic_frame.hpp"
 #include "physics/ephemeris.hpp"
+#include "physics/kepler_orbit.hpp"
 #include "physics/massive_body.hpp"
 #include "physics/mock_continuous_trajectory.hpp"
 #include "physics/mock_ephemeris.hpp"

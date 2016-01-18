@@ -1,15 +1,37 @@
 ﻿
 #pragma once
 
-#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include <memory>
 
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
 #include "geometry/barycentre_calculator.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/pair.hpp"
+#include "geometry/r3_element.hpp"
 #include "geometry/r3x3_matrix.hpp"
+#include "geometry/rotation.hpp"
+#include "google/protobuf/extension_set.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/kepler_orbit.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/rigid_motion.hpp"
+#include "physics/rotating_body.hpp"
+#include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
+#include "serialization/physics.pb.h"
 
 namespace principia {
+
+namespace physics {
+template <typename Frame> class Ephemeris;
+template <typename InertialFrame, typename ThisFrame> class BarycentricRotatingDynamicFrame;
+}  // namespace physics
 
 using geometry::Barycentre;
 using geometry::Bivector;

@@ -1,9 +1,25 @@
 ﻿
 #pragma once
 
-#include "base/pull_serializer.hpp"
-
+#include <stddef.h>
+#include <sys/types.h>
 #include <algorithm>
+#include <cstdint>
+#include <deque>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <ostream>
+#include <queue>
+#include <set>
+#include <thread>
+#include <type_traits>
+
+#include "base/array.hpp"
+#include "base/not_null.hpp"
+#include "base/pull_serializer.hpp"
+#include "glog/logging.h"
+#include "google/protobuf/message.h"
 
 namespace principia {
 

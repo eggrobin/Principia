@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
 #include "geometry/affine_map.hpp"
 #include "geometry/epoch.hpp"
@@ -22,7 +23,6 @@
 #include "glog/logging.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
-#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
 #include "mathematica/mathematica.hpp"

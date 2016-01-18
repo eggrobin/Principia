@@ -5,10 +5,12 @@
 #include <functional>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
 #include "numerics/double_precision.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "serialization/integrators.pb.h"
 
 namespace principia {
