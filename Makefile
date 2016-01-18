@@ -157,7 +157,8 @@ compile_everything: $(patsubst %.cpp,%.o,$(wildcard */*.cpp))
 
 ##### IWYU #####
 IWYU := deps/include-what-you-use/bin/include-what-you-use
-IWYU_FLAGS := -Xiwyu --max_line_length=200 -Xiwyu --mapping_file="iwyu.imp" -Xiwyu --check_also=*/*.hpp
+IWYU_FLAGS := -Xiwyu --max_line_length=200 -Xiwyu --mapping_file="iwyu.imp"
+IWYU_ALL_HPP := -Xiwyu --check_also=*/*.hpp
 IWYU_NOSAFE_HEADERS := --nosafe_headers
 REMOVE_BOM := for f in `ls */*.hpp && ls */*.cpp`; do awk 'NR==1{sub(/^\xef\xbb\xbf/,"")}1' $$f | awk NF{p=1}p > $$f.nobom; mv $$f.nobom $$f; done
 SINGLE_NL := for f in `ls */*.hpp && ls */*.cpp`; do awk 'NR==1{sub(/^/,"\n")}1' $$f > $$f.withnl; mv $$f.withnl $$f; done
@@ -170,8 +171,18 @@ IWYU_CLEAN := rm iwyu_generated_mappings.imp; rm */*.iwyu
 iwyu_generate_mappings:
 	{ ls */*_body.hpp && ls */*.generated.h; } | awk -f iwyu_generate_mappings.awk > iwyu_generated_mappings.imp
 
-%.cpp!!iwyu: iwyu_generate_mappings
+%.cpp!!iwyu_tame: iwyu_generate_mappings
 	$(IWYU) $(CXXFLAGS) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
+	$(REMOVE_BOM)
+	$(SINGLE_NL)
+	$(FIX_INCLUDES) < $(subst !SLASH!,/, $*.iwyu) | cat
+	$(RESTORE_BOM)
+
+iwyu_tame: $(subst /,!SLASH!, $(addsuffix !!iwyu_tame, $(IWYU_TARGETS)))
+	$(IWYU_CLEAN)
+
+%.cpp!!iwyu: iwyu_generate_mappings
+	$(IWYU) $(CXXFLAGS) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) $(IWYU_ALL_HPP) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
 	$(REMOVE_BOM)
 	$(SINGLE_NL)
 	$(FIX_INCLUDES) < $(subst !SLASH!,/, $*.iwyu) | cat
@@ -181,7 +192,7 @@ iwyu: $(subst /,!SLASH!, $(addsuffix !!iwyu, $(IWYU_TARGETS)))
 	$(IWYU_CLEAN)
 
 %.cpp!!iwyu_unsafe: iwyu_generate_mappings
-	$(IWYU) $(CXXFLAGS) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
+	$(IWYU) $(CXXFLAGS) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) $(IWYU_ALL_HPP) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
 	$(REMOVE_BOM)
 	$(SINGLE_NL)
 	$(FIX_INCLUDES) $(IWYU_NOSAFE_HEADERS) < $(subst !SLASH!,/, $*.iwyu) | cat
