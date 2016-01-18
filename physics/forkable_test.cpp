@@ -1,12 +1,15 @@
 ﻿
-#include "physics/forkable.hpp"
-
 #include <list>
+#include <sstream>
 #include <vector>
 
 #include "geometry/named_quantities.hpp"
-#include "gmock/gmock.h"
+#include "geometry/point.hpp"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "physics/forkable.hpp"
 #include "quantities/si.hpp"
 
 namespace principia {

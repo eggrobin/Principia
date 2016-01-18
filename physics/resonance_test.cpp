@@ -1,19 +1,54 @@
 ﻿
+#include <experimental/optional>
+#include <functional>
 #include <map>
+#include <memory>
+#include <ostream>
 #include <string>
+#include <type_traits>
 #include <vector>
 
-#include "gmock/gmock.h"
+#include "base/not_null.hpp"
+#include "geometry/affine_map.hpp"
+#include "geometry/epoch.hpp"
+#include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/orthogonal_map.hpp"
+#include "geometry/pair.hpp"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "geometry/sign.hpp"
+#include "glog/logging.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
 #include "mathematica/mathematica.hpp"
+#include "numerics/root_finders.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
 #include "physics/kepler_orbit.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/massless_body.hpp"
+#include "physics/oblate_body.hpp"
+#include "physics/rotating_body.hpp"
 #include "physics/solar_system.hpp"
 #include "quantities/astronomy.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/numbers.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 #include "rigid_motion.hpp"
-#include "testing_utilities/almost_equals.hpp"
+#include "serialization/geometry.pb.h"
 #include "testing_utilities/numerics.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+}  // namespace geometry
 
 using integrators::McLachlanAtela1992Order5Optimal;
 using quantities::astronomy::JulianYear;

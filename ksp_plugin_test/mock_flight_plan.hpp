@@ -1,8 +1,18 @@
 ﻿
 #pragma once
 
+#include "base/not_null.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "gmock/gmock-generated-function-mockers.h"
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
+#include "ksp_plugin/burn.hpp"
 #include "ksp_plugin/flight_plan.hpp"
+#include "ksp_plugin/frames.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 
 namespace principia {
 namespace ksp_plugin {

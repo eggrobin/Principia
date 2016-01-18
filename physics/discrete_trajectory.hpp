@@ -12,9 +12,20 @@
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/forkable.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "serialization/physics.pb.h"
 
 namespace principia {
+
+namespace physics {
+namespace internal {
+template <typename Tr4jectory> struct ForkableTraits;
+}  // namespace internal
+template <typename Frame> class DegreesOfFreedom;
+}  // namespace physics
+namespace serialization {
+class Trajectory;
+}  // namespace serialization
 
 using base::not_null;
 using geometry::Instant;

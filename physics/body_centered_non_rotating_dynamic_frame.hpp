@@ -4,7 +4,23 @@
 // class will end up being reincluded as part of the implementation of its
 // parent.
 #ifndef PRINCIPIA_PHYSICS_DYNAMIC_FRAME_HPP_
+#include <memory>
+
+#include "integrators/ordinary_differential_equations.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
+
+namespace principia {
+namespace physics {
+class MassiveBody;
+template <typename Frame> class DegreesOfFreedom;
+template <typename Frame> class Ephemeris;
+}  // namespace physics
+namespace serialization {
+class BodyCentredNonRotatingDynamicFrame;
+class DynamicFrame;
+}  // namespace serialization
+}  // namespace principia
 #else
 #ifndef PRINCIPIA_PHYSICS_BODY_CENTRED_NON_ROTATING_DYNAMIC_FRAME_HPP_
 #define PRINCIPIA_PHYSICS_BODY_CENTRED_NON_ROTATING_DYNAMIC_FRAME_HPP_

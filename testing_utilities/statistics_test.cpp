@@ -1,13 +1,14 @@
 ﻿
-#include "testing_utilities/statistics.hpp"
-
+#include <stddef.h>
 #include <vector>
 
-#include "gmock/gmock.h"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
+#include "testing_utilities/statistics.hpp"
 
 namespace principia {
 namespace testing_utilities {

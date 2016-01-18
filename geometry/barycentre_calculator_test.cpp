@@ -1,15 +1,18 @@
 ﻿
 #include "geometry/barycentre_calculator.hpp"
-
-#include <vector>
-
 #include "geometry/grassmann.hpp"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "testing_utilities/almost_equals.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+}  // namespace geometry
 
 using quantities::Entropy;
 using quantities::KinematicViscosity;

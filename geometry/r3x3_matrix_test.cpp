@@ -1,10 +1,10 @@
 ﻿
-#include <utility>
+#include <sstream>
 
 #include "geometry/r3x3_matrix.hpp"
-#include "glog/logging.h"
-#include "gmock/gmock.h"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "serialization/geometry.pb.h"
 
 using testing::Eq;
 

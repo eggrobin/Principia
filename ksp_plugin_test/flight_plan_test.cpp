@@ -1,14 +1,32 @@
 ﻿
-#include "ksp_plugin/flight_plan.hpp"
-
+#include <memory>
+#include <sstream>
+#include <type_traits>
 #include <vector>
 
-#include "gmock/gmock.h"
+#include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
 #include "gtest/gtest.h"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "ksp_plugin/burn.hpp"
+#include "ksp_plugin/flight_plan.hpp"
+#include "ksp_plugin/manœuvre.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/body_centered_non_rotating_dynamic_frame.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/forkable.hpp"
 #include "physics/massive_body.hpp"
+#include "physics/rigid_motion.hpp"
+#include "quantities/numbers.hpp"
+#include "quantities/si.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename FrameTag, FrameTag frame_tag, bool frame_is_inertial> class Frame;
+}  // namespace geometry
 
 using physics::BodyCentredNonRotatingDynamicFrame;
 using physics::DegreesOfFreedom;

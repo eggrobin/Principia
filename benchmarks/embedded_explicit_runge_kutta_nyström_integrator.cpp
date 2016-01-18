@@ -3,23 +3,34 @@
 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
 
+#include <stddef.h>
 #include <algorithm>
 #include <functional>
-#include <type_traits>
+#include <ostream>
+#include <string>
 #include <vector>
 
 #include "base/not_null.hpp"
-#include "benchmark/benchmark.h"
+#include "benchmark/benchmark_api.h"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
-#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
-#include "glog/logging.h"
+#include "numerics/double_precision.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
-#include "serialization/physics.pb.h"
+#include "serialization/geometry.pb.h"
+
+namespace principia {
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+}  // namespace geometry
+}  // namespace principia
 
 namespace principia {
 

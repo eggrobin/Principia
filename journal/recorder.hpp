@@ -8,6 +8,12 @@
 #include "serialization/journal.pb.h"
 
 namespace principia {
+namespace serialization {
+class Method;
+}  // namespace serialization
+}  // namespace principia
+
+namespace principia {
 namespace journal {
 
 class Recorder {

@@ -1,8 +1,11 @@
 ﻿
-#include "ksp_plugin/celestial.hpp"
-
-#include "gmock/gmock.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "ksp_plugin/celestial.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/massive_body.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 
 namespace principia {
 

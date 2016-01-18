@@ -1,12 +1,17 @@
 ﻿
 #pragma once
 
+#include <iosfwd>
 #include <string>
 
 #include "base/not_null.hpp"
 #include "serialization/geometry.pb.h"
 
 namespace principia {
+
+namespace serialization {
+class Sign;
+}  // namespace serialization
 
 using base::not_null;
 

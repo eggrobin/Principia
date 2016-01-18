@@ -2,6 +2,7 @@
 #pragma once
 
 #include <type_traits>
+#include <vector>
 
 #include "base/macros.hpp"
 #include "base/pull_serializer.hpp"
@@ -11,7 +12,30 @@
 #include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/plugin.hpp"
 
+struct Burn;
+struct Burn;
+struct NavigationFrameParameters;
+struct NavigationFrameParameters;
+struct NavigationManoeuvre;
+struct NavigationManoeuvre;
+struct QP;
+struct QP;
+struct WXYZ;
+struct WXYZ;
+struct XYZ;
+struct XYZ;
+struct XYZSegment;
+struct XYZSegment;
+
 namespace principia {
+
+namespace base {
+class PullSerializer;
+class PushDeserializer;
+}  // namespace base
+namespace geometry {
+class Quaternion;
+}  // namespace geometry
 
 using base::PullSerializer;
 using base::PushDeserializer;

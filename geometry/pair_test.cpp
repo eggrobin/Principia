@@ -1,10 +1,13 @@
 ﻿
-#include "geometry/pair.hpp"
+#include <sstream>
 
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/identity.hpp"
+#include "geometry/pair.hpp"
 #include "geometry/point.hpp"
+#include "glog/logging.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"

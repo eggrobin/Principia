@@ -4,11 +4,21 @@
 #include <memory>
 
 #include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "ksp_plugin/frames.hpp"
+#include "ksp_plugin/manœuvre.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename FrameTag, FrameTag frame_tag, bool frame_is_inertial> class Frame;
+}  // namespace geometry
 
 using geometry::Instant;
 using geometry::Velocity;

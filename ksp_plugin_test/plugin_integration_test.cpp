@@ -1,15 +1,42 @@
 ﻿
-#include "ksp_plugin/plugin.hpp"
-
+#include <stddef.h>
 #include <algorithm>
 #include <limits>
+#include <memory>
+#include <sstream>
+#include <type_traits>
 #include <vector>
 
 #include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
+#include "geometry/affine_map.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/identity.hpp"
+#include "geometry/named_quantities.hpp"
 #include "geometry/permutation.hpp"
-#include "gmock/gmock.h"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "geometry/rotation.hpp"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/frames.hpp"
+#include "ksp_plugin/part.hpp"
+#include "ksp_plugin/plugin.hpp"
+#include "physics/body_centered_non_rotating_dynamic_frame.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/solar_system.hpp"
+#include "quantities/elementary_functions.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/numbers.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
+#include "serialization/ksp_plugin.pb.h"
+#include "testing_utilities/numerics.hpp"
 #include "testing_utilities/solar_system_factory.hpp"
 
 namespace principia {

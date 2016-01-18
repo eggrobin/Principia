@@ -1,24 +1,46 @@
 ﻿
-#include "mathematica/integrator_plots.hpp"
-
 #include <algorithm>
+#include <cmath>
 #include <fstream>  // NOLINT(readability/streams)
-#include <iostream>  // NOLINT(readability/streams)
+#include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
 #include "geometry/barycentre_calculator.hpp"
+#include "geometry/epoch.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
 #include "glog/logging.h"
+#include "integrators/motion_integrator.hpp"
 #include "integrators/sprk_integrator.hpp"
+#include "integrators/srkn_integrator.hpp"
+#include "mathematica/integrator_plots.hpp"
+#include "mathematica/mathematica.hpp"
+#include "numerics/double_precision.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/oblate_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "physics/solar_system.hpp"
 #include "quantities/astronomy.hpp"
 #include "quantities/constants.hpp"
-#include "quantities/quantities.hpp"
+#include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"
-#include "mathematica/mathematica.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 #include "testing_utilities/integration.hpp"
 #include "testing_utilities/numerics.hpp"
 #include "testing_utilities/solar_system_factory.hpp"
+
+namespace principia {
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+}  // namespace geometry
+}  // namespace principia
 
 #define INTEGRATOR(name) &integrators::name(), #name
 

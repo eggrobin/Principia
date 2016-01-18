@@ -3,14 +3,25 @@
 
 #include <cfloat>
 #include <cstdint>
-
+#include <iosfwd>
 #include <string>
 
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
 #include "geometry/quaternion.hpp"
 #include "geometry/r3_element.hpp"
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
+
+namespace principia {
+namespace geometry {
+class Quaternion;
+template <typename Vector> class Point;
+}  // namespace geometry
+namespace quantities {
+template <typename D> class Quantity;
+}  // namespace quantities
+}  // namespace principia
 
 namespace principia {
 namespace testing_utilities {

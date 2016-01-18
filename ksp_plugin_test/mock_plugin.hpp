@@ -1,13 +1,41 @@
 ﻿
 #pragma once
 
+#include <functional>
+#include <memory>
 #include <vector>
 
 #include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "gmock/gmock-generated-function-mockers.h"
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/frames.hpp"
+#include "ksp_plugin/part.hpp"
 #include "ksp_plugin/plugin.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+template <typename Vector> class Point;
+}  // namespace geometry
+namespace ksp_plugin {
+class Vessel;
+}  // namespace ksp_plugin
+namespace physics {
+class MassiveBody;
+}  // namespace physics
+namespace serialization {
+class Plugin;
+}  // namespace serialization
 
 using base::not_null;
 

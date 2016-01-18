@@ -8,8 +8,13 @@
 #include "base/not_null.hpp"
 #include "integrators/motion_integrator.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 
 namespace principia {
+
+namespace base {
+template <typename Pointer> class not_null;
+}  // namespace base
 
 using base::not_null;
 using quantities::Time;

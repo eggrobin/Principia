@@ -4,11 +4,14 @@
 #include <functional>
 
 #include "geometry/affine_map.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/orthogonal_map.hpp"
 #include "geometry/rotation.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 
 namespace principia {
 

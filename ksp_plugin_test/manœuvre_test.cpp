@@ -1,13 +1,30 @@
 ﻿
-#include "ksp_plugin/manœuvre.hpp"
+#include <cmath>
+#include <functional>
+#include <sstream>
+#include <type_traits>
 
+#include "geometry/affine_map.hpp"
 #include "geometry/frame.hpp"
-#include "gmock/gmock.h"
+#include "geometry/orthogonal_map.hpp"
+#include "geometry/point.hpp"
+#include "geometry/rotation.hpp"
+#include "gmock/gmock-actions.h"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-generated-nice-strict.h"
+#include "gmock/gmock-matchers.h"
+#include "gmock/gmock-spec-builders.h"
 #include "gtest/gtest.h"
+#include "ksp_plugin/manœuvre.hpp"
+#include "physics/degrees_of_freedom.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/mock_dynamic_frame.hpp"
+#include "physics/rigid_motion.hpp"
+#include "quantities/elementary_functions.hpp"
 #include "quantities/numbers.hpp"
+#include "quantities/si.hpp"
 #include "quantities/uk.hpp"
+#include "serialization/geometry.pb.h"
 #include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/componentwise.hpp"
 #include "testing_utilities/numerics.hpp"

@@ -3,10 +3,17 @@
 
 #include <cstdint>
 
-#include "geometry/r3_element.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
 #include "quantities/quantities.hpp"
+
+namespace principia {
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+template <typename Vector> class Point;
+}  // namespace geometry
+}  // namespace principia
 
 namespace principia {
 namespace testing_utilities {

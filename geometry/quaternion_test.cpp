@@ -1,8 +1,10 @@
 ﻿
+#include <sstream>
+
 #include "geometry/quaternion.hpp"
-#include "glog/logging.h"
-#include "gmock/gmock.h"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "serialization/geometry.pb.h"
 #include "testing_utilities/algebra.hpp"
 
 namespace principia {

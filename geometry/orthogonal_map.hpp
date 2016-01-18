@@ -2,12 +2,20 @@
 #pragma once
 
 #include "base/mappable.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/linear_map.hpp"
 #include "geometry/r3_element.hpp"
 #include "geometry/rotation.hpp"
 #include "geometry/sign.hpp"
 #include "serialization/geometry.pb.h"
+
+namespace principia {
+namespace serialization {
+class LinearMap;
+class OrthogonalMap;
+}  // namespace serialization
+}  // namespace principia
 
 namespace principia {
 namespace geometry {

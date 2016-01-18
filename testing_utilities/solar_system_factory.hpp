@@ -20,6 +20,10 @@
 
 namespace principia {
 
+namespace physics {
+template <typename Frame> class SolarSystem;
+}  // namespace physics
+
 using astronomy::ICRFJ2000Equator;
 using base::not_null;
 using physics::SolarSystem;

@@ -3,14 +3,19 @@
 
 #include <experimental/filesystem>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "base/not_null.hpp"
+#include "geometry/named_quantities.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
 #include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/ephemeris.hpp"
 #include "physics/massive_body.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "serialization/astronomy.pb.h"
 
 namespace principia {

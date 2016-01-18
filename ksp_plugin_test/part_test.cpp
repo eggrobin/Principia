@@ -1,8 +1,13 @@
 ﻿
-#include "ksp_plugin/part.hpp"
+#include <sstream>
 
-#include "gmock/gmock.h"
+#include "geometry/point.hpp"
 #include "gtest/gtest.h"
+#include "ksp_plugin/part.hpp"
+#include "quantities/si.hpp"
+#include "serialization/geometry.pb.h"
+#include "serialization/ksp_plugin.pb.h"
+#include "serialization/quantities.pb.h"
 
 namespace principia {
 

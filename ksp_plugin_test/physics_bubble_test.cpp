@@ -1,28 +1,44 @@
 ﻿
-#include "ksp_plugin/physics_bubble.hpp"
-
 #include <list>
 #include <map>
+#include <sstream>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "base/not_null.hpp"
 #include "geometry/barycentre_calculator.hpp"
 #include "geometry/grassmann.hpp"
-#include "gmock/gmock.h"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "geometry/rotation.hpp"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
 #include "ksp_plugin/celestial.hpp"
 #include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/part.hpp"
+#include "ksp_plugin/physics_bubble.hpp"
 #include "ksp_plugin/vessel.hpp"
-#include "physics/body.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/forkable.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
+#include "serialization/geometry.pb.h"
+#include "serialization/ksp_plugin.pb.h"
+#include "serialization/quantities.pb.h"
 #include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/componentwise.hpp"
 #include "testing_utilities/vanishes_before.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+}  // namespace geometry
 
 using base::make_not_null_unique;
 using geometry::Barycentre;

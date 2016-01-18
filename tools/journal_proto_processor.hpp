@@ -9,6 +9,15 @@
 
 #include "google/protobuf/descriptor.h"
 
+namespace google {
+namespace protobuf {
+class Descriptor;
+class FieldDescriptor;
+class FieldOptions;
+class FileDescriptor;
+}  // namespace protobuf
+}  // namespace google
+
 namespace principia {
 
 using ::google::protobuf::Descriptor;

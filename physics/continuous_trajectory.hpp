@@ -2,9 +2,11 @@
 #pragma once
 
 #include <experimental/optional>
-#include <vector>
+#include <memory>
 #include <utility>
+#include <vector>
 
+#include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
 #include "numerics/чебышёв_series.hpp"
 #include "physics/degrees_of_freedom.hpp"
@@ -12,6 +14,10 @@
 #include "serialization/physics.pb.h"
 
 namespace principia {
+
+namespace serialization {
+class ContinuousTrajectory;
+}  // namespace serialization
 
 using geometry::Instant;
 using quantities::Length;

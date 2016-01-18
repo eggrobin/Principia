@@ -3,16 +3,22 @@
 
 #include <cfloat>
 #include <cstdint>
-
+#include <iosfwd>
 #include <string>
 
 #include "geometry/grassmann.hpp"
 #include "geometry/pair.hpp"
 #include "geometry/r3_element.hpp"
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
 #include "quantities/quantities.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename Scalar> struct R3Element;
+template <typename T1, typename T2> class Pair;
+}  // namespace geometry
 
 using geometry::R3Element;
 
@@ -20,7 +26,6 @@ namespace testing_utilities {
 
 template<typename T1Matcher, typename T2Matcher>
 class ComponentwiseMatcher2;
-
 template<typename XMatcher, typename YMatcher, typename ZMatcher>
 class ComponentwiseMatcher3;
 

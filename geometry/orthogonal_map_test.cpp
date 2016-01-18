@@ -1,13 +1,17 @@
 ﻿
-#include "geometry/orthogonal_map.hpp"
+#include <sstream>
 
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/identity.hpp"
+#include "geometry/orthogonal_map.hpp"
+#include "geometry/r3_element.hpp"
 #include "geometry/rotation.hpp"
-#include "glog/logging.h"
-#include "gmock/gmock.h"
+#include "gmock/gmock-matchers.h"
+#include "google/protobuf/extension_set.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
 #include "testing_utilities/almost_equals.hpp"

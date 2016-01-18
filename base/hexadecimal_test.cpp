@@ -1,12 +1,15 @@
 ﻿
-#include "base/hexadecimal.hpp"
-
+#include <cstring>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
 #include "base/array.hpp"
-#include "gmock/gmock.h"
+#include "base/hexadecimal.hpp"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
 
 using testing::Each;

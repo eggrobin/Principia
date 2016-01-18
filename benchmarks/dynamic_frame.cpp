@@ -1,38 +1,46 @@
 ﻿
 // .\Release\benchmarks.exe --benchmark_filter=DynamicFrame --benchmark_repetitions=5  // NOLINT(whitespace/line_length)
 
-#include <experimental/optional>
+#include <fstream>
+#include <functional>
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
+#include "benchmark/benchmark_api.h"
+#include "experimental/filesystem"
+#include "geometry/affine_map.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
-#include "glog/logging.h"
+#include "geometry/point.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
-#include "quantities/astronomy.hpp"
-#include "quantities/numbers.hpp"
-#include "quantities/quantities.hpp"
-#include "quantities/si.hpp"
 #include "physics/barycentric_rotating_dynamic_frame.hpp"
-#include "physics/body.hpp"
 #include "physics/body_centered_non_rotating_dynamic_frame.hpp"
 #include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
-#include "physics/massive_body.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/forkable.hpp"
 #include "physics/massless_body.hpp"
+#include "physics/rigid_motion.hpp"
 #include "physics/solar_system.hpp"
+#include "quantities/astronomy.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
 
-// This must come last because apparently it redefines CDECL.
-#include "benchmark/benchmark.h"
-
 namespace principia {
+
+namespace physics {
+class Body;
+class MassiveBody;
+}  // namespace physics
 
 using astronomy::ICRFJ2000Equator;
 using base::not_null;

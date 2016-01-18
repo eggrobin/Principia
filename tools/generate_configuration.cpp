@@ -1,17 +1,16 @@
 ﻿
-#include "tools/generate_configuration.hpp"
-
 #include <experimental/filesystem>
+#include <fstream>
 #include <string>
 
 #include "astronomy/frames.hpp"
-#include "geometry/epoch.hpp"
 #include "geometry/named_quantities.hpp"
 #include "glog/logging.h"
 #include "physics/solar_system.hpp"
-#include "quantities/parser.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/astronomy.pb.h"
+#include "tools/generate_configuration.hpp"
 
 namespace principia {
 

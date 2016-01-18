@@ -3,11 +3,18 @@
 
 #include <cfloat>
 #include <cstdint>
-
+#include <iosfwd>
 #include <string>
 
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
 #include "quantities/quantities.hpp"
+
+namespace principia {
+namespace quantities {
+template <typename D> class Quantity;
+}  // namespace quantities
+}  // namespace principia
 
 namespace principia {
 namespace testing_utilities {

@@ -1,8 +1,9 @@
 ﻿
-#include "geometry/frame.hpp"
+#include <sstream>
 
-#include "glog/logging.h"
+#include "geometry/frame.hpp"
 #include "google/protobuf/descriptor.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
 #include "serialization/geometry.pb.h"
 

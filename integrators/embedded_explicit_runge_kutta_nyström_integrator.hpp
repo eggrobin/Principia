@@ -5,6 +5,18 @@
 // parent.
 #ifndef PRINCIPIA_INTEGRATORS_ORDINARY_DIFFERENTIAL_EQUATIONS_HPP_
 #include "integrators/ordinary_differential_equations.hpp"
+#include "quantities/quantities.hpp"
+
+namespace principia {
+namespace base {
+template <typename Pointer> class not_null;
+}  // namespace base
+namespace integrators {
+template <typename ODE> struct AdaptiveStepSize;
+template <typename ODE> struct IntegrationProblem;
+template <typename Position_> struct SpecialSecondOrderDifferentialEquation;
+}  // namespace integrators
+}  // namespace principia
 #else
 #ifndef PRINCIPIA_INTEGRATORS_EMBEDDED_EXPLICIT_RUNGE_KUTTA_NYSTRÖM_INTEGRATOR_HPP_  // NOLINT(whitespace/line_length)
 #define PRINCIPIA_INTEGRATORS_EMBEDDED_EXPLICIT_RUNGE_KUTTA_NYSTRÖM_INTEGRATOR_HPP_  // NOLINT(whitespace/line_length)
@@ -13,8 +25,8 @@
 #include <vector>
 
 #include "base/not_null.hpp"
-#include "numerics/fixed_arrays.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
+#include "numerics/fixed_arrays.hpp"
 #include "quantities/named_quantities.hpp"
 #include "serialization/integrators.pb.h"
 

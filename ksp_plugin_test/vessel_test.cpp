@@ -1,8 +1,12 @@
 ﻿
-#include "ksp_plugin/vessel.hpp"
-
-#include "gmock/gmock.h"
+#include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/vessel.hpp"
+#include "quantities/si.hpp"
+#include "serialization/ksp_plugin.pb.h"
 
 namespace principia {
 

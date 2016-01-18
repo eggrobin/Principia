@@ -1,19 +1,28 @@
 ﻿
+#include <stdint.h>
 #include <experimental/filesystem>
-#include <fstream>
+#include <memory>
+#include <set>
+#include <sstream>
 #include <string>
+#include <utility>
 
 #include "base/array.hpp"
 #include "base/hexadecimal.hpp"
-#include "ksp_plugin/frames.hpp"
-#include "ksp_plugin/plugin.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
 #include "glog/logging.h"
 #include "google/protobuf/io/coded_stream.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/frames.hpp"
+#include "ksp_plugin/plugin.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
-#include "serialization/physics.pb.h"
+#include "serialization/geometry.pb.h"
 #include "serialization/ksp_plugin.pb.h"
 
 namespace principia {

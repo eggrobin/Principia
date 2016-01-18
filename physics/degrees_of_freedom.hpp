@@ -1,9 +1,12 @@
 ﻿
 #pragma once
 
+#include <iosfwd>
 #include <string>
+#include <type_traits>
 #include <vector>
 
+#include "base/mappable.hpp"
 #include "geometry/barycentre_calculator.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
@@ -12,6 +15,10 @@
 #include "quantities/named_quantities.hpp"
 
 namespace principia {
+
+namespace serialization {
+class Pair;
+}  // namespace serialization
 
 using geometry::Displacement;
 using geometry::Pair;

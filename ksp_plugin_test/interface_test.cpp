@@ -1,26 +1,63 @@
 ﻿
-#include "ksp_plugin/interface.hpp"
-
+#include <math.h>
+#include <stdlib.h>
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <sstream>
 #include <string>
 
 #include "base/not_null.hpp"
-#include "base/pull_serializer.hpp"
-#include "base/push_deserializer.hpp"
+#include "experimental/filesystem"
 #include "geometry/epoch.hpp"
+#include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
-#include "gmock/gmock.h"
+#include "geometry/point.hpp"
+#include "geometry/quaternion.hpp"
+#include "geometry/rotation.hpp"
+#include "glog/logging.h"
+#include "gmock/gmock-actions.h"
+#include "gmock/gmock-generated-actions.h"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-generated-nice-strict.h"
+#include "gmock/gmock-matchers.h"
+#include "gmock/gmock-spec-builders.h"
+#include "google/protobuf/extension_set.h"
+#include "gtest/gtest-death-test.h"
+#include "gtest/gtest-message.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "journal/recorder.hpp"
+#include "ksp_plugin/burn.hpp"
+#include "ksp_plugin/celestial.hpp"
 #include "ksp_plugin/frames.hpp"
+#include "ksp_plugin/interface.hpp"
+#include "ksp_plugin/part.hpp"
 #include "ksp_plugin_test/mock_flight_plan.hpp"
 #include "ksp_plugin_test/mock_plugin.hpp"
 #include "ksp_plugin_test/mock_vessel.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/massive_body.hpp"
 #include "physics/mock_dynamic_frame.hpp"
+#include "physics/rigid_motion.hpp"
 #include "quantities/constants.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/numbers.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
+#include "serialization/ksp_plugin.pb.h"
+#include "serialization/physics.pb.h"
 #include "testing_utilities/almost_equals.hpp"
 
 namespace principia {
+
+namespace base {
+class PullSerializer;
+class PushDeserializer;
+}  // namespace base
 
 using base::check_not_null;
 using base::PullSerializer;

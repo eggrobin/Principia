@@ -1,22 +1,33 @@
 ﻿
-#include "physics/barycentric_rotating_dynamic_frame.hpp"
-
+#include <math.h>
+#include <fstream>
+#include <functional>
 #include <memory>
+#include <sstream>
 
 #include "astronomy/frames.hpp"
+#include "experimental/filesystem"
 #include "geometry/barycentre_calculator.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
-#include "geometry/rotation.hpp"
-#include "gmock/gmock.h"
+#include "geometry/point.hpp"
+#include "gmock/gmock-actions.h"
+#include "gmock/gmock-generated-nice-strict.h"
+#include "gmock/gmock-matchers.h"
+#include "gmock/gmock-spec-builders.h"
+#include "google/protobuf/extension_set.h"
 #include "gtest/gtest.h"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/dynamic_frame.hpp"
 #include "physics/ephemeris.hpp"
+#include "physics/massive_body.hpp"
 #include "physics/mock_continuous_trajectory.hpp"
 #include "physics/mock_ephemeris.hpp"
 #include "physics/solar_system.hpp"
-#include "quantities/constants.hpp"
+#include "quantities/numbers.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
@@ -25,6 +36,10 @@
 #include "testing_utilities/numerics.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename FromFrame, typename ToFrame> class Rotation;
+}  // namespace geometry
 
 using astronomy::ICRFJ2000Equator;
 using base::check_not_null;

@@ -1,4 +1,7 @@
 ﻿
+#include <type_traits>
+
+#include "geometry/frame.hpp"
 #include "ksp_plugin/burn.hpp"
 
 namespace principia {

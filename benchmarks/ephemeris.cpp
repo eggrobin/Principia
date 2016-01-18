@@ -50,30 +50,38 @@
 // BM_EphemerisLEOProbeAllBodiesAndOblateness_mean      10180320715 10176465233          1                                 750001 steps, +9.99958277683878570e-01 ua, +9.99468831450655270e+01 nmi  // NOLINT(whitespace/line_length)
 // BM_EphemerisLEOProbeAllBodiesAndOblateness_stddev        4477703    14707915          0                                 750001 steps, +9.99958277683878570e-01 ua, +9.99468831450655270e+01 nmi  // NOLINT(whitespace/line_length)
 
+#include <math.h>
+#include <functional>
 #include <memory>
-#include <vector>
+#include <ostream>
+#include <string>
 
 #include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
+#include "benchmark/benchmark_api.h"
+#include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
 #include "geometry/quaternion.hpp"
 #include "geometry/rotation.hpp"
 #include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/ephemeris.hpp"
 #include "physics/massless_body.hpp"
+#include "physics/solar_system.hpp"
 #include "quantities/astronomy.hpp"
 #include "quantities/bipm.hpp"
 #include "quantities/elementary_functions.hpp"
+#include "quantities/named_quantities.hpp"
 #include "quantities/numbers.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/solar_system_factory.hpp"
-
-// Must come last to avoid conflicts when defining the CHECK macros.
-#include "benchmark/benchmark.h"
 
 namespace principia {
 

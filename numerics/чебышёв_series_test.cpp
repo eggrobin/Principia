@@ -1,21 +1,31 @@
 ﻿
-#include "numerics/чебышёв_series.hpp"
-
 #include <algorithm>
 #include <cmath>
+#include <functional>
+#include <sstream>
 #include <vector>
 
 #include "astronomy/frames.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
-#include "gmock/gmock.h"
+#include "numerics/чебышёв_series.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/si.hpp"
+#include "serialization/geometry.pb.h"
+#include "serialization/quantities.pb.h"
 #include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/numerics.hpp"
 
 namespace principia {
+
+namespace geometry {
+template <typename Scalar, typename Frame, int rank> class Multivector;
+}  // namespace geometry
 
 using astronomy::ICRFJ2000Ecliptic;
 using geometry::Instant;

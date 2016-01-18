@@ -1,6 +1,7 @@
 ﻿
 #pragma once
 
+#include <functional>
 #include <vector>
 
 #include "base/not_null.hpp"
@@ -11,10 +12,15 @@
 #include "ksp_plugin/manœuvre.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/ephemeris.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 
 namespace principia {
+
+namespace ksp_plugin {
+struct Burn;
+}  // namespace ksp_plugin
 
 using base::not_null;
 using geometry::Instant;

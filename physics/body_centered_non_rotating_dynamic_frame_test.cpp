@@ -1,23 +1,34 @@
 ﻿
-#include "physics/body_centered_non_rotating_dynamic_frame.hpp"
-
+#include <math.h>
+#include <fstream>
+#include <functional>
 #include <memory>
+#include <sstream>
 
 #include "astronomy/frames.hpp"
+#include "experimental/filesystem"
 #include "geometry/barycentre_calculator.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/pair.hpp"
+#include "geometry/point.hpp"
 #include "geometry/rotation.hpp"
-#include "gmock/gmock.h"
+#include "gmock/gmock-matchers.h"
+#include "google/protobuf/extension_set.h"
 #include "gtest/gtest.h"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "physics/body_centered_non_rotating_dynamic_frame.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/dynamic_frame.hpp"
 #include "physics/ephemeris.hpp"
+#include "physics/massive_body.hpp"
 #include "physics/solar_system.hpp"
-#include "quantities/constants.hpp"
+#include "quantities/numbers.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
+#include "serialization/physics.pb.h"
 #include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/numerics.hpp"
 

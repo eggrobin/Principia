@@ -1,6 +1,7 @@
 ﻿
 #pragma once
 
+#include <stdint.h>
 // We use ostream for logging purposes.
 #include <iostream>  // NOLINT(readability/streams)
 #include <limits>
@@ -11,6 +12,10 @@
 #include "serialization/quantities.pb.h"
 
 namespace principia {
+
+namespace serialization {
+class Quantity;
+}  // namespace serialization
 
 using base::not_null;
 
@@ -45,6 +50,7 @@ namespace internal {
 
 template<typename Left, typename Right> struct ProductGenerator;
 template<typename Left, typename Right> struct QuotientGenerator;
+
 template <int n, typename Q, typename = void>
 struct NthRootGenerator {};
 template <typename T, int exponent, typename = void>

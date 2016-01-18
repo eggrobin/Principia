@@ -1,14 +1,14 @@
 ﻿
-#include "journal/profiles.hpp"
-
-#include <fstream>
-#include <list>
-#include <string>
+#include <stdint.h>
+#include <map>
 #include <type_traits>
-#include <vector>
+#include <utility>
 
 #include "base/map_util.hpp"
+#include "base/not_null.hpp"
 #include "glog/logging.h"
+#include "journal/player.hpp"
+#include "journal/profiles.hpp"
 
 namespace principia {
 
