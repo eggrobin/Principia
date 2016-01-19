@@ -156,7 +156,7 @@ clean:  $(addprefix clean_test-,$(TEST_DIRS))
 compile_everything: $(patsubst %.cpp,%.o,$(wildcard */*.cpp))
 
 ##### IWYU #####
-IWYU := deps/include-what-you-use/bin/include-what-you-use
+IWYU := deps/iwyu-build/include-what-you-use
 IWYU_FLAGS := -Xiwyu --max_line_length=200 -Xiwyu --mapping_file="iwyu.imp"
 IWYU_ALL_HPP := -Xiwyu --check_also=*/*.hpp
 IWYU_NOSAFE_HEADERS := --nosafe_headers
