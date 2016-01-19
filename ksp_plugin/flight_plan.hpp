@@ -1,6 +1,7 @@
 ﻿
 #pragma once
 
+#include <functional>
 #include <vector>
 
 #include "base/not_null.hpp"
@@ -11,6 +12,7 @@
 #include "ksp_plugin/manœuvre.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/ephemeris.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 

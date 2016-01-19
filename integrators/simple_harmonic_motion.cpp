@@ -1,16 +1,31 @@
 ﻿
+#include <stddef.h>
 #include <algorithm>
+#include <cmath>
+#include <functional>
+#include <sstream>
 #include <string>
 #include <vector>
 
-#include "base/macros.hpp"
-#include "geometry/sign.hpp"
+#include "base/not_null.hpp"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
 #include "glog/logging.h"
-#include "gmock/gmock.h"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-param-test.h"
 #include "gtest/gtest.h"
+#include "integrators/motion_integrator.hpp"
 #include "integrators/sprk_integrator.hpp"
-#include "quantities/quantities.hpp"
+#include "integrators/srkn_integrator.hpp"
+#include "numerics/double_precision.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/oblate_body.hpp"
+#include "physics/rotating_body.hpp"
+#include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/integration.hpp"
 #include "testing_utilities/numerics.hpp"

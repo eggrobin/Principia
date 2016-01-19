@@ -12,6 +12,7 @@
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/forkable.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "serialization/physics.pb.h"
 
 namespace principia {

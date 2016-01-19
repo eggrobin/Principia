@@ -1,6 +1,7 @@
 ﻿
 #pragma once
 
+#include <stdint.h>
 #include <experimental/filesystem>
 #include <fstream>
 #include <map>

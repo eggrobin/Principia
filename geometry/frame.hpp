@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 
+#include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
 #include "google/protobuf/descriptor.h"
 #include "serialization/geometry.pb.h"

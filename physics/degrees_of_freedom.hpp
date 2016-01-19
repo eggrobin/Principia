@@ -1,15 +1,19 @@
 ﻿
 #pragma once
 
+#include <iosfwd>
 #include <string>
+#include <type_traits>
 #include <vector>
 
+#include "base/mappable.hpp"
 #include "geometry/barycentre_calculator.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/pair.hpp"
 #include "geometry/point.hpp"
 #include "quantities/named_quantities.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 

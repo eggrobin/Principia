@@ -1,16 +1,25 @@
 ﻿
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <vector>
 
+#include "base/not_null.hpp"
+#include "geometry/named_quantities.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "ksp_plugin/celestial.hpp"
 #include "ksp_plugin/flight_plan.hpp"
+#include "ksp_plugin/frames.hpp"
+#include "ksp_plugin/manœuvre.hpp"
 #include "ksp_plugin/part.hpp"
+#include "physics/degrees_of_freedom.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/ephemeris.hpp"
+#include "physics/massive_body.hpp"
 #include "physics/massless_body.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "serialization/ksp_plugin.pb.h"
 
 namespace principia {

@@ -1,8 +1,9 @@
 ﻿
 #pragma once
 
-#include <cstdint>
 #include <condition_variable>
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <queue>
@@ -11,8 +12,8 @@
 #include "base/array.hpp"
 #include "base/macros.hpp"
 #include "base/not_null.hpp"
-#include "google/protobuf/message.h"
 #include "google/protobuf/io/zero_copy_stream.h"
+#include "google/protobuf/message.h"
 
 namespace principia {
 namespace base {

@@ -1,19 +1,22 @@
 ﻿
-#include "geometry/affine_map.hpp"
-
+#include <stddef.h>
 #include <limits>
+#include <sstream>
 #include <vector>
 
+#include "geometry/affine_map.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
-#include "geometry/named_quantities.hpp"
 #include "geometry/orthogonal_map.hpp"
 #include "geometry/permutation.hpp"
 #include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
 #include "geometry/rotation.hpp"
-#include "gmock/gmock.h"
+#include "gmock/gmock-matchers.h"
+#include "google/protobuf/extension_set.h"
 #include "gtest/gtest.h"
 #include "quantities/numbers.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
 #include "testing_utilities/almost_equals.hpp"

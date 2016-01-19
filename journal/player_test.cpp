@@ -1,17 +1,18 @@
 ﻿
-#include "journal/player.hpp"
-
-#include <list>
+#include <functional>
+#include <sstream>
 #include <string>
-#include <vector>
 
-#include "benchmark/benchmark.h"
+#include "benchmark/benchmark_api.h"
+#include "experimental/filesystem"
+#include "glog/logging.h"
 #include "gtest/gtest.h"
 #include "journal/method.hpp"
+#include "journal/player.hpp"
 #include "journal/profiles.hpp"
 #include "journal/recorder.hpp"
 #include "ksp_plugin/interface.hpp"
-#include "serialization/journal.pb.h"
+#include "ksp_plugin/plugin.hpp"
 
 namespace principia {
 namespace journal {

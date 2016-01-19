@@ -8,6 +8,7 @@
 
 #include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "serialization/physics.pb.h"
 
 namespace principia {

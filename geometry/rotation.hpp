@@ -1,13 +1,17 @@
 ﻿
 #pragma once
 
+#include <iosfwd>
+
 #include "base/mappable.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/linear_map.hpp"
 #include "geometry/quaternion.hpp"
 #include "geometry/r3_element.hpp"
 #include "geometry/r3x3_matrix.hpp"
 #include "geometry/sign.hpp"
+#include "quantities/quantities.hpp"
 #include "serialization/geometry.pb.h"
 
 namespace principia {

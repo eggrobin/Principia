@@ -1,22 +1,30 @@
 ﻿
-#include "physics/continuous_trajectory.hpp"
-
+#include <math.h>
 #include <deque>
 #include <functional>
 #include <limits>
+#include <sstream>
 #include <vector>
 
 #include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
 #include "numerics/чебышёв_series.hpp"
+#include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "quantities/astronomy.hpp"
+#include "quantities/elementary_functions.hpp"
+#include "quantities/named_quantities.hpp"
 #include "quantities/numbers.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
 #include "serialization/physics.pb.h"
+#include "serialization/quantities.pb.h"
 #include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/numerics.hpp"
 

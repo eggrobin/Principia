@@ -1,14 +1,20 @@
 ﻿
+#include <cmath>
 #include <functional>
+#include <sstream>
 #include <string>
 
-#include "google/protobuf/stubs/common.h"
+#include "geometry/r3_element.hpp"
 #include "glog/logging.h"
+#include "gmock/gmock-matchers.h"
+#include "google/protobuf/stubs/logging.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
 #include "quantities/astronomy.hpp"
-#include "quantities/bipm.hpp"
 #include "quantities/constants.hpp"
 #include "quantities/elementary_functions.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/numbers.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "quantities/uk.hpp"

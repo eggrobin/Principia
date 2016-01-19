@@ -8,6 +8,7 @@
 #include "base/not_null.hpp"
 #include "integrators/motion_integrator.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 
 namespace principia {
 

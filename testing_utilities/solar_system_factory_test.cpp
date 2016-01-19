@@ -1,17 +1,28 @@
 ﻿
-#include "testing_utilities/solar_system_factory.hpp"
-
+#include <math.h>
 #include <experimental/optional>
+#include <ostream>
 #include <string>
 #include <vector>
 
 #include "astronomy/frames.hpp"
 #include "geometry/grassmann.hpp"
-#include "gmock/gmock.h"
+#include "geometry/pair.hpp"
+#include "geometry/point.hpp"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "physics/body.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/massive_body.hpp"
+#include "physics/oblate_body.hpp"
+#include "quantities/elementary_functions.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 #include "testing_utilities/numerics.hpp"
+#include "testing_utilities/solar_system_factory.hpp"
 
 namespace principia {
 

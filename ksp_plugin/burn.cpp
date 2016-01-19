@@ -1,4 +1,6 @@
 ﻿
+#include <type_traits>
+
 #include "ksp_plugin/burn.hpp"
 
 namespace principia {

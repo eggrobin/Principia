@@ -1,11 +1,13 @@
 ﻿
 #pragma once
 
+#include <iosfwd>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "base/not_null.hpp"
 #include "geometry/barycentre_calculator.hpp"
 #include "quantities/quantities.hpp"
 #include "serialization/geometry.pb.h"

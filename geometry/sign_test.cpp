@@ -1,7 +1,7 @@
 ﻿
-#include "geometry/sign.hpp"
+#include <sstream>
 
-#include "glog/logging.h"
+#include "geometry/sign.hpp"
 #include "gtest/gtest.h"
 
 namespace principia {

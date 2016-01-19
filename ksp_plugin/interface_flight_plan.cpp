@@ -1,15 +1,33 @@
 ﻿
-#include "ksp_plugin/interface.hpp"
+#include <memory>
+#include <ostream>
+#include <type_traits>
+#include <vector>
 
 #include "base/not_null.hpp"
+#include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
 #include "glog/logging.h"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "journal/method.hpp"
 #include "journal/profiles.hpp"
 #include "ksp_plugin/burn.hpp"
 #include "ksp_plugin/flight_plan.hpp"
+#include "ksp_plugin/frames.hpp"
+#include "ksp_plugin/interface.hpp"
+#include "ksp_plugin/manœuvre.hpp"
+#include "ksp_plugin/plugin.hpp"
 #include "ksp_plugin/vessel.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/constants.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 
 namespace principia {

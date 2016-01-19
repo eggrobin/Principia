@@ -1,6 +1,11 @@
 ﻿
-#include "ksp_plugin/flight_plan.hpp"
+#include <memory>
+#include <type_traits>
 
+#include "geometry/point.hpp"
+#include "glog/logging.h"
+#include "ksp_plugin/flight_plan.hpp"
+#include "physics/forkable.hpp"
 #include "testing_utilities/make_not_null.hpp"
 
 namespace principia {

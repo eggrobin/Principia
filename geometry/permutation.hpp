@@ -2,6 +2,7 @@
 #pragma once
 
 #include "base/mappable.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/linear_map.hpp"
 #include "geometry/r3_element.hpp"

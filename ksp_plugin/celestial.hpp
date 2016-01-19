@@ -4,10 +4,14 @@
 #include <memory>
 
 #include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "ksp_plugin/frames.hpp"
 #include "physics/body.hpp"
-#include "physics/degrees_of_freedom.hpp"
 #include "physics/continuous_trajectory.hpp"
+#include "physics/degrees_of_freedom.hpp"
 #include "physics/massive_body.hpp"
 #include "quantities/named_quantities.hpp"
 #include "serialization/ksp_plugin.pb.h"

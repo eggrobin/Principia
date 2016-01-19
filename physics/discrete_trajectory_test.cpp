@@ -1,10 +1,8 @@
 ﻿
-#include "physics/discrete_trajectory.hpp"
-
 #include <functional>
 #include <list>
 #include <map>
-#include <string>
+#include <sstream>
 #include <vector>
 
 #include "geometry/frame.hpp"
@@ -12,10 +10,14 @@
 #include "geometry/named_quantities.hpp"
 #include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
-#include "gmock/gmock.h"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 

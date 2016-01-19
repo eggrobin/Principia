@@ -2,12 +2,20 @@
 #pragma once
 
 #include <experimental/optional>
+#include <memory>
 
+#include "base/not_null.hpp"
+#include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
 #include "physics/ephemeris.hpp"
+#include "physics/forkable.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 
 namespace principia {
 

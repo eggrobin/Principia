@@ -1,12 +1,16 @@
 ﻿
-#include "physics/solar_system.hpp"
-
 #include <experimental/filesystem>
+#include <fstream>
+#include <functional>
+#include <sstream>
 
 #include "astronomy/frames.hpp"
-#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
-#include "gmock/gmock.h"
+#include "geometry/point.hpp"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/solar_system.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/numerics.hpp"
 

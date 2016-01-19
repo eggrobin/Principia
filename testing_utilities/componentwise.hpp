@@ -3,12 +3,13 @@
 
 #include <cfloat>
 #include <cstdint>
-
+#include <iosfwd>
 #include <string>
 
 #include "geometry/grassmann.hpp"
 #include "geometry/pair.hpp"
 #include "geometry/r3_element.hpp"
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
 #include "quantities/quantities.hpp"
 
@@ -20,7 +21,6 @@ namespace testing_utilities {
 
 template<typename T1Matcher, typename T2Matcher>
 class ComponentwiseMatcher2;
-
 template<typename XMatcher, typename YMatcher, typename ZMatcher>
 class ComponentwiseMatcher3;
 

@@ -1,8 +1,9 @@
 ﻿
 #pragma once
 
-#include <vector>
+#include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace principia {
 namespace geometry {

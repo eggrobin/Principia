@@ -2,6 +2,7 @@
 #pragma once
 
 #include <type_traits>
+#include <vector>
 
 #include "base/macros.hpp"
 #include "base/pull_serializer.hpp"
@@ -10,6 +11,7 @@
 #include "geometry/r3_element.hpp"
 #include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/plugin.hpp"
+#include "numerics/чебышёв_series.hpp"
 
 namespace principia {
 

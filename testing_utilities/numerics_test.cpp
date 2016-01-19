@@ -1,17 +1,17 @@
 ﻿
-#include "testing_utilities/numerics.hpp"
-
 #include <cmath>
 #include <limits>
+#include <type_traits>
 
 #include "geometry/grassmann.hpp"
 #include "geometry/r3_element.hpp"
-#include "glog/logging.h"
-#include "gmock/gmock.h"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
+#include "testing_utilities/numerics.hpp"
 
 namespace principia {
 namespace testing_utilities {

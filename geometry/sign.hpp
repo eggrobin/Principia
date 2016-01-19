@@ -1,6 +1,7 @@
 ﻿
 #pragma once
 
+#include <iosfwd>
 #include <string>
 
 #include "base/not_null.hpp"

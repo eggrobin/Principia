@@ -1,12 +1,16 @@
 ﻿
-#include "physics/degrees_of_freedom.hpp"
-
+#include <sstream>
 #include <vector>
 
 #include "geometry/barycentre_calculator.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
-#include "gmock/gmock.h"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "gmock/gmock-matchers.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "physics/degrees_of_freedom.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "testing_utilities/componentwise.hpp"

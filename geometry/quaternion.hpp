@@ -1,6 +1,9 @@
 ﻿
 #pragma once
 
+#include <iosfwd>
+
+#include "base/not_null.hpp"
 #include "geometry/r3_element.hpp"
 #include "serialization/geometry.pb.h"
 

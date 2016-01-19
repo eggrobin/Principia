@@ -1,13 +1,21 @@
 ﻿
-#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
-
 #include <algorithm>
+#include <functional>
+#include <sstream>
 #include <vector>
 
-#include "base/macros.hpp"
-#include "glog/logging.h"
-#include "gmock/gmock.h"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "numerics/double_precision.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/oblate_body.hpp"
+#include "quantities/numbers.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/integration.hpp"
 #include "testing_utilities/numerics.hpp"

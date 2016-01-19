@@ -1,8 +1,9 @@
 ﻿
 #pragma once
 
-#include "geometry/point.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
 #include "serialization/geometry.pb.h"
 
 namespace principia {

@@ -1,9 +1,12 @@
 ﻿
-#include "journal/recorder.hpp"
+#include <stdint.h>
+#include <memory>
 
 #include "base/array.hpp"
 #include "base/hexadecimal.hpp"
+#include "experimental/filesystem"
 #include "glog/logging.h"
+#include "journal/recorder.hpp"
 
 namespace principia {
 

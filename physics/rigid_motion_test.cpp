@@ -1,13 +1,17 @@
 ﻿
-#include "physics/rigid_motion.hpp"
+#include <sstream>
 
 #include "geometry/frame.hpp"
 #include "geometry/permutation.hpp"
-#include "gmock/gmock.h"
+#include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "physics/rigid_motion.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/numbers.hpp"
 #include "quantities/si.hpp"
+#include "serialization/geometry.pb.h"
 #include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/componentwise.hpp"
 #include "testing_utilities/vanishes_before.hpp"

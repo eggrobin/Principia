@@ -2,10 +2,21 @@
 #ifndef PRINCIPIA_PHYSICS_DYNAMIC_FRAME_HPP_
 #define PRINCIPIA_PHYSICS_DYNAMIC_FRAME_HPP_
 
+#include <memory>
+
+#include "base/not_null.hpp"
 #include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
 #include "geometry/rotation.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/ephemeris.hpp"
 #include "physics/rigid_motion.hpp"
+#include "physics/rotating_body.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "serialization/geometry.pb.h"
 #include "serialization/physics.pb.h"
 

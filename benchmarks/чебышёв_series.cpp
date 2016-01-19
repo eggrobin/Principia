@@ -29,15 +29,18 @@
 // BM_NewhallApproximation/16        754        741    2000000
 
 #include <random>
+#include <sstream>
+#include <string>
 #include <vector>
 
 #include "astronomy/frames.hpp"
+#include "benchmark/benchmark_api.h"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/r3_element.hpp"
 #include "numerics/чебышёв_series.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
-
-// Must come last to avoid conflicts when defining the CHECK macros.
-#include "benchmark/benchmark.h"
 
 namespace principia {
 

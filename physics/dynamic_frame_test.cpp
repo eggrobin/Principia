@@ -1,10 +1,18 @@
 ﻿
-#include "physics/dynamic_frame.hpp"
+#include <functional>
+#include <type_traits>
 
 #include "geometry/frame.hpp"
-#include "gmock/gmock.h"
+#include "geometry/orthogonal_map.hpp"
+#include "geometry/point.hpp"
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/massive_body.hpp"
+#include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/componentwise.hpp"
 

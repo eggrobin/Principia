@@ -1,6 +1,7 @@
 ﻿
 #pragma once
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <set>
@@ -9,23 +10,35 @@
 #include <vector>
 
 #include "base/monostable.hpp"
+#include "base/not_null.hpp"
+#include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/orthogonal_map.hpp"
 #include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "geometry/rotation.hpp"
+#include "google/protobuf/repeated_field.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "ksp_plugin/celestial.hpp"
 #include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/manœuvre.hpp"
+#include "ksp_plugin/part.hpp"
 #include "ksp_plugin/physics_bubble.hpp"
 #include "ksp_plugin/vessel.hpp"
-#include "integrators/ordinary_differential_equations.hpp"
 #include "physics/body.hpp"
+#include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
 #include "physics/ephemeris.hpp"
+#include "physics/forkable.hpp"
 #include "physics/frame_field.hpp"
-#include "quantities/quantities.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/rotating_body.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/ksp_plugin.pb.h"
 

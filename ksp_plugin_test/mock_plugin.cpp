@@ -1,9 +1,9 @@
 ﻿
-#include "ksp_plugin_test/mock_plugin.hpp"
-
+#include <type_traits>
 #include <vector>
 
-#include "gmock/gmock.h"
+#include "geometry/r3_element.hpp"
+#include "ksp_plugin_test/mock_plugin.hpp"
 
 namespace principia {
 namespace ksp_plugin {

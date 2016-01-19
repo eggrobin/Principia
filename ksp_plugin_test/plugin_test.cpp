@@ -1,21 +1,38 @@
 ﻿
-#include "ksp_plugin/plugin.hpp"
-
-#include <algorithm>
-#include <cmath>
+#include <stddef.h>
 #include <limits>
 #include <map>
 #include <memory>
+#include <sstream>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "astronomy/frames.hpp"
 #include "base/macros.hpp"
+#include "base/map_util.hpp"
+#include "geometry/epoch.hpp"
+#include "geometry/pair.hpp"
 #include "geometry/permutation.hpp"
-#include "gmock/gmock.h"
+#include "gmock/gmock-cardinalities.h"
+#include "gmock/gmock-generated-matchers.h"
+#include "gmock/gmock-generated-nice-strict.h"
+#include "gmock/gmock-matchers.h"
+#include "gmock/gmock-spec-builders.h"
+#include "google/protobuf/extension_set.h"
+#include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "ksp_plugin/plugin.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
 #include "physics/mock_ephemeris.hpp"
+#include "physics/oblate_body.hpp"
+#include "physics/solar_system.hpp"
+#include "quantities/elementary_functions.hpp"
 #include "quantities/si.hpp"
+#include "serialization/geometry.pb.h"
+#include "serialization/physics.pb.h"
+#include "serialization/quantities.pb.h"
 #include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/componentwise.hpp"
 #include "testing_utilities/numerics.hpp"

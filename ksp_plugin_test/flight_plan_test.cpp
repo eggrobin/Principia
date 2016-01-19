@@ -1,12 +1,24 @@
 ﻿
-#include "ksp_plugin/flight_plan.hpp"
-
+#include <memory>
+#include <sstream>
+#include <type_traits>
 #include <vector>
 
-#include "gmock/gmock.h"
+#include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
 #include "gtest/gtest.h"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "ksp_plugin/flight_plan.hpp"
+#include "physics/body_centered_non_rotating_dynamic_frame.hpp"
+#include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/forkable.hpp"
 #include "physics/massive_body.hpp"
+#include "physics/rigid_motion.hpp"
+#include "quantities/numbers.hpp"
+#include "quantities/si.hpp"
 
 namespace principia {
 

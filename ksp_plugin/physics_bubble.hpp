@@ -1,7 +1,9 @@
 ﻿
 #pragma once
 
+#include <stddef.h>
 #include <experimental/optional>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -9,12 +11,23 @@
 #include <vector>
 
 #include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/identity.hpp"
+#include "geometry/named_quantities.hpp"
 #include "geometry/orthogonal_map.hpp"
+#include "geometry/point.hpp"
 #include "geometry/rotation.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/celestial.hpp"
 #include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/part.hpp"
 #include "ksp_plugin/vessel.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/massless_body.hpp"
+#include "physics/rigid_motion.hpp"
+#include "quantities/named_quantities.hpp"
 #include "serialization/ksp_plugin.pb.h"
 
 namespace principia {
