@@ -1,6 +1,7 @@
 ﻿
 #include <stdint.h>
 #include <experimental/filesystem>
+#include <fstream>
 #include <memory>
 #include <set>
 #include <sstream>
