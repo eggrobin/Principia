@@ -1,8 +1,16 @@
 ﻿
+#include <memory>
+
+#include "base/not_null.hpp"
+#include "geometry/named_quantities.hpp"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/frames.hpp"
+#include "physics/continuous_trajectory.hpp"
 #include "physics/discrete_trajectory.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 

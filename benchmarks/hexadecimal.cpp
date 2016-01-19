@@ -30,6 +30,7 @@
 // BM_DecodePi_stddev     203016     882904        262                                 1                 // NOLINT(whitespace/line_length)
 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
+#include <cstdint>
 #include <ostream>
 #include <string>
 #include <type_traits>

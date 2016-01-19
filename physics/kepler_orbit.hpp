@@ -3,10 +3,12 @@
 
 #include <experimental/optional>
 
+#include "astronomy/frames.hpp"
 #include "experimental/optional"
 #include "geometry/named_quantities.hpp"
 #include "geometry/r3_element.hpp"
 #include "physics/body.hpp"
+#include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/massive_body.hpp"
 #include "physics/oblate_body.hpp"

@@ -8,6 +8,8 @@
 #include <vector>
 
 #include "google/protobuf/descriptor.h"
+#include "google/protobuf/descriptor.pb.h"
+#include "google/protobuf/extension_set.h"
 
 namespace principia {
 

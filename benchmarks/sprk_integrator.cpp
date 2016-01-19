@@ -128,6 +128,7 @@
 
 #include <stddef.h>
 #include <algorithm>
+#include <functional>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -135,12 +136,15 @@
 #include "base/not_null.hpp"
 #include "benchmark/benchmark_api.h"
 #include "geometry/r3_element.hpp"
+#include "integrators/motion_integrator.hpp"
 #include "integrators/sprk_integrator.hpp"
+#include "integrators/srkn_integrator.hpp"
 #include "numerics/double_precision.hpp"
 #include "physics/oblate_body.hpp"
 #include "physics/rotating_body.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "testing_utilities/integration.hpp"
 
 namespace principia {

@@ -4,7 +4,6 @@
 #include <functional>
 #include <map>
 #include <memory>
-#include <ostream>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -24,6 +23,8 @@
 #include "glog/logging.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
 #include "mathematica/mathematica.hpp"
 #include "numerics/root_finders.hpp"

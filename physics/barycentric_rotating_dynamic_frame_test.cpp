@@ -19,6 +19,7 @@
 #include "gmock/gmock-spec-builders.h"
 #include "google/protobuf/extension_set.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
 #include "physics/barycentric_rotating_dynamic_frame.hpp"
 #include "physics/dynamic_frame.hpp"
