@@ -5,6 +5,7 @@
 #include <sstream>
 #include <type_traits>
 
+#include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
 #include "geometry/affine_map.hpp"
 #include "geometry/frame.hpp"

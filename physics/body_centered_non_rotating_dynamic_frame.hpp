@@ -6,12 +6,16 @@
 #ifndef PRINCIPIA_PHYSICS_DYNAMIC_FRAME_HPP_
 #include <memory>
 #include <memory>
+#include <memory>
 
+#include "astronomy/frames.hpp"
 #include "astronomy/frames.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/discrete_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
+#include "serialization/physics.pb.h"
 #include "serialization/physics.pb.h"
 #include "serialization/physics.pb.h"
 #else
