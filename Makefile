@@ -33,9 +33,10 @@ DEP_DIR := deps
 LIBS := $(DEP_DIR)/protobuf/src/.libs/libprotobuf.a $(DEP_DIR)/glog/.libs/libglog.a -lpthread -lc++ -lc++abi
 TEST_INCLUDES := -I$(DEP_DIR)/googlemock/include -I$(DEP_DIR)/googletest/include -I $(DEP_DIR)/googlemock/ -I $(DEP_DIR)/googletest/ -I $(DEP_DIR)/eggsperimental_filesystem/
 INCLUDES := -I. -I$(DEP_DIR)/glog/src -I$(DEP_DIR)/protobuf/src -I$(DEP_DIR)/benchmark/include -I$(DEP_DIR)/Optional $(TEST_INCLUDES)
-SHARED_ARGS := -std=c++14 -stdlib=libc++ -O3 -g -fPIC -fexceptions -ferror-limit=0 -fno-omit-frame-pointer -Wall -Wpedantic \
-	-DPROJECT_DIR='std::experimental::filesystem::path("$(PROJECT_DIR)")'\
-	-DSOLUTION_DIR='std::experimental::filesystem::path("$(SOLUTION_DIR)")'
+SHARED_ARGS_NO_OPT := -std=c++14 -stdlib=libc++ -g -fPIC -fexceptions -ferror-limit=0 -fno-omit-frame-pointer -Wall -Wpedantic \
+        -DPROJECT_DIR='std::experimental::filesystem::path("$(PROJECT_DIR)")'\
+        -DSOLUTION_DIR='std::experimental::filesystem::path("$(SOLUTION_DIR)")'
+SHARED_ARGS := $(SHARED_ARGS_NO_OPT) -O3
 
 # detect OS
 UNAME_S := $(shell uname -s)
@@ -54,6 +55,7 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 CXXFLAGS := -c $(SHARED_ARGS) $(INCLUDES)
+CXXFLAGS_NO_OPT := -c $(SHARED_ARGS_NO_OPT) $(INCLUDES)
 LDFLAGS := $(SHARED_ARGS)
 
 
@@ -163,7 +165,7 @@ IWYU_NOSAFE_HEADERS := --nosafe_headers
 REMOVE_BOM := for f in `ls */*.hpp && ls */*.cpp`; do awk 'NR==1{sub(/^\xef\xbb\xbf/,"")}1' $$f | awk NF{p=1}p > $$f.nobom; mv $$f.nobom $$f; done
 SINGLE_NL := for f in `ls */*.hpp && ls */*.cpp`; do awk 'NR==1{sub(/^/,"\n")}1' $$f > $$f.withnl; mv $$f.withnl $$f; done
 RESTORE_BOM := for f in `ls */*.hpp && ls */*.cpp`; do awk 'NR==1{sub(/^/,"\xef\xbb\xbf")}1' $$f > $$f.withbom; mv $$f.withbom $$f; done
-FIX_INCLUDES := deps/include-what-you-use/bin/fix_includes.py
+FIX_INCLUDES := deps/include-what-you-use/fix_includes.py
 IWYU_CHECK_ERROR := tee /dev/tty | test ! "`grep ' error: '`"
 IWYU_TARGETS := $(wildcard */*.cpp)
 IWYU_CLEAN := rm iwyu_generated_mappings.imp; rm */*.iwyu
@@ -172,7 +174,7 @@ iwyu_generate_mappings:
 	{ ls */*_body.hpp && ls */*.generated.h; } | awk -f iwyu_generate_mappings.awk > iwyu_generated_mappings.imp
 
 %.cpp!!iwyu_tame: iwyu_generate_mappings
-	$(IWYU) $(CXXFLAGS) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
+	$(IWYU) $(CXXFLAGS_NO_OPT) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
 	$(REMOVE_BOM)
 	$(SINGLE_NL)
 	$(FIX_INCLUDES) < $(subst !SLASH!,/, $*.iwyu) | cat
@@ -182,7 +184,7 @@ iwyu_tame: $(subst /,!SLASH!, $(addsuffix !!iwyu_tame, $(IWYU_TARGETS)))
 	$(IWYU_CLEAN)
 
 %.cpp!!iwyu: iwyu_generate_mappings
-	$(IWYU) $(CXXFLAGS) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) $(IWYU_ALL_HPP) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
+	$(IWYU) $(CXXFLAGS_NO_OPT) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) $(IWYU_ALL_HPP) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
 	$(REMOVE_BOM)
 	$(SINGLE_NL)
 	$(FIX_INCLUDES) < $(subst !SLASH!,/, $*.iwyu) | cat
@@ -192,7 +194,7 @@ iwyu: $(subst /,!SLASH!, $(addsuffix !!iwyu, $(IWYU_TARGETS)))
 	$(IWYU_CLEAN)
 
 %.cpp!!iwyu_unsafe: iwyu_generate_mappings
-	$(IWYU) $(CXXFLAGS) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) $(IWYU_ALL_HPP) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
+	$(IWYU) $(CXXFLAGS_NO_OPT) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) $(IWYU_ALL_HPP) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
 	$(REMOVE_BOM)
 	$(SINGLE_NL)
 	$(FIX_INCLUDES) $(IWYU_NOSAFE_HEADERS) < $(subst !SLASH!,/, $*.iwyu) | cat
