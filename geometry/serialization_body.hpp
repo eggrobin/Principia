@@ -1,11 +1,12 @@
 ﻿
 #pragma once
 
-#include "geometry/serialization.hpp"
-
 #include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "geometry/serialization.hpp"
+#include "glog/logging.h"
 #include "quantities/quantities.hpp"
 #include "quantities/serialization.hpp"
 

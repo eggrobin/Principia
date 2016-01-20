@@ -1,14 +1,21 @@
 ﻿
 #pragma once
 
-#include "integrators/srkn_integrator.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <ctime>
+#include <experimental/optional>
+#include <ostream>
+#include <type_traits>
 #include <vector>
 
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
 #include "glog/logging.h"
+#include "integrators/motion_integrator.hpp"
+#include "integrators/srkn_integrator.hpp"
+#include "numerics/double_precision.hpp"
+#include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 
 #ifdef ADVANCE_ΔQSTAGE

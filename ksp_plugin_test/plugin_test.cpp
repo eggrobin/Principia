@@ -31,6 +31,7 @@
 #include "google/protobuf/extension_set.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/motion_integrator.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
 #include "ksp_plugin/celestial.hpp"

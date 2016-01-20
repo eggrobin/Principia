@@ -1,13 +1,19 @@
 ﻿
 #include <sstream>
 
+#include "geometry/epoch.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/point.hpp"
-#include "geometry/r3_element.hpp"
 #include "gmock/gmock-generated-matchers.h"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/manœuvre.hpp"
 #include "numerics/root_finders.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"

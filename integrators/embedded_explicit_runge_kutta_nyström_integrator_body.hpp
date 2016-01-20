@@ -1,16 +1,43 @@
 ﻿
 #pragma once
 
-#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
-
+#include <__bit_reference>
+#include <__split_buffer>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <ctime>
+#include <deque>
+#include <fstream>
+#include <functional>
+#include <list>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <tuple>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
 #include "geometry/sign.hpp"
 #include "glog/logging.h"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/motion_integrator.hpp"
+#include "integrators/srkn_integrator.hpp"
+#include "numerics/double_precision.hpp"
+#include "numerics/fixed_arrays.hpp"
+#include "numerics/root_finders.hpp"
 #include "quantities/quantities.hpp"
+#include "serialization/integrators.pb.h"
 
 namespace principia {
 

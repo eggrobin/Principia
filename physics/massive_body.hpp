@@ -3,7 +3,47 @@
 // the order of inheritance to avoid circular dependencies.  This class will end
 // up being reincluded as part of the implementation of its parent.
 #ifndef PRINCIPIA_PHYSICS_BODY_HPP_
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+#include <memory>
+
+#include "base/not_null.hpp"
+#include "base/not_null.hpp"
+#include "base/not_null.hpp"
+#include "base/not_null.hpp"
+#include "base/not_null.hpp"
+#include "base/not_null.hpp"
+#include "base/not_null.hpp"
+#include "base/not_null.hpp"
+#include "base/not_null.hpp"
+#include "base/not_null.hpp"
+#include "base/not_null.hpp"
+#include "base/not_null.hpp"
+#include "base/not_null.hpp"
 #include "physics/body.hpp"
+#include "serialization/physics.pb.h"
+#include "serialization/physics.pb.h"
+#include "serialization/physics.pb.h"
+#include "serialization/physics.pb.h"
+#include "serialization/physics.pb.h"
+#include "serialization/physics.pb.h"
+#include "serialization/physics.pb.h"
+#include "serialization/physics.pb.h"
+#include "serialization/physics.pb.h"
+#include "serialization/physics.pb.h"
+#include "serialization/physics.pb.h"
+#include "serialization/physics.pb.h"
+#include "serialization/physics.pb.h"
 #else
 #ifndef PRINCIPIA_PHYSICS_MASSIVE_BODY_HPP_
 #define PRINCIPIA_PHYSICS_MASSIVE_BODY_HPP_

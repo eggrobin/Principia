@@ -1,17 +1,25 @@
 ﻿
 #pragma once
 
-#include "physics/massive_body.hpp"
-
+#include <memory>
+#include <ostream>
 #include <string>
 
+#include "astronomy/frames.hpp"
 #include "base/macros.hpp"
+#include "base/not_null.hpp"
 #include "geometry/frame.hpp"
 #include "glog/logging.h"
 #include "google/protobuf/descriptor.h"
+#include "google/protobuf/extension_set.h"
+#include "physics/massive_body.hpp"
 #include "physics/oblate_body.hpp"
+#include "physics/rotating_body.hpp"
 #include "quantities/constants.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 #include "serialization/geometry.pb.h"
+#include "serialization/physics.pb.h"
 
 namespace principia {
 

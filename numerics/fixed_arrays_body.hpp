@@ -1,12 +1,16 @@
 ﻿
 #pragma once
 
-#include "numerics/fixed_arrays.hpp"
-
 #include <algorithm>
+#include <array>
+#include <initializer_list>
 #include <vector>
 
+#include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
 #include "glog/logging.h"
+#include "numerics/fixed_arrays.hpp"
+#include "quantities/quantities.hpp"
 
 namespace principia {
 namespace numerics {

@@ -1,11 +1,13 @@
 ﻿
 #pragma once
 
-#include "geometry/sign.hpp"
-
+#include <ostream>
 #include <string>
 
 #include "base/macros.hpp"
+#include "base/not_null.hpp"
+#include "geometry/sign.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 namespace geometry {

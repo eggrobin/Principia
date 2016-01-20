@@ -4,12 +4,23 @@
 #include <sstream>
 #include <string>
 
+#include "astronomy/frames.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/r3_element.hpp"
 #include "glog/logging.h"
 #include "gmock/gmock-matchers.h"
 #include "google/protobuf/stubs/logging.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "ksp_plugin/vessel.hpp"
+#include "mathematica/mathematica.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/oblate_body.hpp"
 #include "quantities/astronomy.hpp"
 #include "quantities/constants.hpp"
 #include "quantities/elementary_functions.hpp"

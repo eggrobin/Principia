@@ -2,6 +2,7 @@
 #include <math.h>
 #include <sstream>
 
+#include "astronomy/frames.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/identity.hpp"
@@ -12,6 +13,10 @@
 #include "google/protobuf/extension_set.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "numerics/root_finders.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
 #include "testing_utilities/almost_equals.hpp"

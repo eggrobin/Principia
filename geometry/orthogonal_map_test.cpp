@@ -1,6 +1,7 @@
 ﻿
 #include <sstream>
 
+#include "astronomy/frames.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/identity.hpp"
@@ -11,6 +12,9 @@
 #include "google/protobuf/extension_set.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "numerics/root_finders.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"

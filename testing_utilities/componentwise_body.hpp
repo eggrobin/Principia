@@ -1,13 +1,23 @@
 ﻿
 #pragma once
 
-#include "testing_utilities/componentwise.hpp"
-
+#include <ostream>
 #include <string>
 
+#include "geometry/grassmann.hpp"
+#include "geometry/pair.hpp"
 #include "geometry/point.hpp"
+#include "geometry/r3_element.hpp"
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
+#include "ksp_plugin/plugin.hpp"
+#include "mathematica/mathematica.hpp"
+#include "numerics/чебышёв_series.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/kepler_orbit.hpp"
 #include "quantities/quantities.hpp"
+#include "testing_utilities/componentwise.hpp"
 
 namespace principia {
 

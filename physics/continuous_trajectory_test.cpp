@@ -6,6 +6,7 @@
 #include <sstream>
 #include <vector>
 
+#include "geometry/epoch.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
@@ -13,9 +14,12 @@
 #include "geometry/r3_element.hpp"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "ksp_plugin/plugin.hpp"
 #include "numerics/чебышёв_series.hpp"
 #include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "physics/oblate_body.hpp"
+#include "physics/rotating_body.hpp"
 #include "quantities/astronomy.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"

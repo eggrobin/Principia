@@ -1,13 +1,19 @@
 ﻿
 #pragma once
 
-#include "geometry/frame.hpp"
-
+#include <stdint.h>
+#include <ostream>
 #include <string>
 
 #include "base/fingerprint2011.hpp"
+#include "base/not_null.hpp"
+#include "geometry/frame.hpp"
 #include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
+#include "glog/logging.h"
 #include "google/protobuf/descriptor.h"
+#include "google/protobuf/generated_enum_reflection.h"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 

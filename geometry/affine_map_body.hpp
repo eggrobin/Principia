@@ -1,8 +1,12 @@
 ﻿
 #pragma once
 
-#include "geometry/point.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
+#include "geometry/point.hpp"
+#include "geometry/rotation.hpp"
+#include "mathematica/mathematica.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 namespace geometry {

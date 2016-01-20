@@ -1,9 +1,11 @@
 ﻿
 #pragma once
 
-#include "journal/player.hpp"
-
 #include <list>
+
+#include "google/protobuf/extension_set.h"
+#include "journal/player.hpp"
+#include "serialization/journal.pb.h"
 
 namespace principia {
 namespace journal {

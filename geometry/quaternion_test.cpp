@@ -4,6 +4,7 @@
 #include "geometry/quaternion.hpp"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "ksp_plugin/interface.hpp"
 #include "testing_utilities/algebra.hpp"
 
 namespace principia {

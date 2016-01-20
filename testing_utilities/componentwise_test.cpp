@@ -5,6 +5,7 @@
 #include "geometry/pair.hpp"
 #include "geometry/r3_element.hpp"
 #include "gtest/gtest.h"
+#include "physics/continuous_trajectory.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"

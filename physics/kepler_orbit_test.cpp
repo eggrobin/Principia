@@ -9,6 +9,8 @@
 #include "gmock/gmock-generated-matchers.h"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/plugin.hpp"
 #include "physics/continuous_trajectory.hpp"
 #include "physics/kepler_orbit.hpp"
 #include "physics/solar_system.hpp"

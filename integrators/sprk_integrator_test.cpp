@@ -3,15 +3,21 @@
 #include <string>
 #include <vector>
 
+#include "geometry/epoch.hpp"
 #include "glog/logging.h"
 #include "gmock/gmock-generated-matchers.h"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest-param-test.h"
 #include "gtest/gtest.h"
 #include "integrators/sprk_integrator.hpp"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "ksp_plugin/manœuvre.hpp"
+#include "ksp_plugin/vessel.hpp"
 #include "numerics/double_precision.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/massive_body.hpp"
-#include "physics/oblate_body.hpp"
 #include "physics/rotating_body.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"

@@ -1,6 +1,7 @@
 ﻿
 #include <sstream>
 
+#include "geometry/epoch.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
 #include "gtest/gtest.h"

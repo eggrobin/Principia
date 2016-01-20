@@ -1,10 +1,10 @@
 ﻿
 #pragma once
 
-#include "quantities/serialization.hpp"
-
 #include "base/not_null.hpp"
+#include "glog/logging.h"
 #include "quantities/quantities.hpp"
+#include "quantities/serialization.hpp"
 
 namespace principia {
 

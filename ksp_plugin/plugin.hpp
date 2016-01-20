@@ -9,8 +9,10 @@
 #include <utility>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/monostable.hpp"
 #include "base/not_null.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
@@ -27,6 +29,7 @@
 #include "ksp_plugin/part.hpp"
 #include "ksp_plugin/physics_bubble.hpp"
 #include "ksp_plugin/vessel.hpp"
+#include "mathematica/mathematica.hpp"
 #include "physics/body.hpp"
 #include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"

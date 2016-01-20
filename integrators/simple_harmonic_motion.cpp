@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "base/not_null.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
 #include "glog/logging.h"
@@ -18,9 +19,14 @@
 #include "integrators/motion_integrator.hpp"
 #include "integrators/sprk_integrator.hpp"
 #include "integrators/srkn_integrator.hpp"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "ksp_plugin/manœuvre.hpp"
+#include "ksp_plugin/vessel.hpp"
 #include "numerics/double_precision.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/massive_body.hpp"
-#include "physics/oblate_body.hpp"
 #include "physics/rotating_body.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"

@@ -1,10 +1,19 @@
 ﻿
 #pragma once
 
+#include <iosfwd>
+#include <ostream>
 #include <string>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "geometry/barycentre_calculator.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/pair.hpp"
+#include "geometry/point.hpp"
 #include "physics/degrees_of_freedom.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 

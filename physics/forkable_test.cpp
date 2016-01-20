@@ -9,6 +9,7 @@
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
 #include "physics/forkable.hpp"
 #include "quantities/si.hpp"
 

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "astronomy/frames.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/point.hpp"
@@ -14,6 +15,8 @@
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
 #include "numerics/чебышёв_series.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"

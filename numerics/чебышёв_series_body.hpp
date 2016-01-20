@@ -1,14 +1,25 @@
 ﻿
-#include "numerics/чебышёв_series.hpp"
-
+#include <ostream>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
 #include "geometry/serialization.hpp"
 #include "glog/logging.h"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/motion_integrator.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "integrators/srkn_integrator.hpp"
 #include "numerics/fixed_arrays.hpp"
 #include "numerics/newhall.mathematica.h"
+#include "numerics/чебышёв_series.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "serialization/numerics.pb.h"
 
 namespace principia {
 

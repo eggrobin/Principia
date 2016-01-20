@@ -3,11 +3,25 @@
 
 #include <vector>
 
-#include "testing_utilities/integration.hpp"
-
+#include "astronomy/frames.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "integrators/motion_integrator.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/manœuvre.hpp"
+#include "mathematica/mathematica.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/massive_body.hpp"
 #include "quantities/elementary_functions.hpp"
-#include "quantities/quantities.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
+#include "testing_utilities/integration.hpp"
 
 namespace principia {
 

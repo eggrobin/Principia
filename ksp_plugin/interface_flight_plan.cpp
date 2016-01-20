@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "base/not_null.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"

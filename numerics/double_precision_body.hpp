@@ -1,10 +1,15 @@
 ﻿
 #pragma once
 
-#include "numerics/double_precision.hpp"
+#include <iosfwd>
 
 #include "base/macros.hpp"
+#include "base/not_null.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/serialization.hpp"
+#include "numerics/double_precision.hpp"
+#include "quantities/quantities.hpp"
+#include "serialization/numerics.pb.h"
 
 namespace principia {
 

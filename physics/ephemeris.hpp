@@ -12,6 +12,7 @@
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
 #include "google/protobuf/repeated_field.h"
+#include "integrators/motion_integrator.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
 #include "physics/continuous_trajectory.hpp"
 #include "physics/degrees_of_freedom.hpp"

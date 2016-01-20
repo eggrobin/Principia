@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "base/not_null.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/point.hpp"

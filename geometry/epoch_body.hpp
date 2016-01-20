@@ -1,7 +1,14 @@
 ﻿
 #pragma once
 
+#include "astronomy/frames.hpp"
 #include "geometry/epoch.hpp"
+#include "geometry/named_quantities.hpp"
+#include "integrators/motion_integrator.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "numerics/чебышёв_series.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 
 namespace principia {
 

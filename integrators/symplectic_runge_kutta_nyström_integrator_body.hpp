@@ -1,12 +1,23 @@
 ﻿
 #pragma once
 
-#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
-
+#include <algorithm>
+#include <ostream>
 #include <vector>
 
+#include "astronomy/frames.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
 #include "geometry/sign.hpp"
+#include "glog/logging.h"
+#include "integrators/motion_integrator.hpp"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "numerics/double_precision.hpp"
+#include "numerics/fixed_arrays.hpp"
+#include "numerics/root_finders.hpp"
 #include "quantities/quantities.hpp"
+#include "serialization/integrators.pb.h"
 #include "testing_utilities/numerics.hpp"
 
 namespace principia {

@@ -1,24 +1,49 @@
 ﻿
 #pragma once
 
-#include "physics/ephemeris.hpp"
-
+#include <stddef.h>
 #include <algorithm>
 #include <functional>
 #include <limits>
+#include <map>
+#include <memory>
+#include <ostream>
 #include <set>
+#include <type_traits>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/macros.hpp"
 #include "base/map_util.hpp"
 #include "base/not_null.hpp"
+#include "geometry/epoch.hpp"
+#include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
+#include "glog/logging.h"
+#include "google/protobuf/repeated_field.h"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/motion_integrator.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "integrators/srkn_integrator.hpp"
+#include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "mathematica/mathematica.hpp"
+#include "numerics/чебышёв_series.hpp"
 #include "physics/continuous_trajectory.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/oblate_body.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
+#include "serialization/integrators.pb.h"
+#include "serialization/ksp_plugin.pb.h"
+#include "serialization/physics.pb.h"
 
 namespace principia {
 

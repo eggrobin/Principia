@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 
+#include "geometry/epoch.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/point.hpp"
 #include "gmock/gmock-generated-matchers.h"
@@ -13,8 +14,10 @@
 #include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
 #include "numerics/double_precision.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
 #include "physics/massive_body.hpp"
-#include "physics/oblate_body.hpp"
 #include "quantities/numbers.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/integration.hpp"

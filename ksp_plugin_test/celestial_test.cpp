@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "base/not_null.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/named_quantities.hpp"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"

@@ -3,6 +3,7 @@
 #include <sstream>
 #include <type_traits>
 
+#include "geometry/epoch.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
@@ -10,6 +11,11 @@
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/manœuvre.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/kepler_orbit.hpp"
 #include "quantities/astronomy.hpp"
 #include "quantities/constants.hpp"
 #include "quantities/elementary_functions.hpp"

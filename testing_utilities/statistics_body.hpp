@@ -1,9 +1,14 @@
 ﻿
 #pragma once
 
+#include <stddef.h>
 #include <string>
 #include <vector>
 
+#include "geometry/point.hpp"
+#include "integrators/srkn_integrator.hpp"
+#include "mathematica/mathematica.hpp"
+#include "physics/dynamic_frame.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/quantities.hpp"
 #include "testing_utilities/numerics.hpp"

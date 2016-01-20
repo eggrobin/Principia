@@ -17,6 +17,7 @@
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "physics/ephemeris.hpp"
 #include "serialization/geometry.pb.h"
 #include "serialization/physics.pb.h"
 #include "serialization/quantities.pb.h"

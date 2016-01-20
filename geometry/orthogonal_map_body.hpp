@@ -1,11 +1,23 @@
 ﻿
 #pragma once
 
+#include "base/mappable.hpp"
+#include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/linear_map.hpp"
 #include "geometry/orthogonal_map.hpp"
 #include "geometry/r3_element.hpp"
+#include "geometry/rotation.hpp"
 #include "geometry/sign.hpp"
+#include "glog/logging.h"
+#include "google/protobuf/extension_set.h"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "mathematica/mathematica.hpp"
+#include "numerics/root_finders.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/kepler_orbit.hpp"
+#include "physics/rotating_body.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 namespace geometry {

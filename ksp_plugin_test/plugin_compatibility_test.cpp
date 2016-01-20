@@ -11,6 +11,7 @@
 #include "base/array.hpp"
 #include "base/hexadecimal.hpp"
 #include "base/not_null.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"

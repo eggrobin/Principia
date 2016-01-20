@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "geometry/epoch.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
@@ -17,7 +18,16 @@
 #include "gtest/gtest.h"
 #include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "ksp_plugin/plugin.hpp"
+#include "ksp_plugin/vessel.hpp"
 #include "numerics/double_precision.hpp"
+#include "physics/barycentric_rotating_dynamic_frame.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/oblate_body.hpp"
+#include "physics/rotating_body.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"

@@ -3,7 +3,16 @@
 // the order of inheritance to avoid circular dependencies.  This class will end
 // up being reincluded as part of the implementation of its parent.
 #ifndef PRINCIPIA_PHYSICS_ROTATING_BODY_HPP_
+#include <memory>
+
+#include "base/not_null.hpp"
+#include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/srkn_integrator.hpp"
+#include "mathematica/mathematica.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
 #include "physics/rotating_body.hpp"
+#include "serialization/physics.pb.h"
 #else
 #ifndef PRINCIPIA_PHYSICS_OBLATE_BODY_HPP_
 #define PRINCIPIA_PHYSICS_OBLATE_BODY_HPP_

@@ -1,7 +1,12 @@
 ﻿
 #pragma once
 
+#include <memory>
+
+#include "base/not_null.hpp"
+#include "glog/logging.h"
 #include "physics/massless_body.hpp"
+#include "serialization/physics.pb.h"
 
 namespace principia {
 namespace physics {

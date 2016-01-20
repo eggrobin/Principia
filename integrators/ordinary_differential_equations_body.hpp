@@ -1,10 +1,17 @@
 ﻿
 #pragma once
 
+#include "astronomy/frames.hpp"
 #include "base/macros.hpp"
+#include "base/not_null.hpp"
+#include "geometry/named_quantities.hpp"
+#include "glog/logging.h"
 #include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/motion_integrator.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "numerics/double_precision.hpp"
+#include "serialization/integrators.pb.h"
 
 namespace principia {
 namespace integrators {

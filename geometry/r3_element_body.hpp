@@ -1,15 +1,17 @@
 ﻿
 #pragma once
 
-#include "geometry/r3_element.hpp"
-
+#include <ostream>
 #include <string>
 
 #include "base/macros.hpp"
+#include "base/not_null.hpp"
+#include "geometry/r3_element.hpp"
 #include "glog/logging.h"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/serialization.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 

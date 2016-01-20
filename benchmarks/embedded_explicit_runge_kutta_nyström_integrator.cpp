@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "base/not_null.hpp"
 #include "benchmark/benchmark_api.h"
 #include "geometry/frame.hpp"

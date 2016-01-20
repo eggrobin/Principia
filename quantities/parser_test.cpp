@@ -1,10 +1,17 @@
 ﻿
 #include <sstream>
 
+#include "astronomy/frames.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/r3_element.hpp"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/motion_integrator.hpp"
+#include "physics/continuous_trajectory.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/oblate_body.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/parser.hpp"
 #include "quantities/quantities.hpp"

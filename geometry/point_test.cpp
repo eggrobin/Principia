@@ -2,6 +2,7 @@
 #include <sstream>
 #include <vector>
 
+#include "astronomy/frames.hpp"
 #include "geometry/epoch.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
@@ -10,6 +11,8 @@
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest.h"
+#include "integrators/motion_integrator.hpp"
+#include "physics/continuous_trajectory.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"

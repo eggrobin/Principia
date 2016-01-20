@@ -2,11 +2,15 @@
 #include <functional>
 #include <type_traits>
 
+#include "astronomy/frames.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/frame.hpp"
 #include "geometry/orthogonal_map.hpp"
 #include "geometry/point.hpp"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
+#include "ksp_plugin/celestial.hpp"
+#include "ksp_plugin/manœuvre.hpp"
 #include "physics/continuous_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
 #include "physics/massive_body.hpp"

@@ -1,9 +1,12 @@
 ﻿
 #pragma once
 
-#include "geometry/quaternion.hpp"
+#include <ostream>
 
+#include "base/not_null.hpp"
+#include "geometry/quaternion.hpp"
 #include "geometry/r3_element.hpp"
+#include "serialization/geometry.pb.h"
 
 namespace principia {
 namespace geometry {

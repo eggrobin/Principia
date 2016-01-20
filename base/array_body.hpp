@@ -1,8 +1,13 @@
 ﻿
 #pragma once
 
-#include "base/array.hpp"
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+#include <sys/types.h>
+#include <memory>
 
+#include "base/array.hpp"
 #include "glog/logging.h"
 
 namespace principia {

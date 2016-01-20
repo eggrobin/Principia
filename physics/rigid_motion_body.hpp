@@ -1,9 +1,16 @@
 ﻿
 #pragma once
 
-#include "physics/rigid_motion.hpp"
-
+#include "geometry/affine_map.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/linear_map.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/orthogonal_map.hpp"
+#include "physics/degrees_of_freedom.hpp"
+#include "physics/oblate_body.hpp"
+#include "physics/rigid_motion.hpp"
+#include "physics/rotating_body.hpp"
+#include "quantities/si.hpp"
 
 namespace principia {
 

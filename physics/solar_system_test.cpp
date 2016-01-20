@@ -5,10 +5,12 @@
 #include <sstream>
 
 #include "astronomy/frames.hpp"
+#include "geometry/epoch.hpp"
 #include "geometry/point.hpp"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
+#include "ksp_plugin/celestial.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/solar_system.hpp"
 #include "quantities/si.hpp"

@@ -1,11 +1,17 @@
 ﻿
 #pragma once
 
-#include "physics/body.hpp"
+#include <memory>
+#include <ostream>
 
-#include "physics/oblate_body.hpp"
+#include "base/macros.hpp"
+#include "base/not_null.hpp"
+#include "glog/logging.h"
+#include "physics/body.hpp"
 #include "physics/massive_body.hpp"
 #include "physics/massless_body.hpp"
+#include "physics/oblate_body.hpp"
+#include "serialization/physics.pb.h"
 
 namespace principia {
 namespace physics {

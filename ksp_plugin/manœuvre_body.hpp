@@ -1,11 +1,33 @@
 ﻿
 #pragma once
 
-#include "ksp_plugin/manœuvre.hpp"
-
 #include <cmath>
+#include <memory>
+#include <type_traits>
 
+#include "astronomy/frames.hpp"
+#include "base/not_null.hpp"
+#include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/orthogonal_map.hpp"
+#include "geometry/rotation.hpp"
+#include "glog/logging.h"
+#include "integrators/motion_integrator.hpp"
+#include "integrators/ordinary_differential_equations.hpp"
+#include "ksp_plugin/manœuvre.hpp"
+#include "mathematica/mathematica.hpp"
+#include "numerics/чебышёв_series.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/kepler_orbit.hpp"
+#include "physics/massive_body.hpp"
+#include "physics/rigid_motion.hpp"
+#include "physics/rotating_body.hpp"
 #include "quantities/elementary_functions.hpp"
+#include "quantities/named_quantities.hpp"
+#include "quantities/quantities.hpp"
 
 namespace principia {
 

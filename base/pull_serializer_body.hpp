@@ -1,9 +1,36 @@
 ﻿
 #pragma once
 
-#include "base/pull_serializer.hpp"
-
+#include <stddef.h>
+#include <sys/types.h>
+#include <__bit_reference>
+#include <__split_buffer>
 #include <algorithm>
+#include <array>
+#include <cstdint>
+#include <deque>
+#include <fstream>
+#include <functional>
+#include <list>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
+#include "base/array.hpp"
+#include "base/not_null.hpp"
+#include "base/pull_serializer.hpp"
+#include "glog/logging.h"
+#include "google/protobuf/message.h"
+#include "physics/ephemeris.hpp"
 
 namespace principia {
 
