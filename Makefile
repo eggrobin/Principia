@@ -161,6 +161,7 @@ compile_everything: $(patsubst %.cpp,%.o,$(wildcard */*.cpp))
 IWYU := deps/iwyu-build/include-what-you-use
 IWYU_FLAGS := -Xiwyu --max_line_length=200 -Xiwyu --mapping_file="iwyu.imp"
 IWYU_ALL_HPP := -Xiwyu --check_also=*/*.hpp
+IWYU_ALL_BODY_HPP := -Xiwyu --check_also=*/*_body.hpp
 IWYU_NOSAFE_HEADERS := --nosafe_headers
 REMOVE_BOM := for f in `ls */*.hpp && ls */*.cpp`; do awk 'NR==1{sub(/^\xef\xbb\xbf/,"")}1' $$f | awk NF{p=1}p > $$f.nobom; mv $$f.nobom $$f; done
 SINGLE_NL := for f in `ls */*.hpp && ls */*.cpp`; do awk 'NR==1{sub(/^/,"\n")}1' $$f > $$f.withnl; mv $$f.withnl $$f; done
@@ -184,7 +185,7 @@ iwyu_tame: $(subst /,!SLASH!, $(addsuffix !!iwyu_tame, $(IWYU_TARGETS)))
 	$(IWYU_CLEAN)
 
 %.cpp!!iwyu: iwyu_generate_mappings
-	$(IWYU) $(CXXFLAGS_NO_OPT) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) $(IWYU_ALL_HPP) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
+	$(IWYU) $(CXXFLAGS_NO_OPT) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) $(IWYU_ALL_BODY_HPP) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
 	$(REMOVE_BOM)
 	$(SINGLE_NL)
 	$(FIX_INCLUDES) < $(subst !SLASH!,/, $*.iwyu) | cat
