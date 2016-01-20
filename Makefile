@@ -194,14 +194,14 @@ iwyu_tame: $(subst /,!SLASH!, $(addsuffix !!iwyu_tame, $(IWYU_TARGETS)))
 iwyu: $(subst /,!SLASH!, $(addsuffix !!iwyu, $(IWYU_TARGETS)))
 	$(IWYU_CLEAN)
 
-%.cpp!!iwyu_unsafe: iwyu_generate_mappings
-	$(IWYU) $(CXXFLAGS_NO_OPT) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) $(IWYU_ALL_HPP) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
+%.cpp!!iwyu_unsafe_tame: iwyu_generate_mappings
+	$(IWYU) $(CXXFLAGS_NO_OPT) $(subst !SLASH!,/, $*.cpp) $(IWYU_FLAGS) 2>&1 | tee $(subst !SLASH!,/, $*.iwyu) | $(IWYU_CHECK_ERROR)
 	$(REMOVE_BOM)
 	$(SINGLE_NL)
 	$(FIX_INCLUDES) $(IWYU_NOSAFE_HEADERS) < $(subst !SLASH!,/, $*.iwyu) | cat
 	$(RESTORE_BOM)
 
-iwyu_unsafe: $(subst /,!SLASH!, $(addsuffix !!iwyu_unsafe, $(IWYU_TARGETS)))
+iwyu_unsafe_tame: $(subst /,!SLASH!, $(addsuffix !!iwyu_unsafe_tame, $(IWYU_TARGETS)))
 	$(IWYU_CLEAN)
 
 iwyu_clean:
