@@ -113,6 +113,7 @@ packages/
 *.journal.hex
 
 # git version header
+ksp_plugin_adapter/version.cs
 base/version.hpp
 deps/
 
