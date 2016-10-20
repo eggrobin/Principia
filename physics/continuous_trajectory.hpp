@@ -69,6 +69,9 @@ class ContinuousTrajectory {
   // benchmarking or analyzing performance.  Do not use in real code.
   double average_degree() const;
 
+  // The maximal ratio between successive values of |adjusted_tolerance_|.
+  double maximal_adjusted_tolerance_ratio() const;
+
   // Appends one point to the trajectory.  |time| must be after the last time
   // passed to |Append| if the trajectory is not empty.  The |time|s passed to
   // successive calls to |Append| must be equally spaced with the |step| given
@@ -127,6 +130,7 @@ class ContinuousTrajectory {
     Checkpoint(Instant const& t_max,
                Length const& adjusted_tolerance,
                bool const is_unstable,
+               double const maximal_adjusted_tolerance_ratio,
                int const degree,
                int const degree_age,
                std::vector<std::pair<Instant, DegreesOfFreedom<Frame>>> const&
@@ -134,6 +138,7 @@ class ContinuousTrajectory {
     Instant t_max_;
     Length adjusted_tolerance_;
     bool is_unstable_;
+    double maximal_adjusted_tolerance_ratio_;
     int degree_;
     int degree_age_;
     std::vector<std::pair<Instant, DegreesOfFreedom<Frame>>> last_points_;
@@ -178,6 +183,8 @@ class ContinuousTrajectory {
   // choose the degree.
   Length adjusted_tolerance_;
   bool is_unstable_;
+
+  double maximal_adjusted_tolerance_ratio_ = 1;
 
   // The degree of the approximation and its age in number of Newhall
   // approximations.

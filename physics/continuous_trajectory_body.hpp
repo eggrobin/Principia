@@ -77,6 +77,11 @@ double ContinuousTrajectory<Frame>::average_degree() const {
 }
 
 template<typename Frame>
+double ContinuousTrajectory<Frame>::maximal_adjusted_tolerance_ratio() const {
+  return maximal_adjusted_tolerance_ratio_;
+}
+
+template<typename Frame>
 Status ContinuousTrajectory<Frame>::Append(
     Instant const& time,
     DegreesOfFreedom<Frame> const& degrees_of_freedom) {
@@ -206,6 +211,7 @@ ContinuousTrajectory<Frame>::GetCheckpoint() const {
   return {t_max(),
           adjusted_tolerance_,
           is_unstable_,
+          maximal_adjusted_tolerance_ratio_,
           degree_,
           degree_age_,
           last_points_};
@@ -227,6 +233,8 @@ void ContinuousTrajectory<Frame>::WriteToMessage(
   checkpoint.adjusted_tolerance_.WriteToMessage(
       message->mutable_adjusted_tolerance());
   message->set_is_unstable(checkpoint.is_unstable_);
+  message->set_maximal_adjusted_tolerance_ratio(
+      checkpoint.maximal_adjusted_tolerance_ratio_);
   message->set_degree(checkpoint.degree_);
   message->set_degree_age(checkpoint.degree_age_);
   for (auto const& s : series_) {
@@ -267,6 +275,8 @@ ContinuousTrajectory<Frame>::ReadFromMessage(
   continuous_trajectory->adjusted_tolerance_ =
       Length::ReadFromMessage(message.adjusted_tolerance());
   continuous_trajectory->is_unstable_ = message.is_unstable();
+  continuous_trajectory->maximal_adjusted_tolerance_ratio_ =
+      message.maximal_adjusted_tolerance_ratio();
   continuous_trajectory->degree_ = message.degree();
   continuous_trajectory->degree_age_ = message.degree_age();
   for (auto const& s : message.series()) {
@@ -294,12 +304,14 @@ ContinuousTrajectory<Frame>::Checkpoint::Checkpoint(
     Instant const& t_max,
     Length const& adjusted_tolerance,
     bool const is_unstable,
+    double const maximal_adjusted_tolerance_ratio,
     int const degree,
     int const degree_age,
     std::vector<std::pair<Instant, DegreesOfFreedom<Frame>>> const& last_points)
     : t_max_(t_max),
       adjusted_tolerance_(adjusted_tolerance),
       is_unstable_(is_unstable),
+      maximal_adjusted_tolerance_ratio_(maximal_adjusted_tolerance_ratio),
       degree_(degree),
       degree_age_(degree_age),
       last_points_(last_points) {}
@@ -392,8 +404,13 @@ Status ContinuousTrajectory<Frame>::ComputeBestNewhallApproximation(
 
   ++degree_age_;
 
+  double const adjusted_tolerance_ratio =
+      adjusted_tolerance_ / previous_adjusted_tolerance;
+  maximal_adjusted_tolerance_ratio_ =
+      std::max(maximal_adjusted_tolerance_ratio_, adjusted_tolerance_ratio);
+
   // Check that the tolerance did not explode.
-  if (adjusted_tolerance_ < 1e6 * previous_adjusted_tolerance) {
+  if (adjusted_tolerance_ratio < 1e6) {
     return Status::OK;
   } else {
     std::stringstream message;
