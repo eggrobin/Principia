@@ -84,9 +84,9 @@ toolchain {
   # All warnings are enabled. Maybe enable -Werror as well?
   compiler_flag: "-Wall"
   # Enable a few more warnings that aren't part of -Wall.
-  compiler_flag: "-Wunused-but-set-parameter"
+  #compiler_flag: "-Wunused-but-set-parameter"
   # But disable some that are problematic.
-  compiler_flag: "-Wno-free-nonheap-object" # has false positives
+  #compiler_flag: "-Wno-free-nonheap-object" # has false positives
 
   # Keep stack frames for debugging, even in opt mode.
   compiler_flag: "-fno-omit-frame-pointer"
