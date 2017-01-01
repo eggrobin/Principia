@@ -18,6 +18,7 @@ cc_test(
     srcs = ["status_test.cpp"],
     deps = [
         ":status",
-        "//deps:gtest"
+        "//deps:gtest",
+        "//deps:gmock_main",
     ],
 )
