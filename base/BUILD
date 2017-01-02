@@ -27,6 +27,7 @@ cc_test(
     name = "not_null_test",
     srcs = ["not_null_test.cpp"],
     deps = [
+        ":macros",
         ":not_null",
         "//deps:gtest",
         "//deps:gmock_main",
