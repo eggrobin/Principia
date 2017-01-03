@@ -52,7 +52,7 @@ cc_test(
         ":pull_serializer",
         "//deps:gtest",
         "//deps:gmock_main",
-        "//deps/protobuf:protobuf",
+        "@protobuf//:protobuf",
     ],
 )
 
