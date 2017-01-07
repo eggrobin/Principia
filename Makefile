@@ -1,10 +1,13 @@
 .SECONDEXPANSION:
 PERCENT := %
+COMMA   := ,
 
 CXX := clang++
 
 # TODO(egg): build benchmarks
 
+HEADERS                        := $(wildcard */*.hpp)
+TRANSLATION_UNITS              := $(wildcard */*.cpp)
 PLUGIN_TRANSLATION_UNITS       := $(wildcard ksp_plugin/*.cpp)
 PLUGIN_TEST_TRANSLATION_UNITS  := $(wildcard ksp_plugin_test/*.cpp)
 JOURNAL_TRANSLATION_UNITS      := $(wildcard journal/*.cpp)
@@ -249,13 +252,35 @@ normalize_bom:
 
 ##### clang-tidy
 
-$(TEST_OR_MOCK_TRANSLATION_UNITS:.cpp=.cpp--tidy): %--tidy: %
-	@mkdir -p $(@D)
-	clang-tidy $< $(tidy_options) -- $(COMPILER_OPTIONS) $(TEST_INCLUDES)
+PACKAGE_TIDY_TARGETS      := $(patsubst %/, %, $(addprefix tidy-, $(sort $(dir $(TRANSLATION_UNITS)))))
+PACKAGE_TIDY_TEST_TARGETS := $(patsubst %/, %, $(addprefix tidy-tests-, $(sort $(dir $(TRANSLATION_UNITS)))))
 
-$(LIBRARY_TRANSLATION_UNITS:.cpp=.cpp--tidy): %--tidy: %
-	@mkdir -p $(@D)
-	clang-tidy $< $(tidy_options) -- $(COMPILER_OPTIONS)
+CLANG_TIDY := clang-tidy-4.0
+
+NO_TIDY_IN_TESTS :=
+
+# There's no filtering out the requested translation unit while keeping the
+# headers; we filter in everything we want instead, but the only way to do that
+# is line filters.  If a non-generated file exceeds 100 000 lines you've got
+# bigger fish to fry than clang-tidy warnings.
+tidy-filter = -line-filter='[$(shell echo "$(addprefix {\"name\":\", $(addsuffix \"$(COMMA)\"lines\":[[1$(COMMA)100000]]}, $(1)))" | tr ' ' ',')]'
+
+tidy-log :
+	echo $(call tidy-filter, $(HEADERS))
+
+# make tidy-base will run clang-tidy on all translation units (including tests)
+# in base, reporting errors in headers and library translation units in base.
+$(PACKAGE_TIDY_TARGETS) : tidy-% : $$(filter %/$$(PERCENT), $(TRANSLATION_UNITS))
+	$(CLANG_TIDY) -header-filter=.* $(call tidy-filter, $(filter $*/%, $(HEADERS) $(LIBRARY_TRANSLATION_UNITS))) $^ -- $(COMPILER_OPTIONS) $(TEST_INCLUDES)
+
+$(PACKAGE_TIDY_TEST_TARGETS) : tidy-tests-% : $$(filter %/$$(PERCENT), $(TEST_OR_MOCK_TRANSLATION_UNITS))
+	$(CLANG_TIDY) -checks=$(NO_TIDY_IN_TESTS) $(call tidy-filter, $(filter $*/%, $(TEST_OR_MOCK_TRANSLATION_UNITS))) $^ -- $(COMPILER_OPTIONS) $(TEST_INCLUDES)
+
+tidy : $(filter-out $(BENCHMARK_TRANSLATION_UNITS), $(TRANSLATION_UNITS))
+	$(CLANG_TIDY) -header-filter=.* $(call tidy-filter, $(HEADERS) $(LIBRARY_TRANSLATION_UNITS)) $^ -- $(COMPILER_OPTIONS) $(TEST_INCLUDES)
+
+tidy-tests : $(TEST_OR_MOCK_TRANSLATION_UNITS)
+	$(CLANG_TIDY) -checks=$(NO_TIDY_IN_TESTS) $(call tidy-filter, $(TEST_OR_MOCK_TRANSLATION_UNITS)) $^ -- $(COMPILER_OPTIONS) $(TEST_INCLUDES)
 
 TIDY_TARGETS = $(TEST_OR_MOCK_TRANSLATION_UNITS:.cpp=.cpp--tidy) $(LIBRARY_TRANSLATION_UNITS:.cpp=.cpp--tidy)
 
@@ -268,7 +293,7 @@ each_test : $(TEST_TARGETS)
 each_package_test : $(PACKAGE_TEST_TARGETS)
 tidy : $(TIDY_TARGETS)
 
-.PHONY: all tools adapter plugin each_test test release clean normalize_bom tidy $(TIDY_TARGETS) $(TEST_TARGETS) $(PACKAGE_TEST_TARGETS)
+.PHONY: all tools adapter plugin each_test test release clean normalize_bom tidy tidy-tests $(TEST_TARGETS) $(PACKAGE_TEST_TARGETS) $(PACKAGE_TIDY_TARGETS) $(PACKAGE_TIDY_TEST_TARGETS)
 .PRECIOUS: %.o $(PROTO_HEADERS) $(PROTO_TRANSLATION_UNITS)
 .DEFAULT_GOAL := all
 .SUFFIXES:
