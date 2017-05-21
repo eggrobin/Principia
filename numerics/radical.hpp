@@ -49,10 +49,15 @@ template<int exponent,
          typename = std::enable_if_t<exponent % 2 == 0>>
 Exponentiation<Q, exponent> Pow(Radical<Q> z);
 
+// Equality is correct with respect to the sign of 0, i.e., -0, +0, -0 * i, and
+// +0 * i are equal.
 template<typename Q>
-Radical<Q>& operator*=(Radical<Q>& left, double right);
+bool operator==(Radical<Q> const& left, Radical<Q> const& right);
 template<typename Q>
-Radical<Q>& operator/=(Radical<Q>& left, double right);
+bool operator!=(Radical<Q> const& left, Radical<Q> const& right);
+
+template<typename Q>
+Radical<Q> operator-(Radical<Q> const& z);
 
 template<typename Q1, typename Q2>
 Radical<Product<Q1, Q2>> operator*(Radical<Q1> const& left, Q2 const& right);
@@ -70,12 +75,10 @@ template<typename Q1, typename Q2>
 Radical<Product<Q1, Q2>> operator/(Radical<Q1> const& left,
                                    Radical<Q2> const& right);
 
-// Equality is correct with respect to the sign of 0, i.e., -0, +0, -0 * i, and
-// +0 * i are equal.
 template<typename Q>
-bool operator==(Radical<Q> const& left, Radical<Q> const& right);
+Radical<Q>& operator*=(Radical<Q>& left, double right);
 template<typename Q>
-bool operator!=(Radical<Q> const& left, Radical<Q> const& right);
+Radical<Q>& operator/=(Radical<Q>& left, double right);
 
 // Argument-dependent lookup will find the following functions when using
 // |Radical| arguments.  When starting from real quantities, using
