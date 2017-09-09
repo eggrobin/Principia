@@ -1005,18 +1005,6 @@ bool active_vessel_touches_the_ground = false;
   private System.Collections.IEnumerator
   AdvanceAndNudgeVesselsAfterPhysicsSimulation(double universal_time) {
     yield return new UnityEngine.WaitForFixedUpdate();
-
-    active_vessel_touches_the_ground =
-        FlightGlobals.ActiveVessel?.parts
-            .Where(part =>
-                   part.Modules.OfType<ModuleWheelBase>()
-                       .Where(wheel => wheel.isGrounded)
-                       .Any() ||
-                   part.currentCollisions
-                       .Where(collider => collider.gameObject.layer == 15)
-                       .Any())
-            .Any() ?? false;
-
   try {
     // Unity's physics has just finished doing its thing.  If we correct the
     // positions here, nobody will know that they're not the ones obtained by
@@ -1025,6 +1013,19 @@ bool active_vessel_touches_the_ground = false;
     if (!time_is_advancing_) {
       yield break;
     }
+
+    active_vessel_touches_the_ground =
+    FlightGlobals.ActiveVessel?.parts
+        .Where(part =>
+               part.Modules.OfType<ModuleWheelBase>()
+                   .Where(wheel => wheel.isGrounded)
+                   .Any() ||
+               part.currentCollisions
+                   .Where(collider => collider.gameObject.layer == 15)
+                   .Any())
+        .Any() ?? false;
+
+    double Δt = Planetarium.TimeScale * Planetarium.fetch.fixedDeltaTime;
 
     // NOTE(egg): Inserting vessels and parts has to occur in
     // |WaitForFixedUpdate|, since some may be destroyed (by collisions) during
