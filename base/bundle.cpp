@@ -7,6 +7,7 @@
 #include "base/lock_guard.hpp"
 #include "base/map_util.hpp"
 #include "base/status.hpp"
+#include "base/shared_lock_guard.hpp"
 
 #if !PRINCIPIA_COMPILER_CLANG
 
@@ -23,7 +24,7 @@ Bundle::Bundle(int const workers)
 
 Status Bundle::Join() {
   {
-    base::unique_lock<std::mutex> lock(lock_);
+    unique_lock<std::mutex> lock(lock_);
     CHECK(wait_on_empty_);
     wait_on_empty_.Flop();
   }
@@ -31,7 +32,7 @@ Status Bundle::Join() {
   for (auto& thread : workers_) {
     thread.join();
   }
-  std::shared_lock<std::shared_mutex> status_lock(status_lock_);
+  shared_lock_guard<std::shared_mutex> status_lock(status_lock_);
   return status_;
 }
 
@@ -41,7 +42,7 @@ Status Bundle::JoinWithin(std::chrono::steady_clock::duration Δt) {
 
 Status Bundle::JoinBefore(std::chrono::steady_clock::time_point t) {
   {
-    base::unique_lock<std::shared_mutex> status_lock(status_lock_);
+    unique_lock<std::shared_mutex> status_lock(status_lock_);
     deadline_ = t;
   }
   return Join();
@@ -49,7 +50,7 @@ Status Bundle::JoinBefore(std::chrono::steady_clock::time_point t) {
 
 void Bundle::Add(Task task) {
   {
-    base::unique_lock<std::mutex> lock(lock_);
+    unique_lock<std::mutex> lock(lock_);
     CHECK(wait_on_empty_);
     if (workers_.size() < max_workers_) {
       workers_.emplace_back(&Bundle::Toil, this);
@@ -64,7 +65,7 @@ void Bundle::Toil() {
   AbortRequested = std::bind(&Bundle::BundleShouldAbort, this);
   for (;;) {
     {
-      base::unique_lock<std::mutex> lock(lock_);
+      unique_lock<std::mutex> lock(lock_);
       tasks_not_empty_or_terminate_.wait(
           lock,
           [this] {
@@ -106,7 +107,7 @@ bool Bundle::BundleShouldAbort() {
 }
 
 void Bundle::Abort(Status const status) {
-  base::unique_lock<std::shared_mutex> status_lock(status_lock_);
+  unique_lock<std::shared_mutex> status_lock(status_lock_);
   CHECK(!status.ok());
   if (!status_.ok()) {
     // Already aborting.
@@ -117,12 +118,12 @@ void Bundle::Abort(Status const status) {
 }
 
 bool Bundle::Aborting() {
-  std::shared_lock<std::shared_mutex> status_lock(status_lock_);
+  shared_lock_guard<std::shared_mutex> status_lock(status_lock_);
   return !status_.ok();
 }
 
 bool Bundle::DeadlineExceeded() {
-  std::shared_lock<std::shared_mutex> status_lock(status_lock_);
+  shared_lock_guard<std::shared_mutex> status_lock(status_lock_);
   return deadline_ && std::chrono::steady_clock::now() > *deadline_;
 }
 

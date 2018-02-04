@@ -25,6 +25,7 @@ class SCOPED_CAPABILITY lock_guard {
 // See http://lists.llvm.org/pipermail/cfe-dev/2016-November/051468.html.
 template<typename Mutex>
 class SCOPED_CAPABILITY unique_lock {
+ public:
   explicit unique_lock(Mutex& mutex) ACQUIRE(mutex) : lock_(mutex) {}
   ~unique_lock() RELEASE() = default;
 
@@ -34,7 +35,7 @@ class SCOPED_CAPABILITY unique_lock {
 
   // This operation is not covered by thread safety analysis, and is unsafe.
   // Use it only via |wait|, |wait_for|, and |wait_until|.
-  operator unique_lock&() {
+  operator std::unique_lock<Mutex>&() {
     return lock_;
   }
 
