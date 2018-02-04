@@ -5,7 +5,12 @@
   <PropertyGroup />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\Third Party\Optional;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="!$(PrincipiaCompilerClangLLVM)">"$(SolutionDir)..\Third Party\Optional;%(AdditionalIncludeDirectories)"</AdditionalIncludeDirectories>
+      <AdditionalOptions Condition="$(PrincipiaCompilerClangLLVM)">
+        <!--Ignore warnings from the implementation of optional.-->
+        /imsvc "$(SolutionDir)..\Third Party\Optional"
+        %(AdditionalOptions)
+      </AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup />

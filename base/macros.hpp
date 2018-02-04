@@ -174,11 +174,26 @@ inline void noreturn() { std::exit(0); }
        THREAD_ANNOTATION_ATTRIBUTE__(requires_capability(__VA_ARGS__))
 #  define REQUIRES_SHARED(...) \
        THREAD_ANNOTATION_ATTRIBUTE__(requires_shared_capability(__VA_ARGS__))
+#  define SCOPED_CAPABILITY \
+  THREAD_ANNOTATION_ATTRIBUTE__(scoped_lockable)
+#  define ACQUIRE(...) \
+  THREAD_ANNOTATION_ATTRIBUTE__(acquire_capability(__VA_ARGS__))
+#  define ACQUIRE_SHARED(...) \
+  THREAD_ANNOTATION_ATTRIBUTE__(acquire_shared_capability(__VA_ARGS__))
+#  define RELEASE(...) \
+  THREAD_ANNOTATION_ATTRIBUTE__(release_capability(__VA_ARGS__))
+#  define RELEASE_SHARED(...) \
+  THREAD_ANNOTATION_ATTRIBUTE__(release_shared_capability(__VA_ARGS__))
 #else
 #  define EXCLUDES(x)
 #  define GUARDED_BY(x)
 #  define REQUIRES(x)
 #  define REQUIRES_SHARED(x)
+#  define SCOPED_CAPABILITY
+#  define ACQUIRE(...)
+#  define ACQUIRE_SHARED(...)
+#  define RELEASE(...)
+#  define RELEASE_SHARED(...)
 #endif
 
 // Unicode.

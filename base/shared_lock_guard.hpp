@@ -18,10 +18,10 @@ using shared_mutex = std::shared_mutex;
 
 // A helper class that the language designer didn't think useful of providing.
 template<typename Mutex>
-class shared_lock_guard final {
+class SCOPED_CAPABILITY shared_lock_guard final {
  public:
-  explicit shared_lock_guard(Mutex& mutex);
-  ~shared_lock_guard();
+  explicit shared_lock_guard(Mutex& mutex) ACQUIRE_SHARED(mutex);
+  ~shared_lock_guard() RELEASE();
 
  private:
   not_null<Mutex*> const mutex_;

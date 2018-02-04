@@ -80,16 +80,20 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalOptions>/bigobj</AdditionalOptions>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <WarningLevel Condition="!$(PrincipiaCompilerClangLLVM)">Level3</WarningLevel>
       <WarningLevel Condition="$(PrincipiaCompilerClangLLVM) and
                                $(ProjectName) == serialization">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="$(PrincipiaCompilerClangLLVM) and
                                $(ProjectName) != serialization">EnableAllWarnings</WarningLevel>
       <AdditionalOptions Condition="$(PrincipiaCompilerClangLLVM)">
+        <!--Treat Microsoft extensions as errors.-->
         -Werror=typename-missing
         -Werror=microsoft-template
         -Werror=unknown-argument
+        <!--Thread safety analysis.-->
+        -Werror=thread-safety-analysis
+        <!--Various useless warnings.-->
         -Wno-c++98-compat-pedantic
         -Wno-c++98-compat
         -Wno-c99-compat
@@ -98,6 +102,13 @@
         -Wno-shadow-field-in-constructor
         -Wno-sign-conversion
         -Wno-covered-switch-default
+        -Wno-global-constructors
+        <!--We name parameters even if we don't use them; don't warn.-->
+        -Wno-unused-parameter
+        <!--Gtest marks some classes unused when it means that objects of that
+            type will not be used, rather than that the class itself will not be
+            used.  This is either a bug in gtest or in this warning.-->
+        -Wno-used-but-marked-unused
         <!--Warnings in protobuf generated code are none of our business.-->
         -Xclang --system-header-prefix=serialization/
         <!--Same for warnings in dependencies.-->
@@ -106,6 +117,7 @@
         -Xclang --system-header-prefix=glog/
         -Xclang --system-header-prefix=gtest/
         -Xclang --system-header-prefix=gmock/
+        %(AdditionalOptions)
       </AdditionalOptions>
       <TreatWarningAsError Condition="!$(PrincipiaCompilerClangLLVM)">true</TreatWarningAsError>
       <SDLCheck>true</SDLCheck>
