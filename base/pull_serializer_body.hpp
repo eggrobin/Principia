@@ -1,6 +1,7 @@
 ﻿
 #pragma once
 
+#include "base/lock_guard.hpp"
 #include "base/pull_serializer.hpp"
 
 #include <algorithm>
@@ -92,7 +93,7 @@ inline void PullSerializer::Start(
     // knows that this is the end.
     Bytes bytes;
     {
-      std::unique_lock<std::mutex> l(lock_);
+      base::unique_lock<std::mutex> l(lock_);
       CHECK(!free_.empty());
       bytes = Bytes(free_.front(), 0);
     }
@@ -103,7 +104,7 @@ inline void PullSerializer::Start(
 inline Bytes PullSerializer::Pull() {
   Bytes result;
   {
-    std::unique_lock<std::mutex> l(lock_);
+    base::unique_lock<std::mutex> l(lock_);
     // The element at the front of the queue is the one that was last returned
     // by |Pull| and must be dropped and freed.
     queue_has_elements_.wait(l, [this]() { return queue_.size() > 1; });
@@ -121,7 +122,7 @@ inline Bytes PullSerializer::Push(Bytes const bytes) {
   Bytes result;
   CHECK_GE(chunk_size_, bytes.size);
   {
-    std::unique_lock<std::mutex> l(lock_);
+    base::unique_lock<std::mutex> l(lock_);
     queue_has_room_.wait(l, [this]() {
       // -1 here is because we want to ensure that there is an entry in the
       // (real) free list.

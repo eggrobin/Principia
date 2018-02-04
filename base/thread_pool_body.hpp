@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "base/lock_guard.hpp"
 #include "base/thread_pool.hpp"
 
 namespace principia {
@@ -34,7 +35,7 @@ ThreadPool<T>::ThreadPool(std::int64_t const pool_size) {
 template<typename T>
 ThreadPool<T>::~ThreadPool() {
   {
-    std::lock_guard<std::mutex> l(lock_);
+    base::lock_guard<std::mutex> l(lock_);
     shutdown_ = true;
   }
   has_calls_or_shutdown_.notify_all();
@@ -47,7 +48,7 @@ template<typename T>
 std::future<T> ThreadPool<T>::Add(std::function<T()> function) {
   std::future<T> result;
   {
-    std::lock_guard<std::mutex> l(lock_);
+    base::lock_guard<std::mutex> l(lock_);
     calls_.push_back({std::move(function), std::promise<T>()});
     result = calls_.back().promise.get_future();
   }
@@ -63,7 +64,7 @@ void ThreadPool<T>::DequeueCallAndExecute() {
     // Wait until either the queue contains an element or this class is shutting
     // down.
     {
-      std::unique_lock<std::mutex> l(lock_);
+      base::unique_lock<std::mutex> l(lock_);
       has_calls_or_shutdown_.wait(l,
                                   [this] {
                                       return shutdown_ || !calls_.empty();

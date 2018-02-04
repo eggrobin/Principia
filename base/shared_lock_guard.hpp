@@ -31,7 +31,7 @@ class SCOPED_CAPABILITY shared_lock_guard final {
 
 using shared_mutex = std::mutex;
 template<typename Mutex>
-using shared_lock_guard = std::lock_guard<Mutex>;
+using shared_lock_guard = base::lock_guard<Mutex>;
 
 #endif
 

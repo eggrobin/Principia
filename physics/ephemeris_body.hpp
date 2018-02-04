@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "astronomy/epoch.hpp"
+#include "base/lock_guard.hpp"
 #include "base/macros.hpp"
 #include "base/map_util.hpp"
 #include "base/not_null.hpp"
@@ -376,7 +377,7 @@ void Ephemeris<Frame>::Prolong(Instant const& t) {
   // Perform the integration.  Note that we may have to iterate until |t_max()|
   // actually reaches |t| because the last series may not be fully determined
   // after the first integration.
-  std::lock_guard<base::shared_mutex> l(lock_);
+  base::lock_guard<base::shared_mutex> l(lock_);
   while (t_max_locked() < t) {
     instance_->Solve(t_final);
     t_final += parameters_.step_;

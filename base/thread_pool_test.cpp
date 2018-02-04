@@ -28,7 +28,7 @@ TEST_F(ThreadPoolTest, ParallelExecution) {
   std::vector<std::future<void>> futures;
   for (std::int64_t i = 0; i < number_of_calls; ++i) {
     futures.push_back(pool_.Add([i, &lock, &numbers]() {
-      std::lock_guard<std::mutex> l(lock);
+      base::lock_guard<std::mutex> l(lock);
       numbers.push_back(i);
     }));
   }

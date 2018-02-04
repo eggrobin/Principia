@@ -5,6 +5,7 @@
 
 #include <algorithm>
 
+#include "base/lock_guard.hpp"
 #include "glog/logging.h"
 #include "google/protobuf/io/coded_stream_inl.h"
 
@@ -106,7 +107,7 @@ inline void PushDeserializer::Start(
     CHECK(decoder.ConsumedEntireMessage());
 
     // Run any remainining chunk callback.
-    std::unique_lock<std::mutex> l(lock_);
+    base::unique_lock<std::mutex> l(lock_);
     CHECK_EQ(1, done_.size());
     auto const done_front = done_.front();
     if (done_front != nullptr) {
@@ -134,7 +135,7 @@ inline void PushDeserializer::Push(Bytes const bytes,
   do {
     {
       is_last = current.size <= chunk_size_;
-      std::unique_lock<std::mutex> l(lock_);
+      base::unique_lock<std::mutex> l(lock_);
       queue_has_room_.wait(l, [this]() {
         return queue_.size() < static_cast<std::size_t>(number_of_chunks_);
       });
@@ -152,7 +153,7 @@ inline void PushDeserializer::Push(Bytes const bytes,
 inline Bytes PushDeserializer::Pull() {
   Bytes result;
   {
-    std::unique_lock<std::mutex> l(lock_);
+    base::unique_lock<std::mutex> l(lock_);
     queue_has_elements_.wait(l, [this]() { return !queue_.empty(); });
     // The front of |done_| is the callback for the |Bytes| object that was just
     // processed.  Run it now.

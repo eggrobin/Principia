@@ -4,9 +4,7 @@
     <ProjectGuid>{7E7CC89A-FC65-409C-A975-9C3A6A50786B}</ProjectGuid>
     <RootNamespace>base</RootNamespace>
   </PropertyGroup>
-
   <Import Project="$(SolutionDir)principia.props" />
-
   <ItemGroup>
     <ClInclude Include="array.hpp" />
     <ClInclude Include="array_body.hpp" />
@@ -22,6 +20,7 @@
     <ClInclude Include="get_line_body.hpp" />
     <ClInclude Include="hexadecimal.hpp" />
     <ClInclude Include="hexadecimal_body.hpp" />
+    <ClInclude Include="lock_guard.hpp" />
     <ClInclude Include="macros.hpp" />
     <ClInclude Include="mappable.hpp" />
     <ClInclude Include="map_util.hpp" />

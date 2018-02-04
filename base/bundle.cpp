@@ -4,6 +4,7 @@
 #include <functional>
 #include <list>
 
+#include "base/lock_guard.hpp"
 #include "base/map_util.hpp"
 #include "base/status.hpp"
 
@@ -22,7 +23,7 @@ Bundle::Bundle(int const workers)
 
 Status Bundle::Join() {
   {
-    std::unique_lock<std::mutex> lock(lock_);
+    base::unique_lock<std::mutex> lock(lock_);
     CHECK(wait_on_empty_);
     wait_on_empty_.Flop();
   }
@@ -40,7 +41,7 @@ Status Bundle::JoinWithin(std::chrono::steady_clock::duration Δt) {
 
 Status Bundle::JoinBefore(std::chrono::steady_clock::time_point t) {
   {
-    std::unique_lock<std::shared_mutex> status_lock(status_lock_);
+    base::unique_lock<std::shared_mutex> status_lock(status_lock_);
     deadline_ = t;
   }
   return Join();
@@ -48,7 +49,7 @@ Status Bundle::JoinBefore(std::chrono::steady_clock::time_point t) {
 
 void Bundle::Add(Task task) {
   {
-    std::unique_lock<std::mutex> lock(lock_);
+    base::unique_lock<std::mutex> lock(lock_);
     CHECK(wait_on_empty_);
     if (workers_.size() < max_workers_) {
       workers_.emplace_back(&Bundle::Toil, this);
@@ -63,7 +64,7 @@ void Bundle::Toil() {
   AbortRequested = std::bind(&Bundle::BundleShouldAbort, this);
   for (;;) {
     {
-      std::unique_lock<std::mutex> lock(lock_);
+      base::unique_lock<std::mutex> lock(lock_);
       tasks_not_empty_or_terminate_.wait(
           lock,
           [this] {
@@ -105,7 +106,7 @@ bool Bundle::BundleShouldAbort() {
 }
 
 void Bundle::Abort(Status const status) {
-  std::unique_lock<std::shared_mutex> status_lock(status_lock_);
+  base::unique_lock<std::shared_mutex> status_lock(status_lock_);
   CHECK(!status.ok());
   if (!status_.ok()) {
     // Already aborting.

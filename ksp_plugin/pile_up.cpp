@@ -5,6 +5,7 @@
 #include <list>
 #include <map>
 
+#include "base/lock_guard.hpp"
 #include "base/map_util.hpp"
 #include "geometry/identity.hpp"
 #include "geometry/named_quantities.hpp"
@@ -124,7 +125,7 @@ void PileUp::NudgeParts() const {
 }
 
 Status PileUp::DeformAndAdvanceTime(Instant const& t) {
-  std::lock_guard<std::mutex> l(*lock_);
+  base::lock_guard<std::mutex> l(*lock_);
   Status status;
   if (psychohistory_->last().time() < t) {
     DeformPileUpIfNeeded();
