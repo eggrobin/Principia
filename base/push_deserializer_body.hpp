@@ -136,7 +136,7 @@ inline void PushDeserializer::Push(Bytes const bytes,
     {
       is_last = current.size <= chunk_size_;
       base::unique_lock<std::mutex> l(lock_);
-      queue_has_room_.wait(l, [this]() {
+      l.wait(queue_has_room_, [this]() REQUIRES(lock_) {
         return queue_.size() < static_cast<std::size_t>(number_of_chunks_);
       });
       queue_.emplace(current.data,
@@ -154,7 +154,8 @@ inline Bytes PushDeserializer::Pull() {
   Bytes result;
   {
     base::unique_lock<std::mutex> l(lock_);
-    queue_has_elements_.wait(l, [this]() { return !queue_.empty(); });
+    l.wait(queue_has_elements_,
+           [this]() REQUIRES(lock_) { return !queue_.empty(); });
     // The front of |done_| is the callback for the |Bytes| object that was just
     // processed.  Run it now.
     CHECK(!done_.empty());

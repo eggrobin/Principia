@@ -19,7 +19,7 @@ class SCOPED_CAPABILITY lock_guard {
 };
 
 // A |unique_lock| which really is just a |lock_guard|, except that it can be
-// used in an |std::condition_variable|.
+// used to |wait| on a |std::condition_variable|.
 // It cannot be unlocked and relocked (thread safety analysis does not support
 // reacquisition of scoped capabilities), and it cannot be moved.
 // See http://lists.llvm.org/pipermail/cfe-dev/2016-November/051468.html.
@@ -33,10 +33,13 @@ class SCOPED_CAPABILITY unique_lock {
   unique_lock(unique_lock&&) = delete;
   unique_lock& operator=(unique_lock&&) = delete;
 
-  // This operation is not covered by thread safety analysis, and is unsafe.
-  // Use it only via |wait|, |wait_for|, and |wait_until|.
-  operator std::unique_lock<Mutex>&() {
-    return lock_;
+  // Calling the predicate ourselves allows the |REQUIRES| on the Predicate to
+  // be checked by thread safety analysis.
+  template<typename Predicate>
+  void wait(std::condition_variable& condition_variable, Predicate predicate) {
+    while (!predicate()) {
+      condition_variable.wait(lock_);
+    }
   }
 
  private:

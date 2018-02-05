@@ -66,9 +66,9 @@ void Bundle::Toil() {
   for (;;) {
     {
       unique_lock<std::mutex> lock(lock_);
-      tasks_not_empty_or_terminate_.wait(
-          lock,
-          [this] {
+      lock.wait(
+          tasks_not_empty_or_terminate_,
+          [this]() REQUIRES(lock_) {
             return !tasks_.empty() || !wait_on_empty_ || Aborting();
           });
       // The call to |BundleShouldAbort| checks for deadline expiry and master
