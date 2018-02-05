@@ -107,8 +107,7 @@ inline Bytes PullSerializer::Pull() {
     base::unique_lock<std::mutex> l(lock_);
     // The element at the front of the queue is the one that was last returned
     // by |Pull| and must be dropped and freed.
-    l.wait(queue_has_elements_,
-           [this]() REQUIRES(lock_) { return queue_.size() > 1; });
+    queue_has_elements_.wait(l, [this]() { return queue_.size() > 1; });
     CHECK_LE(2u, queue_.size());
     free_.push(queue_.front().data);
     queue_.pop();
@@ -124,7 +123,7 @@ inline Bytes PullSerializer::Push(Bytes const bytes) {
   CHECK_GE(chunk_size_, bytes.size);
   {
     base::unique_lock<std::mutex> l(lock_);
-    l.wait(queue_has_room_, [this]() REQUIRES(lock_) {
+    queue_has_room_.wait(l, [this]() {
       // -1 here is because we want to ensure that there is an entry in the
       // (real) free list.
       return queue_.size() < static_cast<std::size_t>(number_of_chunks_) - 1;
