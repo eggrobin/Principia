@@ -14,6 +14,7 @@
     <ClCompile Include="hexadecimal.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="newhall.cpp" />
+    <ClCompile Include="norm2.cpp" />
     <ClCompile Include="perspective.cpp" />
     <ClCompile Include="polynomial.cpp" />
     <ClCompile Include="quantities.cpp" />
