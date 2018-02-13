@@ -2,36 +2,56 @@
 #include <intrin.h>
 #include <vector>
 
+#if 1
+#include "iacaMarks.h"
+#define INLINING __declspec(noinline)
+#define IACA_RETURN(expr)                \
+  do {                                   \
+    auto const volatile result = (expr); \
+    IACA_VC64_END                        \
+    return result;                       \
+  } while (false)
+#else
+#define INLINING
+#define IACA_VC64_START
+#define IACA_VC64_END
+#define IACA_RETURN(expr) return (expr);
+#endif
+
+
 #include "benchmark/benchmark.h"
 
 struct V {
   __m128d xy;
   __m128d zt;
 
-  double hadd_norm2() {
+  INLINING double hadd_norm2() {
+    IACA_VC64_START
     __m128d const zero = _mm_setzero_pd();
     __m128d const z_0 = _mm_unpacklo_pd(zt, zero);
     __m128d const z²_0 = _mm_mul_sd(z_0, z_0);
     __m128d const x²_y² = _mm_mul_pd(xy, xy);
     __m128d const x²z²_y² = _mm_add_sd(x²_y², z²_0);
     __m128d const x²y²z²_0 = _mm_hadd_pd(x²z²_y², zero);
-    return x²y²z²_0.m128d_f64[0];
+    IACA_RETURN(_mm_cvtsd_f64(x²y²z²_0));
   }
 
-  double nohadd_norm2() {
+  INLINING double nohadd_norm2() {
+    IACA_VC64_START
     __m128d const z²_0 = _mm_mul_sd(zt, zt);
     __m128d const x²_y² = _mm_mul_pd(xy, xy);
     __m128d const y²_y² = _mm_castps_pd(
         _mm_movehl_ps(_mm_castpd_ps(x²_y²), _mm_castpd_ps(x²_y²)));
-    __m128d const x²y²_y² = _mm_add_sd(x²_y², y²_y²);
-    __m128d const x²y²z²_y² = _mm_add_sd(x²y²_y², z²_0);
-    return x²y²z²_y².m128d_f64[0];
+    __m128d const x²z²_y² = _mm_add_sd(x²_y², z²_0);
+    __m128d const x²y²z²_y² = _mm_add_sd(x²z²_y², y²_y²);
+    IACA_RETURN(_mm_cvtsd_f64(x²y²z²_y²));
   }
 
-  double norm2() {
-    return xy.m128d_f64[0] * xy.m128d_f64[0] +
-           xy.m128d_f64[1] * xy.m128d_f64[1] +
-           zt.m128d_f64[0] * zt.m128d_f64[0];
+  INLINING double norm2() {
+    IACA_VC64_START
+    IACA_RETURN(xy.m128d_f64[0] * xy.m128d_f64[0] +
+                xy.m128d_f64[1] * xy.m128d_f64[1] +
+                zt.m128d_f64[0] * zt.m128d_f64[0]);
   }
 };
 
