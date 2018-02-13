@@ -35,6 +35,8 @@ struct V {
   }
 };
 
+#define TENFOLD(x) x; x; x; x; x; x; x; x; x; x
+
 #define DO_TEN(tens, f) \
     results[tens##0] = vs[tens##0].f(); \
     results[tens##1] = vs[tens##1].f(); \
@@ -45,30 +47,47 @@ struct V {
     results[tens##6] = vs[tens##6].f(); \
     results[tens##7] = vs[tens##7].f(); \
     results[tens##8] = vs[tens##8].f(); \
-    results[tens##9] = vs[tens##9].f(); \
+    results[tens##9] = vs[tens##9].f();
 
-#define BM(f) \
-void BM_##f(benchmark::State& state) { \
-  V v = {{{1, 1}}, {{1, 0}}}; \
-  std::vector<V> vs; \
-  std::vector<double> results; \
-  for (int i = 0; i < 100; ++i) {vs.push_back(v); results.push_back(0); }\
-  for (auto _ : state) { \
-    DO_TEN(, f)\
-    DO_TEN(1, f)\
-    DO_TEN(2, f)\
-    DO_TEN(3, f)\
-    DO_TEN(4, f)\
-    DO_TEN(5, f)\
-    DO_TEN(6, f)\
-    DO_TEN(7, f)\
-    DO_TEN(8, f)\
-    DO_TEN(9, f)\
-  } \
-  state.SetLabel(std::to_string(results[42])); \
-} \
- \
-BENCHMARK(BM_##f);
+#define BM(f)                                                     \
+  \
+void BM_##f##_indep(benchmark::State& state) {                    \
+    V v = {{{1, 1}}, {{1, 0}}};                                   \
+    std::vector<V> vs;                                            \
+    std::vector<double> results;                                  \
+    for (int i = 0; i < 100; ++i) {                               \
+      vs.push_back(v);                                            \
+      results.push_back(0);                                       \
+    }                                                             \
+    for (auto _ : state) {                                        \
+      int i = 0;                                                  \
+      TENFOLD(TENFOLD(results[i] = vs[i].f(); ++i));              \
+    }                                                             \
+    state.SetLabel(std::to_string(results[42]));                  \
+  \
+}                                                            \
+  \
+BENCHMARK(BM_##f##_indep);                                        \
+  \
+void BM_##f##_seq(benchmark::State& state) {                      \
+    V v = {{{1, 1}}, {{1, 0}}};                                   \
+    std::vector<V> vs;                                            \
+    double result = 1;                                            \
+    for (int i = 0; i < 100; ++i) {                               \
+      vs.push_back(v);                                            \
+    }                                                             \
+    for (auto _ : state) {                                        \
+      int i = 0;                                                  \
+      TENFOLD(TENFOLD(vs[i].xy = _mm_load1_pd(&result);           \
+                      vs[i].zt = _mm_move_sd(vs[i].zt, vs[i].xy); \
+                      result = vs[i].f();                         \
+                      ++i));                                      \
+    }                                                             \
+    state.SetLabel(std::to_string(result));                       \
+  \
+}                                                            \
+  \
+BENCHMARK(BM_##f##_seq);
 
 BM(norm2);
 BM(nohadd_norm2);
