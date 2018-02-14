@@ -134,6 +134,27 @@ void principia__PlanetariumDelete(
   return m.Return();
 }
 
+Iterator* principia__PlanetariumPlotCelestialTrajectory(
+    Planetarium const* const planetarium,
+    Plugin const* const plugin,
+    int const celestial_index,
+    double const duration) {
+  journal::Method<journal::PlanetariumPlotCelestialTrajectory> m(
+      {planetarium, plugin, celestial_index, duration});
+  CHECK_NOTNULL(plugin);
+  CHECK_NOTNULL(planetarium);
+  auto const& trajectory = plugin->GetCelestial(celestial_index).trajectory();
+  Instant const current_time = plugin->CurrentTime() ;
+  return m.Return(new TypedIterator<RP2Lines<Length, Camera>>(
+      planetarium->ContinuousPlotMethod2(
+          trajectory,
+          /*begin_time=*/current_time,
+          /*last_time=*/std::min(current_time + duration * Second,
+                                 trajectory.t_max()),
+          /*now=*/current_time,
+          /*reverse=*/false)));
+}
+
 Iterator* principia__PlanetariumPlotFlightPlanSegment(
     Planetarium const* const planetarium,
     Plugin const* const plugin,

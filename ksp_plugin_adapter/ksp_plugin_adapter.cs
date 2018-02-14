@@ -1593,6 +1593,15 @@ public partial class PrincipiaPluginAdapter
     }
   }
 
+  private void RemoveStockTrajectoriesIfNeeded(CelestialBody celestial) {
+    if (display_patched_conics_) {
+      celestial.orbitDriver.Renderer.drawMode =
+          OrbitRenderer.DrawMode.REDRAW_AND_RECALCULATE;
+    } else {
+      celestial.orbitDriver.Renderer.drawMode = OrbitRenderer.DrawMode.OFF;
+    }
+  }
+
   private void RemoveStockTrajectoriesIfNeeded(Vessel vessel) {
     if (vessel.patchedConicRenderer != null) {
       vessel.patchedConicRenderer.relativityMode =
@@ -1706,6 +1715,7 @@ public partial class PrincipiaPluginAdapter
                                   c => c.MapObject?.uiNode != null)) {
       celestial.MapObject.uiNode.OnClick -= OnCelestialNodeClick;
       celestial.MapObject.uiNode.OnClick += OnCelestialNodeClick;
+      RemoveStockTrajectoriesIfNeeded(celestial);
     }
     foreach (var vessel in FlightGlobals.Vessels.Where(
                                v => v.mapObject?.uiNode != null)) {
@@ -1729,6 +1739,36 @@ public partial class PrincipiaPluginAdapter
       IntPtr planetarium = GLLines.NewPlanetarium(plugin_, sun_world_position);
       try {
         GLLines.Draw(() => {
+          var plotting_frame = plotting_frame_selector_.get();
+          if (plotting_frame.frame_type !=
+              ReferenceFrameSelector.FrameType.BODY_SURFACE) {
+            foreach (var celestial in FlightGlobals.Bodies) {
+              if (plotting_frame.FixedBodies().Contains(celestial)) {
+                continue;
+              }
+              CelestialBody secondary = plotting_frame.selected_celestial;
+              CelestialBody primary =
+                  (plotting_frame.frame_type ==
+                   ReferenceFrameSelector.FrameType.BODY_CENTRED_NON_ROTATING)
+                      ? null
+                      : secondary.referenceBody;
+              for (Orbit orbit = celestial.orbit;
+                   orbit != null;
+                   orbit = orbit.referenceBody.orbit) {
+                if (orbit.referenceBody == secondary ||
+                    orbit.referenceBody == primary) {
+                  IntPtr rp2_lines_iterator =
+                      planetarium.PlanetariumPlotCelestialTrajectory(
+                          plugin_, celestial.flightGlobalsIndex, orbit.period);
+                  GLLines.PlotAndDeleteRP2Lines(
+                      rp2_lines_iterator,
+                      celestial.orbitDriver.Renderer.orbitColor,
+                      GLLines.Style.FADED);
+                  break;
+                }
+              }
+            }
+          }
           {
             IntPtr rp2_lines_iterator =
                 planetarium.PlanetariumPlotPsychohistory(
@@ -1816,12 +1856,11 @@ public partial class PrincipiaPluginAdapter
                                 position_at_start).magnitude * 0.015;
                 Action<XYZ, UnityEngine.Color> add_vector =
                     (world_direction, colour) => {
-                      UnityEngine.GL.Color(colour);
-                      GLLines.AddSegment(
-                          position_at_start,
-                          position_at_start +
-                              scale * (Vector3d)world_direction);
-                    };
+                  UnityEngine.GL.Color(colour);
+                  GLLines.AddSegment(
+                      position_at_start,
+                      position_at_start + scale * (Vector3d)world_direction);
+                };
                 add_vector(manoeuvre.tangent, XKCDColors.NeonYellow);
                 add_vector(manoeuvre.normal, XKCDColors.AquaBlue);
                 add_vector(manoeuvre.binormal, XKCDColors.PurplePink);
