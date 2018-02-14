@@ -47,6 +47,14 @@ struct V {
     IACA_RETURN(_mm_cvtsd_f64(x²y²z²_y²));
   }
 
+  INLINING double dppd_norm2() {
+    IACA_VC64_START
+    __m128d const x²y²_0 = _mm_dp_pd(xy, xy, 0b0011'0001);
+    __m128d const z²_0 = _mm_mul_sd(zt, zt);
+    __m128d const x²y²z²_0 = _mm_add_sd(x²y²_0, z²_0);
+    IACA_RETURN(_mm_cvtsd_f64(x²y²z²_0));
+  }
+
   INLINING double norm2() {
     IACA_VC64_START
     IACA_RETURN(xy.m128d_f64[0] * xy.m128d_f64[0] +
@@ -112,5 +120,6 @@ BENCHMARK(BM_##f##_seq);
 BM(norm2);
 BM(nohadd_norm2);
 BM(hadd_norm2);
+BM(dppd_norm2);
 
 
