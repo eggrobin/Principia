@@ -101,6 +101,9 @@ public partial class PrincipiaPluginAdapter
        1 << 18, 1 << 20, 1 << 22, 1 << 24};
   [KSPField(isPersistant = true)]
   private int prediction_steps_index_ = 4;
+  private readonly double[] log2_celestial_steps_ =
+      Enumerable.Range(0, 11).Select(Convert.ToDouble).ToArray();
+  private int log2_celestial_steps_index_ = 5;
   private readonly double[] history_lengths_ =
       {1 << 10, 1 << 11, 1 << 12, 1 << 13, 1 << 14, 1 << 15, 1 << 16, 1 << 17,
        1 << 18, 1 << 19, 1 << 20, 1 << 21, 1 << 22, 1 << 23, 1 << 24, 1 << 25,
@@ -1759,7 +1762,10 @@ public partial class PrincipiaPluginAdapter
                     orbit.referenceBody == primary) {
                   IntPtr rp2_lines_iterator =
                       planetarium.PlanetariumPlotCelestialTrajectory(
-                          plugin_, celestial.flightGlobalsIndex, orbit.period);
+                          plugin_,
+                          celestial.flightGlobalsIndex,
+                          1 << (int)log2_celestial_steps_[
+                                        log2_celestial_steps_index_]);
                   GLLines.PlotAndDeleteRP2Lines(
                       rp2_lines_iterator,
                       celestial.orbitDriver.Renderer.orbitColor,
@@ -2095,6 +2101,12 @@ public partial class PrincipiaPluginAdapter
                "Max history length",
                ref changed_history_length,
                "{0:0.00e00} s");
+      bool unused = false;
+      Selector(log2_celestial_steps_,
+               ref log2_celestial_steps_index_,
+               "log2 celestial steps",
+               ref unused,
+               "{0}");
       if (MapView.MapIsEnabled &&
           FlightGlobals.ActiveVessel?.orbitTargeter != null) {
         using (new HorizontalLayout()) {

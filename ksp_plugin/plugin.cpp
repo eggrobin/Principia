@@ -964,6 +964,10 @@ not_null<Vessel*> Plugin::GetVessel(GUID const& vessel_guid) const {
   return FindOrDie(vessels_, vessel_guid).get();
 }
 
+void Plugin::ProlongEphemeris(std::int64_t const steps) {
+  ephemeris_->ProlongSteps(steps);
+}
+
 not_null<std::unique_ptr<Planetarium>> Plugin::NewPlanetarium(
     Planetarium::Parameters const& parameters,
     Perspective<Navigation, Camera> const& perspective)

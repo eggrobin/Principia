@@ -143,11 +143,15 @@ RP2Lines<Length, Camera> Planetarium::PlotMethod2(
   auto last = end;
   --last;
 
+  bool unused_reached_max_steps;
+
   return ContinuousPlotMethod2(*begin.trajectory(),
                                std::max(begin.time(), plotting_frame_->t_min()),
                                std::min(last.time(), plotting_frame_->t_max()),
                                now,
-                               reverse);
+                               reverse,
+                               max_plot_method_2_steps,
+                               &unused_reached_max_steps);
 }
 
 RP2Lines<Length, Camera> Planetarium::ContinuousPlotMethod2(
@@ -155,7 +159,10 @@ RP2Lines<Length, Camera> Planetarium::ContinuousPlotMethod2(
     Instant const& begin_time,
     Instant const& last_time,
     Instant const& now,
-    bool reverse) const {
+    bool const reverse,
+    int const max_steps,
+    bool* const reached_max_steps) const {
+  CHECK_NOTNULL(reached_max_steps);
   RP2Lines<Length, Camera> lines;
   double const tan²_angular_resolution =
       Pow<2>(parameters_.tan_angular_resolution_);
@@ -189,7 +196,7 @@ RP2Lines<Length, Camera> Planetarium::ContinuousPlotMethod2(
 
   goto estimate_tan²_error;
 
-  while (steps_accepted < max_plot_method_2_steps &&
+  while (steps_accepted < max_steps &&
          direction * (previous_time - final_time) < Time{}) {
     do {
       // One square root because we have squared errors, another one because the
@@ -247,6 +254,7 @@ RP2Lines<Length, Camera> Planetarium::ContinuousPlotMethod2(
       last_endpoint = segment.second;
     }
   }
+  *reached_max_steps = steps_accepted == max_steps;
   return lines;
 }
 

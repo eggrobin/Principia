@@ -94,7 +94,9 @@ class Planetarium {
       Instant const& begin_time,
       Instant const& last_time,
       Instant const& now,
-      bool reverse) const;
+      bool reverse,
+      int max_steps,
+      bool* const reached_max_steps) const;
 
  private:
   // Computes the coordinates of the spheres that represent the |ephemeris_|

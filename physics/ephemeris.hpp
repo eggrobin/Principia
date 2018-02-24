@@ -159,6 +159,9 @@ class Ephemeris {
   // Prolongs the ephemeris up to at least |t|.  After the call, |t_max() >= t|.
   virtual void Prolong(Instant const& t) EXCLUDES(lock_);
 
+  // Prolongs the ephemeris for |step_count| steps.
+  virtual void ProlongSteps(std::int64_t step_count) EXCLUDES(lock_);
+
   // Creates an instance suitable for integrating the given |trajectories| with
   // their |intrinsic_accelerations| using a fixed-step integrator parameterized
   // by |parameters|.

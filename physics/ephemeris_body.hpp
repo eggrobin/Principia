@@ -384,6 +384,11 @@ void Ephemeris<Frame>::Prolong(Instant const& t) {
 }
 
 template<typename Frame>
+void Ephemeris<Frame>::ProlongSteps(std::int64_t step_count) {
+  Prolong(instance_time() + step_count * parameters_.step());
+}
+
+template<typename Frame>
 not_null<std::unique_ptr<typename Integrator<
     typename Ephemeris<Frame>::NewtonianMotionEquation>::Instance>>
 Ephemeris<Frame>::NewInstance(

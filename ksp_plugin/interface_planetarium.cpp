@@ -136,23 +136,30 @@ void principia__PlanetariumDelete(
 
 Iterator* principia__PlanetariumPlotCelestialTrajectory(
     Planetarium const* const planetarium,
-    Plugin const* const plugin,
+    Plugin* const plugin,
     int const celestial_index,
-    double const duration) {
+    int const steps) {
   journal::Method<journal::PlanetariumPlotCelestialTrajectory> m(
-      {planetarium, plugin, celestial_index, duration});
+      {planetarium, plugin, celestial_index, steps});
   CHECK_NOTNULL(plugin);
   CHECK_NOTNULL(planetarium);
   auto const& trajectory = plugin->GetCelestial(celestial_index).trajectory();
-  Instant const current_time = plugin->CurrentTime() ;
-  return m.Return(new TypedIterator<RP2Lines<Length, Camera>>(
+  Instant const current_time = plugin->CurrentTime();
+  bool reached_max_steps;
+  auto const result = new TypedIterator<RP2Lines<Length, Camera>>(
       planetarium->ContinuousPlotMethod2(
           trajectory,
           /*begin_time=*/current_time,
-          /*last_time=*/std::min(current_time + duration * Second,
-                                 trajectory.t_max()),
+          /*last_time=*/trajectory.t_max(),
           /*now=*/current_time,
-          /*reverse=*/false)));
+          /*reverse=*/false,
+          /*max_steps=*/steps,
+          &reached_max_steps));
+  if (!reached_max_steps) {
+    LOG(WARNING)<<"Reached "<< trajectory.t_max()<<", prolonging ephemeris";
+    plugin->ProlongEphemeris(1000);
+  }
+  return m.Return(result);
 }
 
 Iterator* principia__PlanetariumPlotFlightPlanSegment(
