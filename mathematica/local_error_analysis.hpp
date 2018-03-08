@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "integrators/integrators.hpp"
 #include "physics/ephemeris.hpp"
 #include "physics/solar_system.hpp"
@@ -14,6 +16,7 @@ using geometry::Instant;
 using integrators::FixedStepSizeIntegrator;
 using physics::Ephemeris;
 using physics::SolarSystem;
+using quantities::Length;
 using quantities::Time;
 
 // A utility to compute the local errors in the numerical integration of a
@@ -39,6 +42,17 @@ class LocalErrorAnalyser {
       Time const& granularity,
       Time const& duration) const;
 
+  void WriteEnsembleDiameters(
+      std::experimental::filesystem::path const& path,
+      Length const& perturbation_norm,
+      int ensemble_size,
+      FixedStepSizeIntegrator<
+          Ephemeris<ICRFJ2000Equator>::NewtonianMotionEquation> const&
+          fine_integrator,
+      Time const& fine_step,
+      Time const& granularity,
+      Time const& duration) const;
+
  private:
   not_null<std::unique_ptr<Ephemeris<ICRFJ2000Equator>>> ForkEphemeris(
       Ephemeris<ICRFJ2000Equator> const& original,
@@ -47,6 +61,17 @@ class LocalErrorAnalyser {
           Ephemeris<ICRFJ2000Equator>::NewtonianMotionEquation> const&
           integrator,
       Time const& step) const;
+
+  std::vector<not_null<std::unique_ptr<Ephemeris<ICRFJ2000Equator>>>>
+  ForkEphemerisEnsemble(
+      Ephemeris<ICRFJ2000Equator> const& original,
+      Instant const& t,
+      Length const& perturbation_norm,
+      FixedStepSizeIntegrator<
+          Ephemeris<ICRFJ2000Equator>::NewtonianMotionEquation> const&
+          integrator,
+      Time const& step,
+      int size) const;
 
   not_null<std::unique_ptr<SolarSystem<ICRFJ2000Equator>>> const solar_system_;
   FixedStepSizeIntegrator<
