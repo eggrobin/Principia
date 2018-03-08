@@ -150,7 +150,7 @@ void LocalErrorAnalyser::WriteEnsembleDiameters(
     for (auto const& body_name : solar_system_->names()) {
       Length diameter = 0 * Metre;
       for (int i = 0; i < ensemble.size(); ++i) {
-        for (int j = 0; i < j; ++j) {
+        for (int j = 0; j < i; ++j) {
           int const body_index = solar_system_->index(body_name);
           auto const& trajectory_i =
               *ensemble[i]->trajectory(ensemble[i]->bodies()[body_index]);
