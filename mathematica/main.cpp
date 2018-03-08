@@ -24,6 +24,7 @@ using ::principia::integrators::ParseFixedStepSizeIntegrator;
 using ::principia::mathematica::LocalErrorAnalyser;
 using ::principia::physics::Ephemeris;
 using ::principia::physics::SolarSystem;
+using ::principia::quantities::Length;
 using ::principia::quantities::Time;
 
 int main(int argc, char const* argv[]) {
@@ -85,7 +86,10 @@ int main(int argc, char const* argv[]) {
           "        default: BLANES_MOAN_2002_SRKN_14A\n"
           "    [--fine_step=<quantity(time)>] default: 1 min\n"
           "    [--granularity=<quantity(time)>] default: 1 d\n"
-          "    [--duration=<quantity(time)>] default: 500 d\n",
+          "    [--duration=<quantity(time)>] default: 500 d\n"
+          "    [--ensemble\n"
+          "     --perturbation=<quantity(length)>\n"
+          "     --ensemble_size=<integer>]\n",
           argv[0],
           argv[1]);
       return 0;
@@ -105,16 +109,34 @@ int main(int argc, char const* argv[]) {
             flags["output_directory"].value_or(".")) /
         (std::string("local_error_analysis[") + solar_system->names()[0] + "," +
          solar_system->epoch_literal() + "," + *flags["integrator"] + "," +
-         DebugString(time_step) + "].wl");
+         DebugString(time_step) +
+         (Contains(flags, "ensemble")
+              ? ",ensemble[" + *flags["ensemble_size"] + "," +
+                    *flags["perturbation_norm"] + "]"
+              : "") +
+         "].wl");
     LocalErrorAnalyser analyser(std::move(solar_system), integrator, time_step);
-    analyser.WriteLocalErrors(
-        out,
-        ParseFixedStepSizeIntegrator<
-            Ephemeris<ICRFJ2000Equator>::NewtonianMotionEquation>(
-            flags["integrator"].value_or("BLANES_MOAN_2002_SRKN_14A")),
-        ParseQuantity<Time>(flags["fine_step"].value_or("1 min")),
-        ParseQuantity<Time>(flags["granularity"].value_or("1 d")),
-        ParseQuantity<Time>(flags["duration"].value_or("500 d")));
+    if (Contains(flags, "ensemble")) {
+      analyser.WriteEnsembleDiameters(
+          out,
+          ParseQuantity<Length>(*flags["perturbation_norm"]),
+          std::strtol(flags["ensemble_size"]->c_str(), nullptr, 10),
+          ParseFixedStepSizeIntegrator<
+              Ephemeris<ICRFJ2000Equator>::NewtonianMotionEquation>(
+              flags["fine_integrator"].value_or("BLANES_MOAN_2002_SRKN_14A")),
+          ParseQuantity<Time>(flags["fine_step"].value_or("1 min")),
+          ParseQuantity<Time>(flags["granularity"].value_or("1 d")),
+          ParseQuantity<Time>(flags["duration"].value_or("500 d")));
+    } else {
+      analyser.WriteLocalErrors(
+          out,
+          ParseFixedStepSizeIntegrator<
+              Ephemeris<ICRFJ2000Equator>::NewtonianMotionEquation>(
+              flags["fine_integrator"].value_or("BLANES_MOAN_2002_SRKN_14A")),
+          ParseQuantity<Time>(flags["fine_step"].value_or("1 min")),
+          ParseQuantity<Time>(flags["granularity"].value_or("1 d")),
+          ParseQuantity<Time>(flags["duration"].value_or("500 d")));
+    }
   } else {
     LOG(FATAL) << "unexpected argument " << argv[1];
   }
