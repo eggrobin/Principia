@@ -88,7 +88,7 @@ int main(int argc, char const* argv[]) {
           "    [--granularity=<quantity(time)>] default: 1 d\n"
           "    [--duration=<quantity(time)>] default: 500 d\n"
           "    [--ensemble\n"
-          "     --perturbation=<quantity(length)>\n"
+          "     --perturbation_norm=<quantity(length)>\n"
           "     --ensemble_size=<integer>]\n",
           argv[0],
           argv[1]);
