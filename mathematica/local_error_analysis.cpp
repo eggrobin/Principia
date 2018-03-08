@@ -30,6 +30,7 @@ using quantities::si::Metre;
 using quantities::si::Milli;
 using quantities::si::Minute;
 using quantities::si::Radian;
+using quantities::si::Second;
 
 namespace {
 
@@ -72,7 +73,8 @@ void LocalErrorAnalyser::WriteLocalErrors(
         fine_integrator,
     Time const& fine_step,
     Time const& granularity,
-    Time const& duration) const {
+    Time const& begin,
+    Time const& end) const {
   auto const reference_ephemeris = solar_system_->MakeEphemeris(
       fitting_tolerance,
       Ephemeris<ICRFJ2000Equator>::FixedStepParameters(integrator_, step_));
@@ -80,14 +82,21 @@ void LocalErrorAnalyser::WriteLocalErrors(
   std::vector<std::vector<Length>> errors;
   for (Instant t0 = solar_system_->epoch(),
                t = t0 + granularity;
-       t < solar_system_->epoch() + duration;
+       t < solar_system_->epoch() + end;
        t0 = t, t += granularity) {
-    std::unique_ptr<Ephemeris<ICRFJ2000Equator>> refined_ephemeris =
-        ForkEphemeris(*reference_ephemeris, t0, fine_integrator, fine_step);
+    std::unique_ptr<Ephemeris<ICRFJ2000Equator>> refined_ephemeris;
     reference_ephemeris->Prolong(t);
-    refined_ephemeris->Prolong(t);
+    if (t >= solar_system_->epoch() + begin) {
+      refined_ephemeris =
+          ForkEphemeris(*reference_ephemeris, t0, fine_integrator, fine_step);
+      refined_ephemeris->Prolong(t);
+    }
     LOG_EVERY_N(INFO, 10) << "Prolonged to "
                           << (t - solar_system_->epoch()) / Day << " days.";
+
+    if (t < solar_system_->epoch() + begin) {
+      continue;
+    }
 
     errors.emplace_back();
     for (auto const& body_name : solar_system_->names()) {
@@ -115,36 +124,46 @@ void LocalErrorAnalyser::WriteEnsembleDiameters(
           fine_integrator,
       Time const& fine_step,
       Time const& granularity,
-      Time const& duration) const {
+      Time const& begin,
+      Time const& end) const {
   auto const reference_ephemeris = solar_system_->MakeEphemeris(
       fitting_tolerance,
       Ephemeris<ICRFJ2000Equator>::FixedStepParameters(integrator_, step_));
   reference_ephemeris->Prolong(solar_system_->epoch());
   std::vector<std::vector<Length>> diameters;
+  std::vector<Time> times;
   for (Instant t0 = solar_system_->epoch(),
                t = t0 + granularity;
-       t < solar_system_->epoch() + duration;
+       t < solar_system_->epoch() + end;
        t0 = t, t += granularity) {
-    auto const ensemble = ForkEphemerisEnsemble(*reference_ephemeris,
-                                                t0,
-                                                perturbation_norm,
-                                                fine_integrator,
-                                                fine_step,
-                                                ensemble_size);
+    std::vector<not_null<std::unique_ptr<Ephemeris<ICRFJ2000Equator>>>> ensemble;
+
     Bundle bundle{static_cast<int>(std::thread::hardware_concurrency() - 1)};
     bundle.Add([&reference_ephemeris = *reference_ephemeris, t ]() {
       reference_ephemeris.Prolong(t);
       return Status::OK;
     });
-    for (auto const& ephemeris : ensemble) {
-      bundle.Add([&ephemeris = *ephemeris, t ]() {
-        ephemeris.Prolong(t);
-        return Status::OK;
-      });
+    if (t >= solar_system_->epoch() + begin) {
+      ForkEphemerisEnsemble(*reference_ephemeris,
+                            t0,
+                            perturbation_norm,
+                            fine_integrator,
+                            fine_step,
+                            ensemble_size);
+      for (auto const& ephemeris : ensemble) {
+        bundle.Add([& ephemeris = *ephemeris, t ]() {
+          ephemeris.Prolong(t);
+          return Status::OK;
+        });
+      }
     }
     bundle.Join();
     LOG_EVERY_N(INFO, 10) << "Prolonged to "
                           << (t - solar_system_->epoch()) / Day << " days.";
+
+    if (t < solar_system_->epoch() + begin) {
+      continue;
+    }
 
     diameters.emplace_back();
     for (auto const& body_name : solar_system_->names()) {
@@ -163,9 +182,11 @@ void LocalErrorAnalyser::WriteEnsembleDiameters(
       }
       diameters.back().push_back(diameter);
     }
+    times.push_back(t - solar_system_->epoch());
   }
   OFStream file(path);
   file << Assign("bodyNames", solar_system_->names());
+  file << Assign("times", ExpressIn(Second, times));
   file << Assign("diameters", ExpressIn(Metre, diameters));
 }
 

@@ -40,7 +40,8 @@ class LocalErrorAnalyser {
           fine_integrator,
       Time const& fine_step,
       Time const& granularity,
-      Time const& duration) const;
+      Time const& begin,
+      Time const& end) const;
 
   void WriteEnsembleDiameters(
       std::experimental::filesystem::path const& path,
@@ -51,7 +52,8 @@ class LocalErrorAnalyser {
           fine_integrator,
       Time const& fine_step,
       Time const& granularity,
-      Time const& duration) const;
+      Time const& begin,
+      Time const& end) const;
 
  private:
   not_null<std::unique_ptr<Ephemeris<ICRFJ2000Equator>>> ForkEphemeris(

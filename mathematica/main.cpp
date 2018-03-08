@@ -86,7 +86,8 @@ int main(int argc, char const* argv[]) {
           "        default: BLANES_MOAN_2002_SRKN_14A\n"
           "    [--fine_step=<quantity(time)>] default: 1 min\n"
           "    [--granularity=<quantity(time)>] default: 1 d\n"
-          "    [--duration=<quantity(time)>] default: 500 d\n"
+          "    [--begin=<quantity(time)>] default: 0 d\n"
+          "    [--end=<quantity(time)>] default: 500 d\n"
           "    [--ensemble\n"
           "     --perturbation_norm=<quantity(length)>\n"
           "     --ensemble_size=<integer>]\n",
@@ -126,7 +127,8 @@ int main(int argc, char const* argv[]) {
               flags["fine_integrator"].value_or("BLANES_MOAN_2002_SRKN_14A")),
           ParseQuantity<Time>(flags["fine_step"].value_or("1 min")),
           ParseQuantity<Time>(flags["granularity"].value_or("1 d")),
-          ParseQuantity<Time>(flags["duration"].value_or("500 d")));
+          ParseQuantity<Time>(flags["begin"].value_or("0 d")),
+          ParseQuantity<Time>(flags["end"].value_or("500 d")));
     } else {
       analyser.WriteLocalErrors(
           out,
@@ -135,7 +137,8 @@ int main(int argc, char const* argv[]) {
               flags["fine_integrator"].value_or("BLANES_MOAN_2002_SRKN_14A")),
           ParseQuantity<Time>(flags["fine_step"].value_or("1 min")),
           ParseQuantity<Time>(flags["granularity"].value_or("1 d")),
-          ParseQuantity<Time>(flags["duration"].value_or("500 d")));
+          ParseQuantity<Time>(flags["begin"].value_or("0 d")),
+          ParseQuantity<Time>(flags["end"].value_or("500 d")));
     }
   } else {
     LOG(FATAL) << "unexpected argument " << argv[1];
