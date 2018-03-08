@@ -144,12 +144,12 @@ void LocalErrorAnalyser::WriteEnsembleDiameters(
       return Status::OK;
     });
     if (t >= solar_system_->epoch() + begin) {
-      ForkEphemerisEnsemble(*reference_ephemeris,
-                            t0,
-                            perturbation_norm,
-                            fine_integrator,
-                            fine_step,
-                            ensemble_size);
+      ensemble = ForkEphemerisEnsemble(*reference_ephemeris,
+                                       t0,
+                                       perturbation_norm,
+                                       fine_integrator,
+                                       fine_step,
+                                       ensemble_size);
       for (auto const& ephemeris : ensemble) {
         bundle.Add([& ephemeris = *ephemeris, t ]() {
           ephemeris.Prolong(t);
