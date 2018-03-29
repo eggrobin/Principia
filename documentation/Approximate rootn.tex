@@ -1,0 +1,116 @@
+\documentclass[10pt, a4paper, twoside]{basestyle}
+\usepackage{tkz-euclide}
+\usetkzobj{all}
+\usepackage[Mathematics]{semtex}
+\usepackage{chngcntr}
+\counterwithout{equation}{section}
+
+%%%% Shorthands.
+\newcommand{\idest}{\emph{, i.e.,\ }}
+
+%%%% Title and authors.
+
+\newcommand{\point}[1]{\mathrm{#1}}
+\newcommand{\bipoint}[2]{\overrightarrow{\point #1 \point #2}}
+\newcommand{\straightline}[2]{\point #1 \point #2}
+\newcommand{\plane}[3]{\point #1 \point #2 \point #3}
+\newcommand{\squarenorm}[1]{\scal{#1}{#1}}
+
+\newcommand{\ApproximateRoot}[1]{{{}^{#1}r}}
+
+\DeclareDelimiter\reversedceil{\rceil}{\lceil}
+\newcommand\ModOne[1]{\reversedceil{#1}}
+
+\renewcommand\labelitemi{---}
+
+\title{%
+\textdisplay{%
+Approximating roots and reciprocal roots of binary floating-point numbers%
+}%
+}
+\author{Robin~Leroy (eggrobin)}
+\begin{document}
+\maketitle
+In the following, $\Naturals\DefineAs\intclop{0}{\infty}\Intersection\Z$.
+We define $\ModOne{x}\DefineAs x - \Floor{x}$, so that $\forall x\in\R, \ModOne{x}\in\intclop 0 1$.
+$B\in\Naturals$ is arbitrary.
+
+Let $x>0$. There are unique $F\in\intclop 0 1$, $K\in\Integers$, such that $x=2^K\pa{1+F}$;
+define\[
+x\sharp \DefineAs B+K+F\text.
+\]
+Let $X\in\Reals$; define\[
+X\flat \DefineAs 2^{\Floor{X-B}} \pa{ 1 + \ModOne{X} }\text.
+\]
+Then $X\flat\sharp = X$, $x\sharp\flat=x$, $x\sharp+1 = \pa{2x}\sharp$.
+
+Let $n\in\Z\setminus\set{0,1}$, $\gg\in\R$. For $x>0$, define\[
+\ApproximateRoot{n}\of{x} \DefineAs
+\pa{C_{n,\gg} + \frac{x\sharp}{n}}\flat\text,
+\]
+where
+\[
+C_{n,\gg} \DefineAs \frac{\pa{n-1}B-\gg}{n}\text.
+\]
+Consider the signed relative error $\ge\of x$ of $\ApproximateRoot{n}\of{x}$ as an approximation of
+$\sqrt[n]{x}$.
+For $x=2^K\pa{1+F}$, we have
+\begin{align*}
+\ge\of x &= \frac{\ApproximateRoot{n}\of{x}}{\sqrt[n]{x}} - 1 \\
+&= 
+\frac{
+  2^{\Floor{\frac{K+F-\gg}{n}}} \pa{1+\ModOne{\frac{K+F-\gg}{n}}}
+}
+{
+  2^{\frac{K}{n}} \sqrt[n]{1+F}
+} - 1 \\
+&= 2^{\Floor{\frac{K+F-\gg}{n}} - \frac{K}{n}} \frac{1+\ModOne{\frac{K+F-\gg}{n}}}{\sqrt[n]{1+F}} - 1 \text,
+\end{align*}
+which is invariant under addition of $n$ to $K$, so that\[
+\ge\of{x} = \ge\of{2^nx}\text.
+\]
+in other words,\[
+\FunctionNamedBody{\ge_\flat}{X}{\ge\of{X\flat}}
+\]
+is periodic with period $n$.
+
+Consider the interval \[
+I_{n,\gg}\DefineAs \begin{cases}
+\intclop{2^{\Floor{\gg}}\pa{1+\ModOne{\gg}}} {2^{\Floor{\gg}+n}\pa{1+\ModOne{\gg}}} & n>0\text,\\
+\intclop{2^{\Floor{\gg}+n}\pa{1+\ModOne{\gg}}} {2^{\Floor{\gg}}\pa{1+\ModOne{\gg}}} & \text{otherwise.}
+\end{cases}
+\]
+Note that \[
+I_{n,\gg}\sharp =\begin{cases}
+\intclop{B+\gg} {B+n+\gg} & n>0\text,\\
+\intclop{B+n+\gg} {B+\gg} & \text{otherwise,}
+\end{cases}
+\]
+so that it covers one period of the relative error.
+
+Let $x\in I_{n,\gg}$.
+Then, with $F\in\intclop 0 1$, $K\in\Integers$, such that $x=2^K\pa{1+F}$,
+\[
+\ApproximateRoot{n}\of{x} = 1+\frac{K+F-\gg}{n} = 1+\frac{K+2^{-K}x-1-\gg}{n}\text,
+\]
+and $K\in \intclos{\Floor{\gg}}{\Floor{\gg}+n-1}\Intersection\Z$ if $n>0$,
+$K\in \intclos{\Floor{\gg}+n}{\Floor{\gg}}\Intersection\Z$ otherwise.
+For fixed $K$\idest for $x\in\intclop{2^K}{2^{K+1}}$,
+$\ge\der\of{x}=0$ at \[
+x=2^K\pa{1+\frac{K-\gg}{n-1}}\text,
+\]
+which is in $\intclop{2^K}{2^{K+1}}$ unless $K=\Floor{\gg}$ and $n>0$, or $K=\Floor{\gg}+n$ and $n>0$.
+
+It follows that the maximum for $x>0$ of $\abs{\ge\of{x}}$ is the maximum of the absolute values of the
+following:
+\begin{itemize}
+\item the value $\ge\of{2^{\Floor{\gg}}\pa{1+\ModOne{\gg}}}=
+\frac{1}{\sqrt[n]{2^{\Floor{\gg}}\pa{1+\ModOne{\gg}}}}$ at the endpoint of $I_{n,\gg}$;
+\item the values at powers of two, $\ge\of{2^K}$ for
+$K\in \intclos{\Floor{\gg}}{\Floor{\gg}+n-1}\Intersection\Z$ if $n>0$,
+$K\in \intclos{\Floor{\gg}+n}{\Floor{\gg}}\Intersection\Z$ otherwise;
+\item the smooth extrema $\ge\of{2^K\pa{1+\frac{K-\gg}{n-1}}}$ where
+$K\in \intclos{\Floor{\gg}+1}{\Floor{\gg}+n-2}\Intersection\Z$ if $n>0$ and
+$K\in \intclos{\Floor{\gg}+n}{\Floor{\gg}}\Intersection\Z$ otherwise.
+\end{itemize}
+\end{document}
