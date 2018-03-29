@@ -1,6 +1,10 @@
 \documentclass[10pt, a4paper, twoside]{basestyle}
 \usepackage{tkz-euclide}
 \usetkzobj{all}
+
+\usepackage{xeCJK}
+\xeCJKsetup{CJKmath=true}
+
 \usepackage[Mathematics]{semtex}
 \usepackage{chngcntr}
 \counterwithout{equation}{section}
@@ -23,6 +27,7 @@
 
 \renewcommand\labelitemi{---}
 
+
 \title{%
 \textdisplay{%
 Approximating roots and reciprocal roots of binary floating-point numbers%
@@ -37,16 +42,16 @@ $B\in\Naturals$ is arbitrary.
 
 Let $x>0$. There are unique $F\in\intclop 0 1$, $K\in\Integers$, such that $x=2^K\pa{1+F}$;
 define\[
-x\sharp \DefineAs B+K+F\text.
+定x \DefineAs B+K+F\text.
 \]
 Let $X\in\Reals$; define\[
-X\flat \DefineAs 2^{\Floor{X-B}} \pa{ 1 + \ModOne{X} }\text.
+浮X \DefineAs 2^{\Floor{X-B}} \pa{ 1 + \ModOne{X} }\text.
 \]
-Then $X\flat\sharp = X$, $x\sharp\flat=x$, $x\sharp+1 = \pa{2x}\sharp$.
+Then $定浮X = X$, $浮定x=x$, $1+定x = 定\of{2x}$.
 
 Let $n\in\Z\setminus\set{0,1}$, $\gg\in\R$. For $x>0$, define\[
 \ApproximateRoot{n}\of{x} \DefineAs
-\pa{C_{n,\gg} + \frac{x\sharp}{n}}\flat\text,
+浮\of{C_{n,\gg} + \frac{定x}{n}}\text,
 \]
 where
 \[
@@ -70,7 +75,7 @@ which is invariant under addition of $n$ to $K$, so that\[
 \ge\of{x} = \ge\of{2^nx}\text.
 \]
 in other words,\[
-\FunctionNamedBody{\ge_\flat}{X}{\ge\of{X\flat}}
+\FunctionNamedBody{\ge 浮}{X}{\ge\of{浮X}}
 \]
 is periodic with period $n$.
 
@@ -81,7 +86,7 @@ I_{n,\gg}\DefineAs \begin{cases}
 \end{cases}
 \]
 Note that \[
-I_{n,\gg}\sharp =\begin{cases}
+定I_{n,\gg} =\begin{cases}
 \intclop{B+\gg} {B+n+\gg} & n>0\text,\\
 \intclop{B+n+\gg} {B+\gg} & \text{otherwise,}
 \end{cases}
