@@ -12,11 +12,13 @@
 #include "astronomy/stabilize_ksp.hpp"
 #include "base/not_null.hpp"
 #include "base/thread_pool.hpp"
+#include "benchmark/benchmark.h"
 #include "geometry/named_quantities.hpp"
 #include "geometry/quaternion.hpp"
 #include "geometry/rotation.hpp"
 #include "integrators/integrators.hpp"
 #include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/methods.hpp"
 #include "integrators/symmetric_linear_multistep_integrator.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
 #include "ksp_plugin/frames.hpp"
@@ -31,9 +33,6 @@
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/solar_system_factory.hpp"
-
-// Must come last to avoid conflicts when defining the CHECK macros.
-#include "benchmark/benchmark.h"
 
 namespace principia {
 
@@ -51,11 +50,14 @@ using geometry::Quaternion;
 using geometry::Rotation;
 using geometry::Velocity;
 using integrators::Integrator;
-using integrators::BlanesMoan2002SRKN14A;
-using integrators::DormandElMikkawyPrince1986RKN434FM;
-using integrators::McLachlanAtela1992Order5Optimal;
-using integrators::Quinlan1999Order8A;
-using integrators::QuinlanTremaine1990Order12;
+using integrators::EmbeddedExplicitRungeKuttaNyströmIntegrator;
+using integrators::SymmetricLinearMultistepIntegrator;
+using integrators::SymplecticRungeKuttaNyströmIntegrator;
+using integrators::methods::BlanesMoan2002SRKN14A;
+using integrators::methods::DormandElMikkawyPrince1986RKN434FM;
+using integrators::methods::McLachlanAtela1992Order5Optimal;
+using integrators::methods::Quinlan1999Order8A;
+using integrators::methods::QuinlanTremaine1990Order12;
 using ksp_plugin::Barycentric;
 using quantities::DebugString;
 using quantities::Frequency;
@@ -89,7 +91,8 @@ Length FittingTolerance(int const scale) {
 
 Ephemeris<Barycentric>::FixedStepParameters EphemerisParameters() {
   return Ephemeris<Barycentric>::FixedStepParameters(
-      QuinlanTremaine1990Order12<Position<Barycentric>>(),
+      SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
+                                         Position<Barycentric>>(),
       /*step=*/10 * Minute);
 }
 
@@ -119,7 +122,8 @@ void BM_EphemerisKSPSystem(benchmark::State& state) {
     auto const ephemeris = at_origin->MakeEphemeris(
         FittingTolerance(state.range_x()),
         Ephemeris<Barycentric>::FixedStepParameters(
-            BlanesMoan2002SRKN14A<Position<Barycentric>>(),
+            SymplecticRungeKuttaNyströmIntegrator<BlanesMoan2002SRKN14A,
+                                                  Position<Barycentric>>(),
             /*step=*/35 * Minute));
 
     state.ResumeTiming();
@@ -376,7 +380,8 @@ void BM_EphemerisMultithreadingBenchmark(benchmark::State& state) {
           {&trajectory},
           Ephemeris<Barycentric>::NoIntrinsicAccelerations,
           Ephemeris<Barycentric>::FixedStepParameters(
-              Quinlan1999Order8A<Position<Barycentric>>(),
+              SymmetricLinearMultistepIntegrator<Quinlan1999Order8A,
+                                                 Position<Barycentric>>(),
               /*step=*/10 * Second)));
     }
     final_time += step;
@@ -487,7 +492,8 @@ void FlowEphemerisWithAdaptiveStep(
       Ephemeris<Barycentric>::NoIntrinsicAcceleration,
       t,
       Ephemeris<Barycentric>::AdaptiveStepParameters(
-          DormandElMikkawyPrince1986RKN434FM<
+          EmbeddedExplicitRungeKuttaNyströmIntegrator<
+              DormandElMikkawyPrince1986RKN434FM,
               Position<Barycentric>>(),
           /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
           /*length_integration_tolerance=*/1 * Metre,
@@ -500,12 +506,13 @@ void FlowEphemerisWithFixedStepSLMS(
     not_null<DiscreteTrajectory<Barycentric>*> const trajectory,
     Instant const& t,
     Ephemeris<Barycentric>& ephemeris) {
-  auto const instance =
-      ephemeris.NewInstance({trajectory},
-                            Ephemeris<Barycentric>::NoIntrinsicAccelerations,
-                            Ephemeris<Barycentric>::FixedStepParameters(
-                                Quinlan1999Order8A<Position<Barycentric>>(),
-                                /*step=*/10 * Second));
+  auto const instance = ephemeris.NewInstance(
+      {trajectory},
+      Ephemeris<Barycentric>::NoIntrinsicAccelerations,
+      Ephemeris<Barycentric>::FixedStepParameters(
+          SymmetricLinearMultistepIntegrator<Quinlan1999Order8A,
+                                             Position<Barycentric>>(),
+          /*step=*/10 * Second));
   ephemeris.FlowWithFixedStep(t, *instance);
 }
 
@@ -517,7 +524,8 @@ void FlowEphemerisWithFixedStepSRKN(
       {trajectory},
       Ephemeris<Barycentric>::NoIntrinsicAccelerations,
       Ephemeris<Barycentric>::FixedStepParameters(
-          McLachlanAtela1992Order5Optimal<Position<Barycentric>>(),
+          SymplecticRungeKuttaNyströmIntegrator<McLachlanAtela1992Order5Optimal,
+                                                Position<Barycentric>>(),
           /*step=*/10 * Second));
   ephemeris.FlowWithFixedStep(t, *instance);
 }

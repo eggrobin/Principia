@@ -13,6 +13,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/methods.hpp"
 #include "integrators/symmetric_linear_multistep_integrator.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
 #include "physics/kepler_orbit.hpp"
@@ -45,9 +46,13 @@ using geometry::Displacement;
 using geometry::Frame;
 using geometry::Rotation;
 using geometry::Velocity;
-using integrators::DormandElMikkawyPrince1986RKN434FM;
-using integrators::McLachlanAtela1992Order5Optimal;
-using integrators::Quinlan1999Order8A;
+using integrators::EmbeddedExplicitRungeKuttaNyströmIntegrator;
+using integrators::SymmetricLinearMultistepIntegrator;
+using integrators::SymplecticRungeKuttaNyströmIntegrator;
+using integrators::methods::DormandElMikkawyPrince1986RKN434FM;
+using integrators::methods::McLachlanAtela1992Order4Optimal;
+using integrators::methods::McLachlanAtela1992Order5Optimal;
+using integrators::methods::Quinlan1999Order8A;
 using quantities::Abs;
 using quantities::ArcTan;
 using quantities::Area;
@@ -236,7 +241,9 @@ TEST_P(EphemerisTest, FlowWithAdaptiveStepSpecialCase) {
       Ephemeris<ICRFJ2000Equator>::NoIntrinsicAcceleration,
       t0_ + period,
       Ephemeris<ICRFJ2000Equator>::AdaptiveStepParameters(
-          DormandElMikkawyPrince1986RKN434FM<Position<ICRFJ2000Equator>>(),
+          EmbeddedExplicitRungeKuttaNyströmIntegrator<
+              DormandElMikkawyPrince1986RKN434FM,
+              Position<ICRFJ2000Equator>>(),
           max_steps,
           1e-9 * Metre,
           2.6e-15 * Metre / Second),
@@ -247,7 +254,9 @@ TEST_P(EphemerisTest, FlowWithAdaptiveStepSpecialCase) {
       Ephemeris<ICRFJ2000Equator>::NoIntrinsicAcceleration,
       trajectory.last().time(),
       Ephemeris<ICRFJ2000Equator>::AdaptiveStepParameters(
-          DormandElMikkawyPrince1986RKN434FM<Position<ICRFJ2000Equator>>(),
+          EmbeddedExplicitRungeKuttaNyströmIntegrator<
+              DormandElMikkawyPrince1986RKN434FM,
+              Position<ICRFJ2000Equator>>(),
           max_steps,
           1e-9 * Metre,
           2.6e-15 * Metre / Second),
@@ -448,12 +457,14 @@ TEST_P(EphemerisTest, EarthProbe) {
       intrinsic_acceleration,
       t0_ + period,
       Ephemeris<ICRFJ2000Equator>::AdaptiveStepParameters(
-          DormandElMikkawyPrince1986RKN434FM<Position<ICRFJ2000Equator>>(),
+          EmbeddedExplicitRungeKuttaNyströmIntegrator<
+              DormandElMikkawyPrince1986RKN434FM,
+              Position<ICRFJ2000Equator>>(),
           max_steps,
           1e-9 * Metre,
           2.6e-15 * Metre / Second),
-          Ephemeris<ICRFJ2000Equator>::unlimited_max_ephemeris_steps,
-          /*last_point_only=*/false);
+      Ephemeris<ICRFJ2000Equator>::unlimited_max_ephemeris_steps,
+      /*last_point_only=*/false);
 
   ContinuousTrajectory<ICRFJ2000Equator> const& earth_trajectory =
       *ephemeris.trajectory(earth);
@@ -507,19 +518,20 @@ TEST_P(EphemerisTest, EarthProbe) {
 
   Instant const old_t_max = ephemeris.t_max();
   EXPECT_THAT(trajectory.last().time(), Lt(old_t_max));
-  EXPECT_THAT(
-      ephemeris.FlowWithAdaptiveStep(
-          &trajectory,
-          intrinsic_acceleration,
-          t0_ + std::numeric_limits<double>::infinity() * Second,
-          Ephemeris<ICRFJ2000Equator>::AdaptiveStepParameters(
-              DormandElMikkawyPrince1986RKN434FM<Position<ICRFJ2000Equator>>(),
-              max_steps,
-              1e-9 * Metre,
-              2.6e-15 * Metre / Second),
-          /*max_ephemeris_steps=*/0,
-          /*last_point_only=*/false),
-      StatusIs(Error::DEADLINE_EXCEEDED));
+  EXPECT_THAT(ephemeris.FlowWithAdaptiveStep(
+                  &trajectory,
+                  intrinsic_acceleration,
+                  t0_ + std::numeric_limits<double>::infinity() * Second,
+                  Ephemeris<ICRFJ2000Equator>::AdaptiveStepParameters(
+                      EmbeddedExplicitRungeKuttaNyströmIntegrator<
+                          DormandElMikkawyPrince1986RKN434FM,
+                          Position<ICRFJ2000Equator>>(),
+                      max_steps,
+                      1e-9 * Metre,
+                      2.6e-15 * Metre / Second),
+                  /*max_ephemeris_steps=*/0,
+                  /*last_point_only=*/false),
+              StatusIs(Error::DEADLINE_EXCEEDED));
   EXPECT_THAT(ephemeris.t_max(), Eq(old_t_max));
   EXPECT_THAT(trajectory.last().time(), Eq(old_t_max));
 }
@@ -752,12 +764,14 @@ TEST_P(EphemerisTest, ComputeGravitationalAccelerationMasslessBody) {
       Ephemeris<ICRFJ2000Equator>::NoIntrinsicAcceleration,
       t0_ + duration,
       Ephemeris<ICRFJ2000Equator>::AdaptiveStepParameters(
-          DormandElMikkawyPrince1986RKN434FM<Position<ICRFJ2000Equator>>(),
+          EmbeddedExplicitRungeKuttaNyströmIntegrator<
+              DormandElMikkawyPrince1986RKN434FM,
+              Position<ICRFJ2000Equator>>(),
           max_steps,
           1e-9 * Metre,
           2.6e-15 * Metre / Second),
-          Ephemeris<ICRFJ2000Equator>::unlimited_max_ephemeris_steps,
-          /*last_point_only=*/false);
+      Ephemeris<ICRFJ2000Equator>::unlimited_max_ephemeris_steps,
+      /*last_point_only=*/false);
 
   Speed const v_elephant_y =
       trajectory.last().degrees_of_freedom().velocity().coordinates().y;
@@ -837,7 +851,9 @@ TEST_P(EphemerisTest, CollisionDetection) {
       {&trajectory},
       Ephemeris<ICRFJ2000Equator>::NoIntrinsicAccelerations,
       Ephemeris<ICRFJ2000Equator>::FixedStepParameters(
-          Quinlan1999Order8A<Position<ICRFJ2000Equator>>(), 1e-3 * Second));
+          SymmetricLinearMultistepIntegrator<Quinlan1999Order8A,
+                                             Position<ICRFJ2000Equator>>(),
+          1e-3 * Second));
 
   EXPECT_OK(ephemeris.FlowWithFixedStep(t0_ + short_duration, *instance));
   EXPECT_THAT(ephemeris.FlowWithFixedStep(t0_ + long_duration, *instance),
@@ -986,8 +1002,8 @@ TEST_P(EphemerisTest, ComputeApsidesContinuousTrajectory) {
   auto ephemeris = solar_system.MakeEphemeris(
       fitting_tolerance,
       Ephemeris<ICRFJ2000Equator>::FixedStepParameters(
-          integrators::McLachlanAtela1992Order4Optimal<
-              Position<ICRFJ2000Equator>>(),
+          SymplecticRungeKuttaNyströmIntegrator<McLachlanAtela1992Order4Optimal,
+                                                Position<ICRFJ2000Equator>>(),
           /*step=*/10 * Milli(Second)));
   ephemeris->Prolong(t0 + 10 * T);
 
@@ -1063,8 +1079,10 @@ INSTANTIATE_TEST_CASE_P(
     AllEphemerisTests,
     EphemerisTest,
     ::testing::Values(
-        &McLachlanAtela1992Order5Optimal<Position<ICRFJ2000Equator>>(),
-        &Quinlan1999Order8A<Position<ICRFJ2000Equator>>()));
+        &SymplecticRungeKuttaNyströmIntegrator<McLachlanAtela1992Order5Optimal,
+                                               Position<ICRFJ2000Equator>>(),
+        &SymmetricLinearMultistepIntegrator<Quinlan1999Order8A,
+                                            Position<ICRFJ2000Equator>>()));
 
 }  // namespace internal_ephemeris
 }  // namespace physics

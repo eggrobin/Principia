@@ -34,12 +34,15 @@ using geometry::Position;
 using geometry::Sign;
 using geometry::Vector;
 using integrators::FixedStepSizeIntegrator;
-using integrators::BlanesMoan2002SRKN11B;
-using integrators::BlanesMoan2002SRKN14A;
-using integrators::McLachlanAtela1992Order5Optimal;
-using integrators::Quinlan1999Order8A;
-using integrators::QuinlanTremaine1990Order10;
-using integrators::QuinlanTremaine1990Order12;
+using integrators::SymmetricLinearMultistepIntegrator;
+using integrators::SymplecticRungeKuttaNyströmIntegrator;
+using integrators::methods::Quinlan1999Order8A;
+using integrators::methods::QuinlanTremaine1990Order8;
+using integrators::methods::QuinlanTremaine1990Order10;
+using integrators::methods::QuinlanTremaine1990Order12;
+using integrators::methods::BlanesMoan2002SRKN11B;
+using integrators::methods::BlanesMoan2002SRKN14A;
+using integrators::methods::McLachlanAtela1992Order5Optimal;
 using physics::DegreesOfFreedom;
 using physics::Ephemeris;
 using physics::KeplerianElements;
@@ -85,7 +88,9 @@ class KSPSystemTest : public ::testing::Test, protected KSPSystem {
       : ephemeris_(solar_system_.MakeEphemeris(
             /*fitting_tolerance=*/1 * Milli(Metre),
             Ephemeris<KSP>::FixedStepParameters(
-                McLachlanAtela1992Order5Optimal<Position<KSP>>(),
+                SymplecticRungeKuttaNyströmIntegrator<
+                    McLachlanAtela1992Order5Optimal,
+                    Position<KSP>>(),
                 /*step=*/45 * Minute))),
         sun_(solar_system_.massive_body(*ephemeris_, "Sun")),
         eeloo_(solar_system_.massive_body(*ephemeris_, "Eeloo")),
@@ -477,23 +482,29 @@ INSTANTIATE_TEST_CASE_P(
         // integration over a year, it gives a position error of about 111 m on
         // Laythe and takes about 0.44 s of elapsed time.
         ConvergenceTestParameters{
-            BlanesMoan2002SRKN14A<Position<KSP>>(),
+            SymplecticRungeKuttaNyströmIntegrator<BlanesMoan2002SRKN14A,
+                                                  Position<KSP>>(),
             /*iterations=*/7,
             /*first_step_in_seconds=*/65.625},
         ConvergenceTestParameters{
-            McLachlanAtela1992Order5Optimal<Position<KSP>>(),
+            SymplecticRungeKuttaNyströmIntegrator<
+                McLachlanAtela1992Order5Optimal,
+                Position<KSP>>(),
             /*iterations=*/8,
             /*first_step_in_seconds=*/32},
         ConvergenceTestParameters{
-            Quinlan1999Order8A<Position<KSP>>(),
+            SymmetricLinearMultistepIntegrator<Quinlan1999Order8A,
+                                               Position<KSP>>(),
             /*iterations=*/6,
             /*first_step_in_seconds=*/64},
         ConvergenceTestParameters{
-            QuinlanTremaine1990Order10<Position<KSP>>(),
+            SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order8,
+                                               Position<KSP>>(),
             /*iterations=*/6,
             /*first_step_in_seconds=*/64},
         ConvergenceTestParameters{
-            QuinlanTremaine1990Order12<Position<KSP>>(),
+            SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order10,
+                                               Position<KSP>>(),
             /*iterations=*/6,
             /*first_step_in_seconds=*/64},
 
@@ -502,7 +513,8 @@ INSTANTIATE_TEST_CASE_P(
         // integration over a year, it gives a position error of about 28 m on
         // Bop and takes about 0.7 s of elapsed time.
         ConvergenceTestParameters{
-            QuinlanTremaine1990Order12<Position<KSP>>(),
+            SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
+                                               Position<KSP>>(),
             /*iterations=*/5,
             /*first_step_in_seconds=*/75}));
 

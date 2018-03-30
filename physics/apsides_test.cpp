@@ -8,6 +8,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
+#include "integrators/methods.hpp"
 #include "integrators/symmetric_linear_multistep_integrator.hpp"
 #include "physics/ephemeris.hpp"
 #include "physics/kepler_orbit.hpp"
@@ -22,8 +23,10 @@ using base::not_null;
 using geometry::Displacement;
 using geometry::Frame;
 using geometry::Velocity;
-using integrators::DormandElMikkawyPrince1986RKN434FM;
-using integrators::QuinlanTremaine1990Order12;
+using integrators::EmbeddedExplicitRungeKuttaNyströmIntegrator;
+using integrators::SymmetricLinearMultistepIntegrator;
+using integrators::methods::DormandElMikkawyPrince1986RKN434FM;
+using integrators::methods::QuinlanTremaine1990Order12;
 using quantities::GravitationalParameter;
 using quantities::Pow;
 using quantities::Sin;
@@ -62,15 +65,15 @@ TEST_F(ApsidesTest, ComputeApsidesDiscreteTrajectory) {
   bodies.emplace_back(std::unique_ptr<MassiveBody const>(b));
   initial_state.emplace_back(World::origin, Velocity<World>());
 
-  Ephemeris<World>
-      ephemeris(
-          std::move(bodies),
-          initial_state,
-          t0,
-          5 * Milli(Metre),
-          Ephemeris<World>::FixedStepParameters(
-              QuinlanTremaine1990Order12<Position<World>>(),
-              10 * Minute));
+  Ephemeris<World> ephemeris(
+      std::move(bodies),
+      initial_state,
+      t0,
+      5 * Milli(Metre),
+      Ephemeris<World>::FixedStepParameters(
+          SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
+                                             Position<World>>(),
+          10 * Minute));
 
   Displacement<World> r(
       {1 * AstronomicalUnit, 2 * AstronomicalUnit, 3 * AstronomicalUnit});
@@ -92,7 +95,9 @@ TEST_F(ApsidesTest, ComputeApsidesDiscreteTrajectory) {
       Ephemeris<World>::NoIntrinsicAcceleration,
       t0 + 10 * JulianYear,
       Ephemeris<World>::AdaptiveStepParameters(
-          DormandElMikkawyPrince1986RKN434FM<Position<World>>(),
+          EmbeddedExplicitRungeKuttaNyströmIntegrator<
+              DormandElMikkawyPrince1986RKN434FM,
+              Position<World>>(),
           std::numeric_limits<std::int64_t>::max(),
           1e-3 * Metre,
           1e-3 * Metre / Second),
@@ -156,15 +161,15 @@ TEST_F(ApsidesTest, ComputeNodes) {
   bodies.emplace_back(std::unique_ptr<MassiveBody const>(b));
   initial_state.emplace_back(World::origin, Velocity<World>());
 
-  Ephemeris<World>
-      ephemeris(
-          std::move(bodies),
-          initial_state,
-          t0,
-          5 * Milli(Metre),
-          Ephemeris<World>::FixedStepParameters(
-              QuinlanTremaine1990Order12<Position<World>>(),
-              10 * Minute));
+  Ephemeris<World> ephemeris(
+      std::move(bodies),
+      initial_state,
+      t0,
+      5 * Milli(Metre),
+      Ephemeris<World>::FixedStepParameters(
+          SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
+                                             Position<World>>(),
+          10 * Minute));
 
   KeplerianElements<World> elements;
   elements.eccentricity = 0.25;
@@ -185,7 +190,9 @@ TEST_F(ApsidesTest, ComputeNodes) {
       Ephemeris<World>::NoIntrinsicAcceleration,
       t0 + 10 * JulianYear,
       Ephemeris<World>::AdaptiveStepParameters(
-          DormandElMikkawyPrince1986RKN434FM<Position<World>>(),
+          EmbeddedExplicitRungeKuttaNyströmIntegrator<
+              DormandElMikkawyPrince1986RKN434FM,
+              Position<World>>(),
           std::numeric_limits<std::int64_t>::max(),
           1e-3 * Metre,
           1e-3 * Metre / Second),

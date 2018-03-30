@@ -12,6 +12,7 @@
 #include "base/file.hpp"
 #include "base/status.hpp"
 #include "glog/logging.h"
+#include "integrators/methods.hpp"
 #include "integrators/symmetric_linear_multistep_integrator.hpp"
 #include "integrators/symplectic_runge_kutta_nyström_integrator.hpp"
 #include "integrators/symplectic_partitioned_runge_kutta_integrator.hpp"
@@ -23,19 +24,28 @@
 #include "testing_utilities/integration.hpp"
 #include "testing_utilities/numerics.hpp"
 
-#define SLMS_INTEGRATOR(name) \
-  { (integrators::name<Length>()), u8###name, 1 }
-#define SRKN_INTEGRATOR(name)                     \
-  {                                               \
-    (integrators::name<Length>()), u8###name,       \
-        (integrators::name<Length>()).evaluations \
+#define SLMS_INTEGRATOR(name)                         \
+  {                                                   \
+    (integrators::SymmetricLinearMultistepIntegrator< \
+        integrators::methods::name,                   \
+        Length>()),                                   \
+        u8###name, 1                                  \
   }
-#define SPRK_INTEGRATOR(name, composition)                 \
-  {                                                        \
-    (integrators::name<Length, Speed>()                    \
-         .AsRungeKuttaNyströmIntegrator<(composition)>()), \
-        u8###name " " u8###composition,                    \
-        (integrators::name<Length, Speed>()).evaluations   \
+#define SRKN_INTEGRATOR(name)                                 \
+  {                                                           \
+    (integrators::SymplecticRungeKuttaNyströmIntegrator<      \
+        integrators::methods::name,                           \
+        Length>()),                                           \
+        u8###name, (integrators::methods::name::evaluations)  \
+  }
+#define SPRK_INTEGRATOR(name, composition)                              \
+  {                                                                     \
+    (integrators::SymplecticRungeKuttaNyströmIntegrator<                \
+        integrators::methods::name,                                     \
+        integrators::methods::SymplecticRungeKuttaNyström::composition, \
+        Length>()),                                                     \
+        u8###name " " u8###composition,                                 \
+        (integrators::methods::name::evaluations)                       \
   }
 
 namespace principia {
@@ -49,8 +59,6 @@ using geometry::Displacement;
 using geometry::InnerProduct;
 using geometry::Instant;
 using geometry::Velocity;
-using integrators::ABA;
-using integrators::BA;
 using integrators::FixedStepSizeIntegrator;
 using integrators::IntegrationProblem;
 using integrators::SpecialSecondOrderDifferentialEquation;
@@ -110,19 +118,19 @@ struct SimpleHarmonicMotionPlottedIntegrator final {
 // 6. method name.
 std::vector<SimpleHarmonicMotionPlottedIntegrator> Methods() {
   return {// Order 2
-          SPRK_INTEGRATOR(NewtonDelambreStørmerVerletLeapfrog, ABA),
+          SPRK_INTEGRATOR(NewtonDelambreStørmerVerletLeapfrog, BAB),
           SPRK_INTEGRATOR(McLachlanAtela1992Order2Optimal, BA),
-          SPRK_INTEGRATOR(McLachlan1995S2, ABA),
+          SPRK_INTEGRATOR(McLachlan1995S2, BAB),
           // Order 3
           SPRK_INTEGRATOR(Ruth1983, BA),
           SPRK_INTEGRATOR(McLachlanAtela1992Order3Optimal, BA),
           // Order 4
-          SPRK_INTEGRATOR(CandyRozmus1991ForestRuth1990, ABA),
-          SPRK_INTEGRATOR(Suzuki1990, ABA),
-          SPRK_INTEGRATOR(McLachlan1995SS5, ABA),
-          SPRK_INTEGRATOR(McLachlan1995S4, ABA),
-          SPRK_INTEGRATOR(McLachlan1995S5, ABA),
-          SPRK_INTEGRATOR(BlanesMoan2002S6, ABA),
+          SPRK_INTEGRATOR(CandyRozmus1991ForestRuth1990, BAB),
+          SPRK_INTEGRATOR(Suzuki1990, BAB),
+          SPRK_INTEGRATOR(McLachlan1995SS5, BAB),
+          SPRK_INTEGRATOR(McLachlan1995S4, BAB),
+          SPRK_INTEGRATOR(McLachlan1995S5, BAB),
+          SPRK_INTEGRATOR(BlanesMoan2002S6, BAB),
           SRKN_INTEGRATOR(McLachlanAtela1992Order4Optimal),
           SRKN_INTEGRATOR(McLachlan1995SB3A4),
           SRKN_INTEGRATOR(McLachlan1995SB3A5),
@@ -130,22 +138,22 @@ std::vector<SimpleHarmonicMotionPlottedIntegrator> Methods() {
           // Order 5
           SRKN_INTEGRATOR(McLachlanAtela1992Order5Optimal),
           // Order 6
-          SPRK_INTEGRATOR(Yoshida1990Order6A, ABA),
-          SPRK_INTEGRATOR(Yoshida1990Order6B, ABA),
-          SPRK_INTEGRATOR(Yoshida1990Order6C, ABA),
-          SPRK_INTEGRATOR(McLachlan1995SS9, ABA),
-          SPRK_INTEGRATOR(BlanesMoan2002S10, ABA),
+          SPRK_INTEGRATOR(Yoshida1990Order6A, BAB),
+          SPRK_INTEGRATOR(Yoshida1990Order6B, BAB),
+          SPRK_INTEGRATOR(Yoshida1990Order6C, BAB),
+          SPRK_INTEGRATOR(McLachlan1995SS9, BAB),
+          SPRK_INTEGRATOR(BlanesMoan2002S10, BAB),
           SRKN_INTEGRATOR(OkunborSkeel1994Order6Method13),
           SRKN_INTEGRATOR(BlanesMoan2002SRKN11B),
           SRKN_INTEGRATOR(BlanesMoan2002SRKN14A),
           // Order 8
-          SPRK_INTEGRATOR(Yoshida1990Order8A, ABA),
-          SPRK_INTEGRATOR(Yoshida1990Order8B, ABA),
-          SPRK_INTEGRATOR(Yoshida1990Order8C, ABA),
-          SPRK_INTEGRATOR(Yoshida1990Order8D, ABA),
-          SPRK_INTEGRATOR(Yoshida1990Order8E, ABA),
-          SPRK_INTEGRATOR(McLachlan1995SS15, ABA),
-          SPRK_INTEGRATOR(McLachlan1995SS17, ABA),
+          SPRK_INTEGRATOR(Yoshida1990Order8A, BAB),
+          SPRK_INTEGRATOR(Yoshida1990Order8B, BAB),
+          SPRK_INTEGRATOR(Yoshida1990Order8C, BAB),
+          SPRK_INTEGRATOR(Yoshida1990Order8D, BAB),
+          SPRK_INTEGRATOR(Yoshida1990Order8E, BAB),
+          SPRK_INTEGRATOR(McLachlan1995SS15, BAB),
+          SPRK_INTEGRATOR(McLachlan1995SS17, BAB),
           SLMS_INTEGRATOR(QuinlanTremaine1990Order8),
           SLMS_INTEGRATOR(Quinlan1999Order8A),
           SLMS_INTEGRATOR(Quinlan1999Order8B),
@@ -164,14 +172,14 @@ std::vector<SimpleHarmonicMotionPlottedIntegrator> ReferenceMethods() {
   return {// Order 5
           SRKN_INTEGRATOR(McLachlanAtela1992Order5Optimal),
           // Order 6
-          SPRK_INTEGRATOR(McLachlan1995SS9, ABA),
-          SPRK_INTEGRATOR(BlanesMoan2002S10, ABA),
+          SPRK_INTEGRATOR(McLachlan1995SS9, BAB),
+          SPRK_INTEGRATOR(BlanesMoan2002S10, BAB),
           SRKN_INTEGRATOR(OkunborSkeel1994Order6Method13),
           SRKN_INTEGRATOR(BlanesMoan2002SRKN11B),
           SRKN_INTEGRATOR(BlanesMoan2002SRKN14A),
           // Order 8
-          SPRK_INTEGRATOR(McLachlan1995SS15, ABA),
-          SPRK_INTEGRATOR(McLachlan1995SS17, ABA)};
+          SPRK_INTEGRATOR(McLachlan1995SS15, BAB),
+          SPRK_INTEGRATOR(McLachlan1995SS17, BAB)};
 }
 
 }  // namespace
