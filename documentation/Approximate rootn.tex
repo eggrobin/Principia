@@ -61,11 +61,11 @@ where
 \[
 C_{n,\gg} \DefineAs \frac{\pa{n-1}B-\gg}{n}\text.
 \]
-Consider the signed relative error $\ge\of x$ of $\ApproximateRoot{n}\of{x}$ as an approximation of
+Consider the signed relative error $\gce\of x$ of $\ApproximateRoot{n}\of{x}$ as an approximation of
 $\sqrt[n]{x}$.
 For $x=2^K\pa{1+F}$, we have
 \begin{align*}
-\ge\of x &= \frac{\ApproximateRoot{n}\of{x}}{\sqrt[n]{x}} - 1 \\
+\gce\of x &= \frac{\ApproximateRoot{n}\of{x}}{\sqrt[n]{x}} - 1 \\
 &= 
 \frac{
   2^{\Floor{\frac{K+F-\gg}{n}}} \pa{1+\ModOne{\frac{K+F-\gg}{n}}}
@@ -76,10 +76,10 @@ For $x=2^K\pa{1+F}$, we have
 &= 2^{\Floor{\frac{K+F-\gg}{n}} - \frac{K}{n}} \frac{1+\ModOne{\frac{K+F-\gg}{n}}}{\sqrt[n]{1+F}} - 1 \text,
 \end{align*}
 which is invariant under addition of $n$ to $K$, so that\[
-\ge\of{x} = \ge\of{2^nx}\text.
+\gce\of{x} = \gce\of{2^nx}\text.
 \]
 in other words,\[
-\FunctionNamedBody{\ge 浮}{X}{\ge\of{浮X}}
+\FunctionNamedBody{\gce 浮}{X}{\gce\of{浮X}}
 \]
 is periodic with period $n$.
 
@@ -105,21 +105,21 @@ Then, with $F\in\intclop 0 1$, $K\in\Integers$, such that $x=2^K\pa{1+F}$,
 and $K\in \intclos{\Floor{\gg}}{\Floor{\gg}+n-1}\Intersection\Z$ if $n>0$,
 $K\in \intclos{\Floor{\gg}+n}{\Floor{\gg}}\Intersection\Z$ otherwise.
 For fixed $K$\idest for $x\in\intclop{2^K}{2^{K+1}}$,
-$\ge\der\of{x}=0$ at \[
+$\gce\der\of{x}=0$ at \[
 x=2^K\pa{1+\frac{K-\gg}{n-1}}\text,
 \]
 which is in $\intclop{2^K}{2^{K+1}}$ unless $K=\Floor{\gg}$ and $n>0$, or $K=\Floor{\gg}+n$ and $n>0$.
 
-It follows that the maximum for $x>0$ of $\abs{\ge\of{x}}$ is the maximum of the absolute values of the
+It follows that the maximum for $x>0$ of $\abs{\gce\of{x}}$ is the maximum of the absolute values of the
 following:
 \begin{itemize}
-\item the value $\ge\of{2^{\Floor{\gg}}\pa{1+\ModOne{\gg}}}=
+\item the value $\gce\of{2^{\Floor{\gg}}\pa{1+\ModOne{\gg}}}=
 \frac{1}{\sqrt[n]{2^{\Floor{\gg}}\pa{1+\ModOne{\gg}}}}-1$ at the endpoint of $I_{n,\gg}$;
 \item the values at powers of two within $I_{n,\gg}$,
-$\ge\of{2^K}=2^{-\frac{K}{n}}\pa{1+\frac{K-\gg}{n}}-1$ for
+$\gce\of{2^K}=2^{-\frac{K}{n}}\pa{1+\frac{K-\gg}{n}}-1$ for
 $K\in \intclos{\Floor{\gg}+1}{\Floor{\gg}+n}\Intersection\Z$ if $n>0$,
 $K\in \intclos{\Floor{\gg}+n+1}{\Floor{\gg}}\Intersection\Z$ otherwise;
-\item the smooth extrema, $\ge\of{2^K\pa{1+\frac{K-\gg}{n-1}}}$ where
+\item the smooth extrema, $\gce\of{2^K\pa{1+\frac{K-\gg}{n-1}}}$ where
 $K\in \intclos{\Floor{\gg}+1}{\Floor{\gg}+n-2}\Intersection\Z$ if $n>0$ and
 $K\in \intclos{\Floor{\gg}+n}{\Floor{\gg}}\Intersection\Z$ otherwise.
 \end{itemize}
