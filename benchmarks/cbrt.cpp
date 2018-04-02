@@ -21,7 +21,15 @@ double to_double(std::uint64_t x) {
 }  // namespace
 
 namespace atlas {
-double cbrt(double x);
+//  curl https://raw.githubusercontent.com/simonbyrne/apple-libm/4853bcad08357b0d7991d46bf95d578a909be27b/Source/ARM/cbrt.c `
+//  | select -expandproperty content > `
+// .\benchmarks\atlas_cbrt
+
+// we ignore subnormal numbers in the other implementations, so let's make the
+// comparison fair.
+#define DAZ 0
+#define AVOID_UINT64 0
+#include "benchmarks/atlas_cbrt"
 }  // namespace atlas
 
 namespace kahan {
@@ -97,8 +105,13 @@ void BM_KahanNoDivCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &kahan_no_div::cbrt);
 }
 
+void BM_MicrosoftCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &std::cbrt);
+}
+
 BENCHMARK(BM_AtlasCbrt);
 BENCHMARK(BM_KahanCbrt);
 BENCHMARK(BM_KahanNoDivCbrt);
+BENCHMARK(BM_MicrosoftCbrt);
 
 }  // namespace principia
