@@ -19,9 +19,7 @@ using base::Status;
 using geometry::Instant;
 using quantities::Time;
 
-// A symplectic partitioned Runge-Kutta integrator.  Does not subclass
-// |Integrator|; used to generate (less general)
-// |SymplecticRungeKuttaNyströmIntegrator|s.
+// A symplectic partitioned Runge-Kutta integrator.
 // Represents a single-step method for the solution of
 //   (q, p)′ = X(q, p, t), with X = A(q, p, t) + B(q, p, t).
 // |Position| is the type of |q|, and |Momentum| is that of |p|.
@@ -43,11 +41,7 @@ using quantities::Time;
 // different |SymplecticRungeKuttaNyströmIntegrator| corresponding to a
 // |first_same_as_last| |SymplecticPartitionedRungeKuttaIntegrator|: one is
 // |ABA|, the other is |BAB|.
-// NOTE(egg): The |SymplecticRungeKuttaNyströmIntegrator| thus constructed will
-// serialize as a |DUMMY| and probably break in all sorts of hilarious ways if
-// deserialized.
-// TODO(egg): Make them serializable/deserializable.  We need to prevent
-// combinatorial explosion.
+// NOTE(egg): serialization is not implemented for these integrators.
 template<typename Method, typename Position>
 class SymplecticPartitionedRungeKuttaIntegrator
     : public FixedStepSizeIntegrator<
