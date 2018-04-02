@@ -32,6 +32,48 @@ namespace atlas {
 #include "benchmarks/atlas_cbrt"
 }  // namespace atlas
 
+namespace one_halley_iterate {
+constexpr std::uint64_t C = 0x2a9f76253119d328;
+double cbrt(double const y) {
+  // NOTE(eggrobin): this needs rescaling and special handling of subnormal
+  // numbers.
+  std::uint64_t Y = to_integer(y);
+  std::uint64_t Q = C + Y / 3;
+  double x = to_double(Q);
+  // One M = 3 iterate.
+  double x³ = x * x * x;
+  x = x - (x³ - y) * x / (2 * x³ + y);
+  return x;
+}
+}  // namespace one_halley_iterate
+
+namespace householder_order_10 {
+constexpr std::uint64_t C = 0x2a9f76253119d328;
+double cbrt(double const y) {
+  // NOTE(eggrobin): this needs rescaling and special handling of subnormal
+  // numbers.
+  std::uint64_t Y = to_integer(y);
+  std::uint64_t Q = C + Y / 3;
+  double const x = to_double(Q);
+  double const x³ = x * x * x;
+  double const y² = y * y;
+  double const y³ = y * y²;
+  double const y⁴ = y² * y²;
+  double const y⁵ = y² * y³;
+  double const y⁶ = y³ * y³;
+  double const numerator_big_factor =
+      (y⁵ + x³ * (46 * y⁴ +
+                  x³ * (256 * y³ + x³ * (323 * y² + x³ * (5 * x³ + 98 * y)))));
+  double const numerator = 9 * x * (x³ - y) * numerator_big_factor;
+  double const denominator =
+      y⁶ + x³ * (210 * y⁵ +
+                 x³ * (2850 * y⁴ +
+                       x³ * (8350 * y³ +
+                             x³ * (6765 * y² + x³* (55 * x³ + 1452 * y)))));
+  return x - numerator / denominator;
+}
+}  // namespace householder_order_10
+
 namespace kahan {
 constexpr std::uint64_t C = 0x2a9f76253119d328;
 double cbrt(double const y) {
@@ -97,6 +139,14 @@ void BM_AtlasCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &atlas::cbrt);
 }
 
+void BM_OneHalleyIterateCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &one_halley_iterate::cbrt);
+}
+
+void BM_HouseholderOrder10Cbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &householder_order_10::cbrt);
+}
+
 void BM_KahanCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &kahan::cbrt);
 }
@@ -104,12 +154,13 @@ void BM_KahanCbrt(benchmark::State& state) {
 void BM_KahanNoDivCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &kahan_no_div::cbrt);
 }
-
 void BM_MicrosoftCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &std::cbrt);
 }
 
 BENCHMARK(BM_AtlasCbrt);
+BENCHMARK(BM_OneHalleyIterateCbrt);
+BENCHMARK(BM_HouseholderOrder10Cbrt);
 BENCHMARK(BM_KahanCbrt);
 BENCHMARK(BM_KahanNoDivCbrt);
 BENCHMARK(BM_MicrosoftCbrt);
