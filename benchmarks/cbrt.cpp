@@ -74,6 +74,30 @@ double cbrt(double const y) {
 }
 }  // namespace householder_order_10
 
+namespace householder_order_10_estrin {
+constexpr std::uint64_t C = 0x2a9f76253119d328;
+double cbrt(double const y) {
+  // NOTE(eggrobin): this needs rescaling and special handling of subnormal
+  // numbers.
+  std::uint64_t Y = to_integer(y);
+  std::uint64_t Q = C + Y / 3;
+  double const x = to_double(Q);
+  double const x³ = x * x * x;
+  double const y² = y * y;
+  double const y⁴ = y² * y²;
+  double const x⁶ = x³ * x³;
+  double const x⁹ = x⁶ * x³;
+  double const numerator_big_factor =
+      ((5 * x³ + 98 * y) * x⁶ + (323 * x³ + 256 * y) * y²) * x⁶ +
+      (46 * x³ + y) * y⁴;
+  double const numerator = 9 * x * (x³ - y) * numerator_big_factor;
+  double const denominator =
+      ((55 * x³ + 1452 * y) * x⁶ + (6765 * x³ + 8350 * y) * y²) * x⁹ +
+      ((2850 * x³ + 210 * y) * x³ + y²) * y⁴;
+  return x - numerator / denominator;
+}
+}  // namespace householder_order_10_estrin
+
 namespace kahan {
 constexpr std::uint64_t C = 0x2a9f76253119d328;
 double cbrt(double const y) {
@@ -143,6 +167,10 @@ void BM_OneHalleyIterateCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &one_halley_iterate::cbrt);
 }
 
+void BM_HouseholderOrder10EstrinCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &householder_order_10_estrin::cbrt);
+}
+
 void BM_HouseholderOrder10Cbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &householder_order_10::cbrt);
 }
@@ -160,6 +188,7 @@ void BM_MicrosoftCbrt(benchmark::State& state) {
 
 BENCHMARK(BM_AtlasCbrt);
 BENCHMARK(BM_OneHalleyIterateCbrt);
+BENCHMARK(BM_HouseholderOrder10EstrinCbrt);
 BENCHMARK(BM_HouseholderOrder10Cbrt);
 BENCHMARK(BM_KahanCbrt);
 BENCHMARK(BM_KahanNoDivCbrt);
