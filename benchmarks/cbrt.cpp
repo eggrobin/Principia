@@ -2,7 +2,9 @@
 #include <string>
 
 #include "glog/logging.h"
+#if !NO_BENCHMARK
 #include "benchmark/benchmark.h"
+#endif
 #include "quantities/quantities.hpp"
 
 namespace principia {
@@ -144,6 +146,7 @@ double cbrt(double const y) {
 }
 }  // namespace kahan_no_div
 
+#if !NO_BENCHMARK
 void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
   double total = 0;
   int iterations = 0;
@@ -193,5 +196,6 @@ BENCHMARK(BM_HouseholderOrder10Cbrt);
 BENCHMARK(BM_KahanCbrt);
 BENCHMARK(BM_KahanNoDivCbrt);
 BENCHMARK(BM_MicrosoftCbrt);
+#endif
 
 }  // namespace principia
