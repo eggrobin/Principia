@@ -33,8 +33,10 @@ int main(int argc, char const* argv[]) {
       double x;
       if (method == "atlas") {
         x = principia::atlas::cbrt(y);
-      } else if (method == "egg") {
+      } else if (method == "householder_order_10_estrin") {
         x = principia::householder_order_10_estrin::cbrt(y);
+      } else if (method == "egg") {
+        x = principia::egg::cbrt(y);
       } else if (method == "kahan") {
         x = principia::kahan::cbrt(y);
       } else if (method == "microsoft") {

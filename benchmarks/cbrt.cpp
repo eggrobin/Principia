@@ -146,6 +146,33 @@ double cbrt(double const y) {
 }
 }  // namespace kahan_no_div
 
+namespace egg {
+constexpr std::uint64_t G  = 0x553ef0ff289dd796;
+double cbrt(double const y) {
+  // NOTE(eggrobin): this needs rescaling and special handling of subnormal
+  // numbers.
+  // Approximate 1/∛y with an error below 3,5 %.
+  std::uint64_t Y = to_integer(y);
+  std::uint64_t R = G - Y / 3;
+  // One round of Newton on 1/∛y [TODO(egg): error here].
+  double z = to_double(R);
+  double z²;
+  double z⁴;
+  z² = z * z;
+  z⁴ = z² * z²;
+  z = z + (1.0 / 3.0) * (z - z⁴ * y);
+  // An approximation of ∛y [TODO(egg): error here].
+  double const x = z * z * y;
+  // One round of 6th order Householder.
+  double const x³ = x * x * x;
+  double const x⁶ = x³ * x³;
+  double const y² = y * y;
+  double const numerator = x * (x³ - y) * ((5 * x³ + 17 * y) * x³ + 5 * y²);
+  double const denominator = (7 * x³ + 42 * y) * x⁶ + (30 * x³ + 2 * y) * y²;
+  return x - numerator / denominator;
+}
+}  // namespace egg
+
 #if !NO_BENCHMARK
 void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
   double total = 0;
@@ -185,6 +212,11 @@ void BM_KahanCbrt(benchmark::State& state) {
 void BM_KahanNoDivCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &kahan_no_div::cbrt);
 }
+
+void BM_EggCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &egg::cbrt);
+}
+
 void BM_MicrosoftCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &std::cbrt);
 }
@@ -195,6 +227,7 @@ BENCHMARK(BM_HouseholderOrder10EstrinCbrt);
 BENCHMARK(BM_HouseholderOrder10Cbrt);
 BENCHMARK(BM_KahanCbrt);
 BENCHMARK(BM_KahanNoDivCbrt);
+BENCHMARK(BM_EggCbrt);
 BENCHMARK(BM_MicrosoftCbrt);
 #endif
 
