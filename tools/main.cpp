@@ -21,22 +21,34 @@ int main(int argc, char const* argv[]) {
   }
   std::string command = argv[1];
   if (command == "cbrt") {
-    if (argc != 4) {
-      std::cerr << "Usage: " << argv[0] << " cbrt (atlas|egg|kahan|microsoft) Y";
+    if (argc != 3) {
+      std::cerr << "Usage: " << argv[0] << " cbrt (atlas|egg|kahan|microsoft)";
     }
     std::string method = argv[2];
-    double y = principia::to_double(std::atoll(argv[3]));
-    double x;
-    if (method == "atlas") {
-      x = principia::atlas::cbrt(y);
-    } else if (method == "egg") {
-      x = principia::householder_order_10_estrin::cbrt(y);
-    } else if (method == "kahan") {
-      x = principia::kahan::cbrt(y);
-    } else if (method == "microsoft") {
-      x = std::cbrt(y);
+    std::cout << "{";
+    std::uint64_t Y;
+    std::cin >> Y;
+    for (;;) {
+      double y = principia::to_double(Y);
+      double x;
+      if (method == "atlas") {
+        x = principia::atlas::cbrt(y);
+      } else if (method == "egg") {
+        x = principia::householder_order_10_estrin::cbrt(y);
+      } else if (method == "kahan") {
+        x = principia::kahan::cbrt(y);
+      } else if (method == "microsoft") {
+        x = std::cbrt(y);
+      }
+      std::cout << principia::to_integer(x);
+      std::cin >> Y;
+      if (Y == 0) {
+        std::cout << "}\n";
+        break;
+      } else {
+        std::cout << ",";
+      }
     }
-    std::cout << principia::to_integer(x);
   } else if (command == "generate_configuration") {
     if (argc != 6) {
       // tools.exe generate_configuration \
