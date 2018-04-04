@@ -37,8 +37,7 @@ namespace atlas {
 namespace one_halley_iterate {
 constexpr std::uint64_t C = 0x2a9f76253119d328;
 double cbrt(double const y) {
-  // NOTE(eggrobin): this needs rescaling and special handling of subnormal
-  // numbers.
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   std::uint64_t Y = to_integer(y);
   std::uint64_t Q = C + Y / 3;
   double x = to_double(Q);
@@ -52,8 +51,7 @@ double cbrt(double const y) {
 namespace householder_order_10 {
 constexpr std::uint64_t C = 0x2a9f76253119d328;
 double cbrt(double const y) {
-  // NOTE(eggrobin): this needs rescaling and special handling of subnormal
-  // numbers.
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   std::uint64_t Y = to_integer(y);
   std::uint64_t Q = C + Y / 3;
   double const x = to_double(Q);
@@ -79,8 +77,7 @@ double cbrt(double const y) {
 namespace householder_order_10_estrin {
 constexpr std::uint64_t C = 0x2a9f76253119d328;
 double cbrt(double const y) {
-  // NOTE(eggrobin): this needs rescaling and special handling of subnormal
-  // numbers.
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   std::uint64_t Y = to_integer(y);
   std::uint64_t Q = C + Y / 3;
   double const x = to_double(Q & 0xFFFF'FFF0'0000'0000);
@@ -103,8 +100,7 @@ double cbrt(double const y) {
 namespace kahan {
 constexpr std::uint64_t C = 0x2a9f76253119d328;
 double cbrt(double const y) {
-  // NOTE(eggrobin): this needs rescaling and special handling of subnormal
-  // numbers.
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   std::uint64_t const Y = to_integer(y);
   std::uint64_t const Q = C + Y / 3;
   double x = to_double(Q);
@@ -124,8 +120,7 @@ double cbrt(double const y) {
 namespace kahan_no_div {
 constexpr std::uint64_t G  = 0x553ef0ff289dd796;
 double cbrt(double const y) {
-  // NOTE(eggrobin): this needs rescaling and special handling of subnormal
-  // numbers.
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   std::uint64_t Y = to_integer(y);
   std::uint64_t R = G - Y / 3;
   double z = to_double(R);
@@ -151,8 +146,7 @@ double cbrt(double const y) {
 namespace egg {
 constexpr std::uint64_t G  = 0x553ef0ff289dd796;
 double cbrt(double const y) {
-  // NOTE(eggrobin): this needs rescaling and special handling of subnormal
-  // numbers.
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   // Approximate 1/∛y with an error below 3,5 %.
   std::uint64_t const Y = to_integer(y);
   // z = z₁z₂ is the approximation of 1/∛y by two rounds of Newton on r.
