@@ -160,11 +160,11 @@ double cbrt(double const y) {
   double const r³ = r * r * r;
   double const r³y = r³ * y;
   double const r⁶y² = r³y * r³y;
-  double const r¹²y³ = r⁶y² * r⁶y²;
+  double const r¹²y⁴ = r⁶y² * r⁶y²;
   double const z =
       r * (r³y - 4) *
-      ((-4.0 / 9.0 + 64.0 / 243.0 * r³y +
-        (-16.0 / 81.0 + 4.0 / 81.0 * r³y) * r⁶y² - 1.0 / 243.0 * r¹²y³));
+      ((-4.0 / 9.0 + 64.0 / 243.0 * r³y) +
+       (-16.0 / 81.0 + 4.0 / 81.0 * r³y) * r⁶y² - 1.0 / 243.0 * r¹²y⁴);
   // An approximation of ∛y [TODO(egg): error here].
   double const x = to_double(to_integer(z * z * y) & 0xFFFF'FFF0'0000'0000);
   // One round of 6th order Householder.
