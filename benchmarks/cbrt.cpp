@@ -7,6 +7,8 @@
 #endif
 #include "quantities/quantities.hpp"
 
+#define IACA_VOLATILE
+
 namespace principia {
 
 namespace {
@@ -106,12 +108,13 @@ double cbrt(double const y) {
   // NOTE(eggrobin): this needs rescaling and special handling of subnormal
   // numbers.
   std::uint64_t Y = to_integer(y);
-  std::uint64_t Q = C + Y / 3;
+  IACA_VOLATILE std::uint64_t Q = C + Y / 3;
   double x = to_double(Q);
   // One M = 3 iterate.
   double x³ = x * x * x;
   x = x - (x³ - y) * x / (2 * x³ + y);
-  x = to_double(to_integer(x) & 0xFFFF'FFF0'0000'0000);
+  IACA_VOLATILE std::uint64_t X = to_integer(x) & 0xFFFF'FFF0'0000'0000;
+  x = to_double(X);
   // One M = 4 iterate, Γ = -35/3.
   x³ = x * x * x;
   double const s = (x³ - y) / y;
@@ -154,19 +157,17 @@ double cbrt(double const y) {
   // numbers.
   // Approximate 1/∛y with an error below 3,5 %.
   std::uint64_t Y = to_integer(y);
-  std::uint64_t R = G - Y / 3;
   // Two rounds of Newton on 1/∛y [TODO(egg): error here].
+  IACA_VOLATILE std::uint64_t R = G - Y / 3;
   double const r = to_double(R);
-  double const r³ = r * r * r;
-  double const r³y = r³ * y;
+  double const r³y = (r * r) * (r * y);
   double const r⁶y² = r³y * r³y;
-  double const r¹²y⁴ = r⁶y² * r⁶y²;
-  double const z =
-      r * (r³y - 4) *
-      ((-4.0 / 9.0 + 64.0 / 243.0 * r³y) +
-       (-16.0 / 81.0 + 4.0 / 81.0 * r³y) * r⁶y² - 1.0 / 243.0 * r¹²y⁴);
+  double const zl = -1.0 / 243.0 * r * (r³y - 4);
+  double const zr = ((108 - 64 * r³y) + (48 - 12 * r³y + r⁶y²) * r⁶y²);
+  double const yz² = y * (zl * zl) * (zr * zr);
+  IACA_VOLATILE std::uint64_t X = to_integer(yz²) & 0xFFFF'FFF0'0000'0000;
   // An approximation of ∛y [TODO(egg): error here].
-  double const x = to_double(to_integer(z * z * y) & 0xFFFF'FFF0'0000'0000);
+  double const x = to_double(X);
   // One round of 6th order Householder.
   double const x³ = x * x * x;
   double const x⁶ = x³ * x³;
