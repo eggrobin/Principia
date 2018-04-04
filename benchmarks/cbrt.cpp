@@ -83,7 +83,7 @@ double cbrt(double const y) {
   // numbers.
   std::uint64_t Y = to_integer(y);
   std::uint64_t Q = C + Y / 3;
-  double const x = to_double(Q);
+  double const x = to_double(Q & 0xFFFF'FFF0'0000'0000);
   double const x³ = x * x * x;
   double const y² = y * y;
   double const y⁴ = y² * y²;
@@ -111,6 +111,7 @@ double cbrt(double const y) {
   // One M = 3 iterate.
   double x³ = x * x * x;
   x = x - (x³ - y) * x / (2 * x³ + y);
+  x = to_double(to_integer(x) & 0xFFFF'FFF0'0000'0000);
   // One M = 4 iterate, Γ = -35/3.
   x³ = x * x * x;
   double const s = (x³ - y) / y;
@@ -162,7 +163,7 @@ double cbrt(double const y) {
   z⁴ = z² * z²;
   z = z + (1.0 / 3.0) * (z - z⁴ * y);
   // An approximation of ∛y [TODO(egg): error here].
-  double const x = z * z * y;
+  double const x = to_double(to_integer(z * z * y) & 0xFFFF'FFF0'0000'0000);
   // One round of 6th order Householder.
   double const x³ = x * x * x;
   double const x⁶ = x³ * x³;
