@@ -7,7 +7,14 @@
 #endif
 #include "quantities/quantities.hpp"
 
+#if 0
+#include "Intel/IACA 2.1/iacaMarks.h"
+#define IACA_VOLATILE volatile
+#else
 #define IACA_VOLATILE
+#define IACA_VC64_START
+#define IACA_VC64_END
+#endif
 
 namespace principia {
 
@@ -108,12 +115,14 @@ double cbrt(double const y) {
   // NOTE(eggrobin): this needs rescaling and special handling of subnormal
   // numbers.
   std::uint64_t Y = to_integer(y);
+  IACA_VC64_START
   IACA_VOLATILE std::uint64_t Q = C + Y / 3;
   double x = to_double(Q);
   // One M = 3 iterate.
   double x³ = x * x * x;
   x = x - (x³ - y) * x / (2 * x³ + y);
   IACA_VOLATILE std::uint64_t X = to_integer(x) & 0xFFFF'FFF0'0000'0000;
+  IACA_VC64_END
   x = to_double(X);
   // One M = 4 iterate, Γ = -35/3.
   x³ = x * x * x;
@@ -158,6 +167,7 @@ double cbrt(double const y) {
   // Approximate 1/∛y with an error below 3,5 %.
   std::uint64_t Y = to_integer(y);
   // Two rounds of Newton on 1/∛y [TODO(egg): error here].
+  IACA_VC64_START
   IACA_VOLATILE std::uint64_t R = G - Y / 3;
   double const r = to_double(R);
   double const r³y = (r * r) * (r * y);
@@ -166,6 +176,7 @@ double cbrt(double const y) {
   double const zr = ((108 - 64 * r³y) + (48 - 12 * r³y + r⁶y²) * r⁶y²);
   double const yz² = y * (zl * zl) * (zr * zr);
   IACA_VOLATILE std::uint64_t X = to_integer(yz²) & 0xFFFF'FFF0'0000'0000;
+  IACA_VC64_END
   // An approximation of ∛y [TODO(egg): error here].
   double const x = to_double(X);
   // One round of 6th order Householder.
