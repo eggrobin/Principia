@@ -155,14 +155,15 @@ double cbrt(double const y) {
   // numbers.
   // Approximate 1/∛y with an error below 3,5 %.
   std::uint64_t const Y = to_integer(y);
-  // Two rounds of Newton on 1/∛y [TODO(egg): error here].
+  // z = z₁z₂ is the approximation of 1/∛y by two rounds of Newton on r.
+  // TODO(egg): error here.
   std::uint64_t const R = G - Y / 3;
   double const r = to_double(R);
   double const r³y = (r * r) * (r * y);
   double const r⁶y² = r³y * r³y;
-  double const zl = -1.0 / 243.0 * r * (r³y - 4);
-  double const zr = ((108 - 64 * r³y) + (48 - 12 * r³y + r⁶y²) * r⁶y²);
-  double const yz² = y * (zl * zl) * (zr * zr);
+  double const z₁ = -1.0 / 243.0 * r * (r³y - 4);
+  double const z₂ = ((108 - 64 * r³y) + (48 - 12 * r³y + r⁶y²) * r⁶y²);
+  double const yz² = y * (z₁ * z₁) * (z₂ * z₂);
   // An approximation of ∛y [TODO(egg): error here].
   std::uint64_t const X = to_integer(yz²) & 0xFFFF'FFF0'0000'0000;
   double const x = to_double(X);
