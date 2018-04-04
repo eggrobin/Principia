@@ -155,13 +155,16 @@ double cbrt(double const y) {
   // Approximate 1/∛y with an error below 3,5 %.
   std::uint64_t Y = to_integer(y);
   std::uint64_t R = G - Y / 3;
-  // One round of Newton on 1/∛y [TODO(egg): error here].
-  double z = to_double(R);
-  double z²;
-  double z⁴;
-  z² = z * z;
-  z⁴ = z² * z²;
-  z = z + (1.0 / 3.0) * (z - z⁴ * y);
+  // Two rounds of Newton on 1/∛y [TODO(egg): error here].
+  double const r = to_double(R);
+  double const r³ = r * r * r;
+  double const r³y = r³ * y;
+  double const r⁶y² = r³y * r³y;
+  double const r¹²y³ = r⁶y² * r⁶y²;
+  double const z =
+      r * (r³y - 4) *
+      ((-4.0 / 9.0 + 64.0 / 243.0 * r³y +
+        (-16.0 / 81.0 + 4.0 / 81.0 * r³y) * r⁶y² - 1.0 / 243.0 * r¹²y³));
   // An approximation of ∛y [TODO(egg): error here].
   double const x = to_double(to_integer(z * z * y) & 0xFFFF'FFF0'0000'0000);
   // One round of 6th order Householder.
