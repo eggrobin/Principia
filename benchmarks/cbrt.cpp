@@ -7,18 +7,17 @@
 #endif
 #include "quantities/quantities.hpp"
 
+#include <emmintrin.h>
+#include "Intel/IACA 2.1/iacaMarks.h"
+
 namespace principia {
 
 namespace {
 std::uint64_t to_integer(double x) {
-  std::uint64_t result;
-  std::memcpy(&result, &x, sizeof(x));
-  return result;
+  return _mm_cvtsi128_si64(_mm_castpd_si128(_mm_set_sd(x)));
 }
 double to_double(std::uint64_t x) {
-  double result;
-  std::memcpy(&result, &x, sizeof(x));
-  return result;
+  return _mm_cvtsd_f64(_mm_castsi128_pd(_mm_cvtsi64_si128(x)));
 }
 }  // namespace
 
@@ -145,7 +144,9 @@ double cbrt(double const y) {
 
 namespace egg {
 constexpr std::uint64_t G = 0x553ef0ff289dd796;
-double cbrt(double const y) {
+double cbrt(double const volatile input) {
+  IACA_VC64_START
+  double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   // Approximate 1/∛y with an error below 3,5 %.
   std::uint64_t const Y = to_integer(y);
@@ -167,7 +168,9 @@ double cbrt(double const y) {
   double const y² = y * y;
   double const numerator = x * (x³ - y) * ((5 * x³ + 17 * y) * x³ + 5 * y²);
   double const denominator = (7 * x³ + 42 * y) * x⁶ + (30 * x³ + 2 * y) * y²;
-  return x - numerator / denominator;
+  double const volatile result = x - numerator / denominator;
+  IACA_VC64_END
+  return result;
 }
 }  // namespace egg
 
