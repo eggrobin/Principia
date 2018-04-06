@@ -8,7 +8,14 @@
 #include "quantities/quantities.hpp"
 
 #include <emmintrin.h>
+#if 0
 #include "Intel/IACA 2.1/iacaMarks.h"
+#define IACA_VOLATILE volatile
+#else
+#define IACA_VOLATILE
+#define IACA_VC64_START
+#define IACA_VC64_END
+#endif
 
 namespace principia {
 
@@ -144,7 +151,7 @@ double cbrt(double const y) {
 
 namespace egg {
 constexpr std::uint64_t G = 0x553ef0ff289dd796;
-double cbrt(double const volatile input) {
+double cbrt(double const IACA_VOLATILE input) {
   IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -168,7 +175,7 @@ double cbrt(double const volatile input) {
   double const y² = y * y;
   double const numerator = x * (x³ - y) * ((5 * x³ + 17 * y) * x³ + 5 * y²);
   double const denominator = (7 * x³ + 42 * y) * x⁶ + (30 * x³ + 2 * y) * y²;
-  double const volatile result = x - numerator / denominator;
+  double const IACA_VOLATILE result = x - numerator / denominator;
   IACA_VC64_END
   return result;
 }
