@@ -81,10 +81,10 @@ CorrectlyRound[x_]:=If[x==\[Infinity]||x==-\[Infinity],x,If[Abs[#]>=2^(bias+1),S
 UlpDistance[x_,y_]:=Abs[Representation[x]-Representation[y]]
 
 
-Bits[n_]:=If[n>=0,"0","1"]<>
+Bits[n_,fractional_:5]:=If[n>=0,"0","1"]<>
 "|"<>IntegerString[IntegerPart[Representation[Abs[n]]/2^(significandBits-1)],2,exponentBits]<>
 "|"<>IntegerString[Mod[IntegerPart[Representation[Abs[n]]],2^(significandBits-1)],2,significandBits-1]<>
-";"<>If[FractionalPart[Representation[Abs[n]]]==0,"",ToString/@RealDigits[N[FractionalPart[Representation[Abs[n]]],5],2,10,-1][[1]]<>"\[Ellipsis]"];
+";"<>If[FractionalPart[Representation[Abs[n]]]==0,"",ToString/@RealDigits[N[FractionalPart[Representation[Abs[n]]],fractional/2],2,fractional,-1][[1]]<>"\[Ellipsis]"];
 
 
 smol=-12;
