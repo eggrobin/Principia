@@ -31,14 +31,14 @@ double to_double(std::uint64_t x) {
 }  // namespace
 
 namespace slow_correct {
-double cbrt(double const y) {
+double cbrt(double const y, double* incorrect_rounding = nullptr) {
   int exponent;
   double y_mantissa = std::frexp(y, &exponent);
   while (exponent % 3 != 0) {
     y_mantissa *= 2;
     --exponent;
   }
-  mpz_class const y_integer = y_mantissa * 0x1p201;
+  mpz_class const y_integer = y_mantissa * 0x1p300;
   mpz_class x_integer;
   mpz_root(x_integer.get_mpz_t(), y_integer.get_mpz_t(), 3);
   double x_towards_0 = x_integer.get_d();
@@ -47,13 +47,21 @@ double cbrt(double const y) {
   double round_bit = std::ldexp(1, x_inflated_exponent - 54);
   mpz_class x_residual = x_integer - x_towards_0;
   if (x_residual == round_bit) {
-    LOG(FATAL) << "truncation yields a tie";
+    LOG(FATAL) << "truncation yields a tie for Y=" << to_integer(y);
   }
+  double const towards_0 = x_towards_0 * 0x1p-100 * std::ldexp(1, -exponent / 3);
+  double const away_from_0 =
+      (x_towards_0 + 2 * round_bit) * 0x1p-100 * std::ldexp(1, -exponent / 3);
   if (x_residual > round_bit) {
-    return (x_towards_0 + 2 * round_bit) * 0x1p-67 *
-           std::ldexp(1, -exponent / 3);
+    if (incorrect_rounding != nullptr) {
+      *incorrect_rounding = towards_0;
+    }
+    return away_from_0;
   } else {
-    return x_towards_0 * 0x1p-67 * std::ldexp(1, -exponent / 3);
+    if (incorrect_rounding != nullptr) {
+      *incorrect_rounding = away_from_0;
+    }
+    return towards_0;
   }
 }
 }  // namespace slow_correct
