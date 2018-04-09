@@ -33,12 +33,22 @@ int main(int argc, char const* argv[]) {
     std::uint64_t const binary64_8 = principia::to_integer(8);
     int incorrect_roundings = 0;
     int unfaithful_roundings = 0;
+    double max_ulps = 0;
+    double min_positive_incorrect_ulps =
+        std::numeric_limits<double>::infinity();
+    std::uint64_t Y_unpleasant_positive;
+    double max_negative_incorrect_ulps =
+        -std::numeric_limits<double>::infinity();
+    std::uint64_t Y_unpleasant_negative;
+    std::uint64_t Y_worst;
     for (int i = 1; i <= iterations; ++i) {
       std::uint64_t const Y =
           mersenne() % (binary64_8 - binary64_1) + binary64_1;
       double const y = principia::to_double(Y);
       double x_incorrect;
-      double const x_correct = principia::slow_correct::cbrt(y, &x_incorrect);
+      double ulps_correct_from_exact;
+      double const x_correct =
+          principia::slow_correct::cbrt(y, &x_incorrect, &ulps_correct_from_exact);
       double x;
       if (method == "atlas") {
         x = principia::atlas::cbrt(y);
@@ -51,18 +61,50 @@ int main(int argc, char const* argv[]) {
       } else if (method == "microsoft") {
         x = std::cbrt(y);
       }
+      std::int64_t const ulps_from_correct =
+          principia::to_integer(x) - principia::to_integer(x_correct);
+      double const ulps_from_exact = ulps_correct_from_exact + ulps_from_correct;
+      double const abs_ulps_from_exact = std::abs(ulps_from_exact);
+      if (abs_ulps_from_exact > max_ulps) {
+        max_ulps = abs_ulps_from_exact;
+        Y_worst = Y;
+      }
       if (x != x_correct) {
         ++incorrect_roundings;
+        CHECK_GT(abs_ulps_from_exact, 0.5);
+        if (ulps_from_exact > 0) {
+          min_positive_incorrect_ulps =
+              std::min(min_positive_incorrect_ulps, ulps_from_exact);
+          Y_unpleasant_positive = Y;
+        } else {
+          max_negative_incorrect_ulps =
+              std::max(max_negative_incorrect_ulps, ulps_from_exact);
+          Y_unpleasant_negative = Y;
+        }
         if (x != x_incorrect) {
           ++unfaithful_roundings;
+          CHECK_GT(abs_ulps_from_exact, 1);
         }
+      } else {
+        CHECK_LE(abs_ulps_from_exact, 0.5);
       }
       if (i % 1'000'000 == 0) {
         std::cout << "Tested " << i << " values in [1, 8[.\n"
-                  << "incorrect roundings  : " << incorrect_roundings << "("
+                  << "incorrect roundings  : " << incorrect_roundings << " ("
                   << 100.0 * incorrect_roundings / i << " %)\n"
-                  << "unfaithful roundings : " << unfaithful_roundings << "("
-                  << 100.0 * unfaithful_roundings / i << " %)\n";
+                  << "unfaithful roundings : " << unfaithful_roundings << " ("
+                  << 100.0 * unfaithful_roundings / i << " %)\n"
+                  << "maximal error        : " << max_ulps << " ULPs, for "
+                  << std::hex << std::uppercase << "16^^" << Y_worst << std::dec
+                  << "\n"
+                  << "least incorrect      : 1/2 + "
+                  << min_positive_incorrect_ulps - 0.5 << " ULPs, for "
+                  << std::hex << std::uppercase << "16^^"
+                  << Y_unpleasant_positive << std::dec << "\n"
+                  << "                      -1/2 - "
+                  << -0.5 - max_negative_incorrect_ulps << " ULPs, for "
+                  << std::hex << std::uppercase << "16^^"
+                  << Y_unpleasant_negative << std::dec << "\n";
       }
     }
   } else if (command == "generate_configuration") {

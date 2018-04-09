@@ -31,7 +31,9 @@ double to_double(std::uint64_t x) {
 }  // namespace
 
 namespace slow_correct {
-double cbrt(double const y, double* incorrect_rounding = nullptr) {
+double cbrt(double const y,
+            double* incorrect_rounding = nullptr,
+            double* correct_rounding_ulps = nullptr) {
   int exponent;
   double y_mantissa = std::frexp(y, &exponent);
   while (exponent % 3 != 0) {
@@ -50,16 +52,25 @@ double cbrt(double const y, double* incorrect_rounding = nullptr) {
     LOG(FATAL) << "truncation yields a tie for Y=" << to_integer(y);
   }
   double const towards_0 = x_towards_0 * 0x1p-100 * std::ldexp(1, exponent / 3);
+  double const towards_0_ulps =
+      mpz_class(x_towards_0 - x_integer).get_d() / (2 * round_bit);
   double const away_from_0 =
       (x_towards_0 + 2 * round_bit) * 0x1p-100 * std::ldexp(1, exponent / 3);
+  double const away_from_0_ulps =
+      mpz_class((x_towards_0 + 2 * round_bit) - x_integer).get_d() /
+      (2 * round_bit);
   if (x_residual > round_bit) {
     if (incorrect_rounding != nullptr) {
       *incorrect_rounding = towards_0;
+      *correct_rounding_ulps = away_from_0_ulps;
+      CHECK_LT(*correct_rounding_ulps, 0.5);
     }
     return away_from_0;
   } else {
     if (incorrect_rounding != nullptr) {
       *incorrect_rounding = away_from_0;
+      *correct_rounding_ulps = towards_0_ulps;
+      CHECK_LT(*correct_rounding_ulps, 0.5);
     }
     return towards_0;
   }
