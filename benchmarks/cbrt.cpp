@@ -7,6 +7,8 @@
 #endif
 #include "quantities/quantities.hpp"
 
+#include "mpirxx.h"
+
 #include <emmintrin.h>
 #if 0
 #include "Intel/IACA 2.1/iacaMarks.h"
@@ -27,6 +29,34 @@ double to_double(std::uint64_t x) {
   return _mm_cvtsd_f64(_mm_castsi128_pd(_mm_cvtsi64_si128(x)));
 }
 }  // namespace
+
+namespace slow_correct {
+double cbrt(double const y) {
+  int exponent;
+  double y_mantissa = std::frexp(y, &exponent);
+  while (exponent % 3 != 0) {
+    y_mantissa *= 2;
+    --exponent;
+  }
+  mpz_class const y_integer = y_mantissa * 0x1p201;
+  mpz_class x_integer;
+  mpz_root(x_integer.get_mpz_t(), y_integer.get_mpz_t(), 3);
+  double x_towards_0 = x_integer.get_d();
+  int x_inflated_exponent;
+  std::frexp(x_towards_0, &x_inflated_exponent);
+  double round_bit = std::ldexp(1, x_inflated_exponent - 54);
+  mpz_class x_residual = x_integer - x_towards_0;
+  if (x_residual == round_bit) {
+    LOG(FATAL) << "truncation yields a tie";
+  }
+  if (x_residual > round_bit) {
+    return (x_towards_0 + 2 * round_bit) * 0x1p-67 *
+           std::ldexp(1, -exponent / 3);
+  } else {
+    return x_towards_0 * 0x1p-67 * std::ldexp(1, -exponent / 3);
+  }
+}
+}  // namespace slow_correct
 
 namespace atlas {
 //  curl https://raw.githubusercontent.com/simonbyrne/apple-libm/4853bcad08357b0d7991d46bf95d578a909be27b/Source/ARM/cbrt.c `
@@ -229,6 +259,10 @@ void BM_MicrosoftCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &std::cbrt);
 }
 
+void BM_SlowCorrectCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &slow_correct::cbrt);
+}
+
 BENCHMARK(BM_AtlasCbrt);
 BENCHMARK(BM_OneHalleyIterateCbrt);
 BENCHMARK(BM_HouseholderOrder10EstrinCbrt);
@@ -237,6 +271,7 @@ BENCHMARK(BM_KahanCbrt);
 BENCHMARK(BM_KahanNoDivCbrt);
 BENCHMARK(BM_EggCbrt);
 BENCHMARK(BM_MicrosoftCbrt);
+BENCHMARK(BM_SlowCorrectCbrt);
 #endif
 
 }  // namespace principia
