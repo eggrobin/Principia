@@ -49,9 +49,9 @@ double cbrt(double const y, double* incorrect_rounding = nullptr) {
   if (x_residual == round_bit) {
     LOG(FATAL) << "truncation yields a tie for Y=" << to_integer(y);
   }
-  double const towards_0 = x_towards_0 * 0x1p-100 * std::ldexp(1, -exponent / 3);
+  double const towards_0 = x_towards_0 * 0x1p-100 * std::ldexp(1, exponent / 3);
   double const away_from_0 =
-      (x_towards_0 + 2 * round_bit) * 0x1p-100 * std::ldexp(1, -exponent / 3);
+      (x_towards_0 + 2 * round_bit) * 0x1p-100 * std::ldexp(1, exponent / 3);
   if (x_residual > round_bit) {
     if (incorrect_rounding != nullptr) {
       *incorrect_rounding = towards_0;
