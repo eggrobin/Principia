@@ -63,14 +63,14 @@ double cbrt(double const y,
     if (incorrect_rounding != nullptr) {
       *incorrect_rounding = towards_0;
       *correct_rounding_ulps = away_from_0_ulps;
-      CHECK_LT(*correct_rounding_ulps, 0.5);
+      CHECK_LT(std::abs(*correct_rounding_ulps), 0.5);
     }
     return away_from_0;
   } else {
     if (incorrect_rounding != nullptr) {
       *incorrect_rounding = away_from_0;
       *correct_rounding_ulps = towards_0_ulps;
-      CHECK_LT(*correct_rounding_ulps, 0.5);
+      CHECK_LT(std::abs(*correct_rounding_ulps), 0.5);
     }
     return towards_0;
   }
