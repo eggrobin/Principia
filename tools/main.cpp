@@ -34,12 +34,18 @@ int main(int argc, char const* argv[]) {
     int incorrect_roundings = 0;
     int unfaithful_roundings = 0;
     double max_ulps = 0;
+    double min_positive_correct_ulps =
+        std::numeric_limits<double>::infinity();
+    std::uint64_t Y_just_below_exact;
+    double max_negative_correct_ulps =
+        -std::numeric_limits<double>::infinity();
+    std::uint64_t Y_just_above_exact;
     double min_positive_incorrect_ulps =
         std::numeric_limits<double>::infinity();
-    std::uint64_t Y_unpleasant_positive;
+    std::uint64_t Y_just_below_tie;
     double max_negative_incorrect_ulps =
         -std::numeric_limits<double>::infinity();
-    std::uint64_t Y_unpleasant_negative;
+    std::uint64_t Y_just_above_tie;
     std::uint64_t Y_worst;
     for (int i = 1; i <= iterations; ++i) {
       std::uint64_t const Y =
@@ -72,15 +78,6 @@ int main(int argc, char const* argv[]) {
       if (x != x_correct) {
         ++incorrect_roundings;
         CHECK_GT(abs_ulps_from_exact, 0.5);
-        if (ulps_from_exact > 0) {
-          min_positive_incorrect_ulps =
-              std::min(min_positive_incorrect_ulps, ulps_from_exact);
-          Y_unpleasant_positive = Y;
-        } else {
-          max_negative_incorrect_ulps =
-              std::max(max_negative_incorrect_ulps, ulps_from_exact);
-          Y_unpleasant_negative = Y;
-        }
         if (x != x_incorrect) {
           ++unfaithful_roundings;
           CHECK_GT(abs_ulps_from_exact, 1);
@@ -88,23 +85,63 @@ int main(int argc, char const* argv[]) {
       } else {
         CHECK_LE(abs_ulps_from_exact, 0.5);
       }
+
+      std::int64_t const ulps_incorrect_from_correct =
+          principia::to_integer(x_incorrect) -
+          principia::to_integer(x_correct);
+      double const ulps_incorrect_from_exact =
+          ulps_correct_from_exact + ulps_incorrect_from_correct;
+      if (ulps_incorrect_from_exact > 0) {
+        if (ulps_incorrect_from_exact < min_positive_incorrect_ulps) {
+          min_positive_incorrect_ulps = ulps_incorrect_from_exact;
+          Y_just_below_tie = Y;
+        }
+      } else {
+        if (ulps_incorrect_from_exact > max_negative_incorrect_ulps) {
+          max_negative_incorrect_ulps = ulps_incorrect_from_exact;
+          Y_just_above_tie = Y;
+        }
+      }
+      if (ulps_correct_from_exact != 0) {
+        if (ulps_correct_from_exact > 0) {
+          if (ulps_correct_from_exact < min_positive_correct_ulps) {
+            min_positive_correct_ulps = ulps_correct_from_exact;
+            Y_just_below_exact = Y;
+          }
+        } else {
+          if (ulps_correct_from_exact > max_negative_correct_ulps) {
+            max_negative_correct_ulps = ulps_correct_from_exact;
+            Y_just_above_exact = Y;
+          }
+        }
+      }
+
       if (i % 1'000'000 == 0) {
-        std::cout << "Tested " << i << " values in [1, 8[.\n"
+        std::cout << u8"∛ rounding statistics for method " + method << ".\n"
+                  << "Tested " << i << " values in [1, 8[.\n"
                   << "incorrect roundings  : " << incorrect_roundings << " ("
                   << 100.0 * incorrect_roundings / i << " %)\n"
                   << "unfaithful roundings : " << unfaithful_roundings << " ("
                   << 100.0 * unfaithful_roundings / i << " %)\n"
                   << "maximal error        : " << max_ulps << " ULPs, for "
                   << std::hex << std::uppercase << "16^^" << Y_worst << std::dec
-                  << "\n"
-                  << "least incorrect      : 1/2 + "
+                  << "\n\n"
+                  << "Trickiest sample values:\n"
+                  << "closest to ties      : 1/2 + "
                   << min_positive_incorrect_ulps - 0.5 << " ULPs, for "
-                  << std::hex << std::uppercase << "16^^"
-                  << Y_unpleasant_positive << std::dec << "\n"
+                  << std::hex << std::uppercase << "16^^" << Y_just_below_tie
+                  << std::dec << "\n"
                   << "                      -1/2 - "
                   << -0.5 - max_negative_incorrect_ulps << " ULPs, for "
-                  << std::hex << std::uppercase << "16^^"
-                  << Y_unpleasant_negative << std::dec << "\n";
+                  << std::hex << std::uppercase << "16^^" << Y_just_above_tie
+                  << std::dec << "\n"
+                  << "closest to exact     :       "
+                  << min_positive_correct_ulps << " ULPs, for " << std::hex
+                  << std::uppercase << "16^^" << Y_just_below_exact << std::dec
+                  << "\n"
+                  << "                            " << max_negative_correct_ulps
+                  << " ULPs, for " << std::hex << std::uppercase << "16^^"
+                  << Y_just_above_exact << std::dec << "\n";
       }
     }
   } else if (command == "generate_configuration") {
