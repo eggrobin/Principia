@@ -27,7 +27,7 @@ int main(int argc, char const* argv[]) {
                 << " cbrt (atlas|egg|kahan|microsoft) iterations";
     }
     std::string method = argv[2];
-    int iterations = std::atoi(argv[3]);
+    std::int64_t iterations = std::atoll(argv[3]);
     std::mt19937_64 mersenne;
     std::uint64_t const binary64_1 = principia::to_integer(1);
     std::uint64_t const binary64_8 = principia::to_integer(8);
@@ -47,7 +47,7 @@ int main(int argc, char const* argv[]) {
         -std::numeric_limits<double>::infinity();
     std::uint64_t Y_just_above_tie;
     std::uint64_t Y_worst;
-    for (int i = 1; i <= iterations; ++i) {
+    for (std::int64_t i = 1; i <= iterations; ++i) {
       std::uint64_t const Y =
           mersenne() % (binary64_8 - binary64_1) + binary64_1;
       double const y = principia::to_double(Y);
