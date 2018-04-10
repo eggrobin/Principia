@@ -117,7 +117,7 @@ int main(int argc, char const* argv[]) {
       }
 
       if (i % 1'000'000 == 0) {
-        std::cout << u8"∛ rounding statistics for method " + method << ".\n"
+        std::cout << "Method " << method << ".\n"
                   << "Tested " << i << " values in [1, 8[.\n"
                   << "incorrect roundings  : " << incorrect_roundings << " ("
                   << 100.0 * incorrect_roundings / i << " %)\n"
