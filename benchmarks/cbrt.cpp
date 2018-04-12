@@ -31,9 +31,15 @@ double to_double(std::uint64_t x) {
 }  // namespace
 
 namespace slow_correct {
-double cbrt(double const y,
-            double* incorrect_rounding = nullptr,
-            double* correct_rounding_ulps = nullptr) {
+
+struct RoundedReal {
+  double nearest_rounding;
+  double furthest_rounding;
+  double nearest_ulps;
+};
+
+RoundedReal cube_root(double const y) {
+  RoundedReal result;
   int exponent;
   double y_mantissa = std::frexp(y, &exponent);
   while (exponent % 3 != 0) {
@@ -60,20 +66,20 @@ double cbrt(double const y,
       mpz_class((x_towards_0 + 2 * round_bit) - x_integer).get_d() /
       (2 * round_bit);
   if (x_residual > round_bit) {
-    if (incorrect_rounding != nullptr) {
-      *incorrect_rounding = towards_0;
-      *correct_rounding_ulps = away_from_0_ulps;
-      CHECK_LT(std::abs(*correct_rounding_ulps), 0.5);
-    }
-    return away_from_0;
+    result.nearest_rounding = away_from_0;
+    result.furthest_rounding = towards_0;
+    result.nearest_ulps = away_from_0_ulps;
+    CHECK_LT(std::abs(result.nearest_ulps), 0.5);
   } else {
-    if (incorrect_rounding != nullptr) {
-      *incorrect_rounding = away_from_0;
-      *correct_rounding_ulps = towards_0_ulps;
-      CHECK_LT(std::abs(*correct_rounding_ulps), 0.5);
-    }
-    return towards_0;
+    result.nearest_rounding = towards_0;
+    result.furthest_rounding = away_from_0;
+    result.nearest_ulps = towards_0_ulps;
+    CHECK_LT(std::abs(result.nearest_ulps), 0.5);
   }
+  return result;
+}
+double cbrt(double y) {
+  return cube_root(y).nearest_rounding;
 }
 }  // namespace slow_correct
 
@@ -230,6 +236,29 @@ double cbrt(double const IACA_VOLATILE input) {
 }
 }  // namespace egg
 
+namespace sun {
+
+#define __STDC__
+using u_int32_t = std::uint32_t;
+#define GET_HIGH_WORD(word, x) \
+  ((word) = static_cast<std::uint32_t>(to_integer(x) >> 32))
+#define GET_LOW_WORD(word, x) \
+  ((word) = static_cast<std::uint32_t>(to_integer(x) & 0x0000'0000'FFFF'FFFF))
+#define SET_HIGH_WORD(x, word)                               \
+  ((x) = to_double((to_integer(x) & 0x0000'0000'FFFF'FFFF) | \
+                   (static_cast<std::uint64_t>(word) << 32)))
+#define SET_LOW_WORD(x, word)                                \
+  ((x) = to_double((to_integer(x) & 0xFFFF'FFFF'0000'0000) | \
+                   static_cast<std::uint64_t>(word)))
+#define INSERT_WORDS(x, high_word, low_word)                     \
+  ((x) = to_double(static_cast<std::uint64_t>(high_word) << 32 | \
+                   static_cast<std::uint64_t>(low_word)))
+#define unlikely(p) p
+#include "benchmarks/sun_cbrt"
+#undef __STDC__
+
+}  // namespace sun
+
 #if !NO_BENCHMARK
 void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
   double total = 0;
@@ -278,6 +307,10 @@ void BM_MicrosoftCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &std::cbrt);
 }
 
+void BM_SunCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &sun::cbrt);
+}
+
 void BM_SlowCorrectCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &slow_correct::cbrt);
 }
@@ -290,6 +323,7 @@ BENCHMARK(BM_KahanCbrt);
 BENCHMARK(BM_KahanNoDivCbrt);
 BENCHMARK(BM_EggCbrt);
 BENCHMARK(BM_MicrosoftCbrt);
+BENCHMARK(BM_SunCbrt);
 BENCHMARK(BM_SlowCorrectCbrt);
 #endif
 

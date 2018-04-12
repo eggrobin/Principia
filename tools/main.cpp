@@ -51,10 +51,8 @@ int main(int argc, char const* argv[]) {
       std::uint64_t const Y =
           mersenne() % (binary64_8 - binary64_1) + binary64_1;
       double const y = principia::to_double(Y);
-      double x_incorrect;
-      double ulps_correct_from_exact;
-      double const x_correct =
-          principia::slow_correct::cbrt(y, &x_incorrect, &ulps_correct_from_exact);
+      principia::slow_correct::RoundedReal const x_correct =
+          principia::slow_correct::cube_root(y);
       double x;
       if (method == "atlas") {
         x = principia::atlas::cbrt(y);
@@ -66,19 +64,22 @@ int main(int argc, char const* argv[]) {
         x = principia::kahan::cbrt(y);
       } else if (method == "microsoft") {
         x = std::cbrt(y);
+      } else if (method == "sun") {
+        x = principia::sun::cbrt(y);
       }
       std::int64_t const ulps_from_correct =
-          principia::to_integer(x) - principia::to_integer(x_correct);
-      double const ulps_from_exact = ulps_correct_from_exact + ulps_from_correct;
+          principia::to_integer(x) -
+          principia::to_integer(x_correct.nearest_rounding);
+      double const ulps_from_exact = x_correct.nearest_ulps + ulps_from_correct;
       double const abs_ulps_from_exact = std::abs(ulps_from_exact);
       if (abs_ulps_from_exact > max_ulps) {
         max_ulps = abs_ulps_from_exact;
         Y_worst = Y;
       }
-      if (x != x_correct) {
+      if (x != x_correct.nearest_rounding) {
         ++incorrect_roundings;
         CHECK_GT(abs_ulps_from_exact, 0.5);
-        if (x != x_incorrect) {
+        if (x != x_correct.furthest_rounding) {
           ++unfaithful_roundings;
           CHECK_GT(abs_ulps_from_exact, 1);
         }
@@ -87,10 +88,10 @@ int main(int argc, char const* argv[]) {
       }
 
       std::int64_t const ulps_incorrect_from_correct =
-          principia::to_integer(x_incorrect) -
-          principia::to_integer(x_correct);
+          principia::to_integer(x_correct.furthest_rounding) -
+          principia::to_integer(x_correct.nearest_rounding);
       double const ulps_incorrect_from_exact =
-          ulps_correct_from_exact + ulps_incorrect_from_correct;
+          x_correct.nearest_ulps + ulps_incorrect_from_correct;
       if (ulps_incorrect_from_exact > 0) {
         if (ulps_incorrect_from_exact < min_positive_incorrect_ulps) {
           min_positive_incorrect_ulps = ulps_incorrect_from_exact;
@@ -102,15 +103,15 @@ int main(int argc, char const* argv[]) {
           Y_just_above_tie = Y;
         }
       }
-      if (ulps_correct_from_exact != 0) {
-        if (ulps_correct_from_exact > 0) {
-          if (ulps_correct_from_exact < min_positive_correct_ulps) {
-            min_positive_correct_ulps = ulps_correct_from_exact;
+      if (x_correct.nearest_ulps != 0) {
+        if (x_correct.nearest_ulps > 0) {
+          if (x_correct.nearest_ulps < min_positive_correct_ulps) {
+            min_positive_correct_ulps = x_correct.nearest_ulps;
             Y_just_below_exact = Y;
           }
         } else {
-          if (ulps_correct_from_exact > max_negative_correct_ulps) {
-            max_negative_correct_ulps = ulps_correct_from_exact;
+          if (x_correct.nearest_ulps > max_negative_correct_ulps) {
+            max_negative_correct_ulps = x_correct.nearest_ulps;
             Y_just_above_exact = Y;
           }
         }
