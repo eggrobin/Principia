@@ -158,7 +158,7 @@ double cbrt(double const y) {
 PRINCIPIA_REGISTER_CBRT(kahan_no_div);
 
 namespace egg {
-constexpr std::uint64_t G = 0x553ef0ff289dd796;
+constexpr std::uint64_t G = 0x553EEE713FD44BE6;
 double cbrt(double const IACA_VOLATILE input) {
   IACA_VC64_START
   double const y = input;
