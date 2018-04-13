@@ -153,6 +153,11 @@
     <Import Project="$(SolutionDir)..\Google\benchmark\msvc\windows_libraries.props" />
     <Import Project="$(SolutionDir)google_benchmark.props" />
   </ImportGroup>
+  <ItemDefinitionGroup Condition="$(ProjectName) == benchmarks">
+    <ClCompile>
+      <PreprocessorDefinitions>PRINCIPIA_BENCHMARKS=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
 
   <ImportGroup Condition="$(PrincipiaTestProject)">
     <Import Project="$(SolutionDir)..\Google\googletest\googletest\msvc\portability_macros.props" />

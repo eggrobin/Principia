@@ -6,14 +6,12 @@
 #include <vector>
 
 #include "astronomy/epoch.hpp"
+#include "benchmarks/cbrt.hpp"
 #include "geometry/named_quantities.hpp"
 #include "glog/logging.h"
 #include "quantities/parser.hpp"
 #include "tools/generate_configuration.hpp"
 #include "tools/generate_profiles.hpp"
-
-#define NO_BENCHMARK 1
-#include "benchmarks/cbrt.cpp"
 
 int main(int argc, char const* argv[]) {
   google::InitGoogleLogging(argv[0]);
@@ -30,8 +28,8 @@ int main(int argc, char const* argv[]) {
     std::string const method_arg = argv[2];
     std::int64_t iterations = std::atoll(argv[3]);
     std::mt19937_64 mersenne;
-    std::uint64_t const binary64_1 = principia::to_integer(1);
-    std::uint64_t const binary64_8 = principia::to_integer(8);
+    std::uint64_t const binary64_1 = principia::numerics::to_integer(1);
+    std::uint64_t const binary64_8 = principia::numerics::to_integer(8);
     struct MethodProperties {
       int incorrect_roundings = 0;
       int unfaithful_roundings = 0;
@@ -69,16 +67,16 @@ int main(int argc, char const* argv[]) {
     for (std::int64_t i = 1; i <= iterations; ++i) {
       std::uint64_t const Y =
           mersenne() % (binary64_8 - binary64_1) + binary64_1;
-      double const y = principia::to_double(Y);
-      principia::slow_correct::RoundedReal const x_correct =
-          principia::slow_correct::cube_root(y);
+      double const y = principia::numerics::to_double(Y);
+      principia::numerics::RoundedReal const x_correct =
+          principia::numerics::correct_cube_root(y);
       for (auto const& method : methods) {
         double const x =
             principia::numerics::CubeRootRegistry::Instance().methods().at(
                 method)(y);
         std::int64_t const ulps_from_correct =
-            principia::to_integer(x) -
-            principia::to_integer(x_correct.nearest_rounding);
+            principia::numerics::to_integer(x) -
+            principia::numerics::to_integer(x_correct.nearest_rounding);
         double const ulps_from_exact =
             x_correct.nearest_ulps + ulps_from_correct;
         double const abs_ulps_from_exact = std::abs(ulps_from_exact);
@@ -99,8 +97,8 @@ int main(int argc, char const* argv[]) {
       }
 
       std::int64_t const ulps_incorrect_from_correct =
-          principia::to_integer(x_correct.furthest_rounding) -
-          principia::to_integer(x_correct.nearest_rounding);
+          principia::numerics::to_integer(x_correct.furthest_rounding) -
+          principia::numerics::to_integer(x_correct.nearest_rounding);
       double const ulps_incorrect_from_exact =
           x_correct.nearest_ulps + ulps_incorrect_from_correct;
       if (ulps_incorrect_from_exact > 0) {

@@ -4,14 +4,13 @@
 #include <string>
 
 #include "glog/logging.h"
-#if !NO_BENCHMARK
+#if PRINCIPIA_BENCHMARKS
 #include "benchmark/benchmark.h"
 #endif
 #include "quantities/quantities.hpp"
 
 #include "mpirxx.h"
 
-#include <emmintrin.h>
 #if 0
 #include "Intel/IACA 2.1/iacaMarks.h"
 #define IACA_VOLATILE volatile
@@ -22,6 +21,10 @@
 #endif
 
 namespace principia {
+
+using numerics::to_double;
+using numerics::to_integer;
+
 namespace numerics {
 
 CubeRootRegistry& CubeRootRegistry::Instance() {
@@ -41,26 +44,7 @@ CubeRootRegistry::methods() const {
   return methods_;
 }
 
-}  // namespace numerics
-
-namespace {
-std::uint64_t to_integer(double x) {
-  return _mm_cvtsi128_si64(_mm_castpd_si128(_mm_set_sd(x)));
-}
-double to_double(std::uint64_t x) {
-  return _mm_cvtsd_f64(_mm_castsi128_pd(_mm_cvtsi64_si128(x)));
-}
-}  // namespace
-
-namespace slow_correct {
-
-struct RoundedReal {
-  double nearest_rounding;
-  double furthest_rounding;
-  double nearest_ulps;
-};
-
-RoundedReal cube_root(double const y) {
+RoundedReal correct_cube_root(double const y) {
   RoundedReal result;
   int exponent;
   double y_mantissa = std::frexp(y, &exponent);
@@ -100,10 +84,8 @@ RoundedReal cube_root(double const y) {
   }
   return result;
 }
-double cbrt(double y) {
-  return cube_root(y).nearest_rounding;
-}
-}  // namespace slow_correct
+
+}  // namespace numerics
 
 namespace atlas {
 //  curl https://raw.githubusercontent.com/simonbyrne/apple-libm/4853bcad08357b0d7991d46bf95d578a909be27b/Source/ARM/cbrt.c `
@@ -286,7 +268,7 @@ double cbrt(double y) { return std::cbrt(y); }
 }
 PRINCIPIA_REGISTER_CBRT(microsoft);
 
-#if !NO_BENCHMARK
+#if PRINCIPIA_BENCHMARKS
 void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
   double total = 0;
   int iterations = 0;
@@ -334,10 +316,6 @@ void BM_SunCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &sun::cbrt);
 }
 
-void BM_SlowCorrectCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &slow_correct::cbrt);
-}
-
 BENCHMARK(BM_AtlasCbrt);
 BENCHMARK(BM_HouseholderOrder10EstrinCbrt);
 BENCHMARK(BM_HouseholderOrder10Cbrt);
@@ -346,7 +324,6 @@ BENCHMARK(BM_KahanNoDivCbrt);
 BENCHMARK(BM_EggCbrt);
 BENCHMARK(BM_MicrosoftCbrt);
 BENCHMARK(BM_SunCbrt);
-BENCHMARK(BM_SlowCorrectCbrt);
 #endif
 
 }  // namespace principia
