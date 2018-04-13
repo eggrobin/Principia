@@ -5,6 +5,10 @@
 #include <map>
 #include <string>
 
+#if PRINCIPIA_BENCHMARKS
+#include "benchmark/benchmark.h"
+#endif
+
 namespace principia {
 namespace numerics {
 
@@ -45,6 +49,10 @@ RoundedReal correct_cube_root(double const y);
       name##_cbrt =                                                   \
           principia::numerics::CubeRootRegistry::Instance().Register( \
               #name, &name::cbrt)
+
+#if PRINCIPIA_BENCHMARKS
+void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double));
+#endif
 
 }  // namespace numerics
 }  // namespace principia

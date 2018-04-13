@@ -4,9 +4,6 @@
 #include <string>
 
 #include "glog/logging.h"
-#if PRINCIPIA_BENCHMARKS
-#include "benchmark/benchmark.h"
-#endif
 #include "quantities/quantities.hpp"
 
 #include "mpirxx.h"
@@ -84,22 +81,6 @@ RoundedReal correct_cube_root(double const y) {
   }
   return result;
 }
-
-}  // namespace numerics
-
-namespace atlas {
-//  curl https://raw.githubusercontent.com/simonbyrne/apple-libm/4853bcad08357b0d7991d46bf95d578a909be27b/Source/ARM/cbrt.c `
-//  | select -expandproperty content > `
-// .\benchmarks\atlas_cbrt
-
-// we ignore subnormal numbers in the other implementations, so let's make the
-// comparison fair.
-#define DAZ 0
-#define AVOID_UINT64 0
-#include "benchmarks/atlas_cbrt"
-}  // namespace atlas
-
-PRINCIPIA_REGISTER_CBRT(atlas);
 
 namespace householder_order_10 {
 constexpr std::uint64_t C = 0x2a9f76253119d328;
@@ -238,33 +219,8 @@ double cbrt(double const IACA_VOLATILE input) {
 
 PRINCIPIA_REGISTER_CBRT(egg);
 
-namespace sun {
-
-#define __STDC__
-using u_int32_t = std::uint32_t;
-#define GET_HIGH_WORD(word, x) \
-  ((word) = static_cast<std::uint32_t>(to_integer(x) >> 32))
-#define GET_LOW_WORD(word, x) \
-  ((word) = static_cast<std::uint32_t>(to_integer(x) & 0x0000'0000'FFFF'FFFF))
-#define SET_HIGH_WORD(x, word)                               \
-  ((x) = to_double((to_integer(x) & 0x0000'0000'FFFF'FFFF) | \
-                   (static_cast<std::uint64_t>(word) << 32)))
-#define SET_LOW_WORD(x, word)                                \
-  ((x) = to_double((to_integer(x) & 0xFFFF'FFFF'0000'0000) | \
-                   static_cast<std::uint64_t>(word)))
-#define INSERT_WORDS(x, high_word, low_word)                     \
-  ((x) = to_double(static_cast<std::uint64_t>(high_word) << 32 | \
-                   static_cast<std::uint64_t>(low_word)))
-#define unlikely(p) p
-#include "benchmarks/sun_cbrt"
-#undef __STDC__
-
-}  // namespace sun
-
-PRINCIPIA_REGISTER_CBRT(sun);
-
 namespace microsoft {
-double cbrt(double y) { return std::cbrt(y); }
+  using std::cbrt;
 }
 PRINCIPIA_REGISTER_CBRT(microsoft);
 
@@ -282,10 +238,6 @@ void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
   }
   state.SetLabel(quantities::DebugString(total / iterations) + u8"; ∛2 = " +
                  quantities::DebugString(cbrt(2)));
-}
-
-void BM_AtlasCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &atlas::cbrt);
 }
 
 void BM_HouseholderOrder10EstrinCbrt(benchmark::State& state) {
@@ -312,18 +264,13 @@ void BM_MicrosoftCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &std::cbrt);
 }
 
-void BM_SunCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &sun::cbrt);
-}
-
-BENCHMARK(BM_AtlasCbrt);
 BENCHMARK(BM_HouseholderOrder10EstrinCbrt);
 BENCHMARK(BM_HouseholderOrder10Cbrt);
 BENCHMARK(BM_KahanCbrt);
 BENCHMARK(BM_KahanNoDivCbrt);
 BENCHMARK(BM_EggCbrt);
 BENCHMARK(BM_MicrosoftCbrt);
-BENCHMARK(BM_SunCbrt);
 #endif
 
+}  // namespace numerics
 }  // namespace principia
