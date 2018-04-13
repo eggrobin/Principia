@@ -25,6 +25,7 @@
     <ClCompile Include="чебышёв_series.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cbrt.hpp" />
     <ClInclude Include="quantities.hpp" />
     <ClInclude Include="quantities_body.hpp" />
   </ItemGroup>

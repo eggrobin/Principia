@@ -1,7 +1,9 @@
 ﻿
 #include <iostream>
+#include <map>
 #include <random>
 #include <string>
+#include <vector>
 
 #include "astronomy/epoch.hpp"
 #include "geometry/named_quantities.hpp"
@@ -23,19 +25,21 @@ int main(int argc, char const* argv[]) {
   std::string command = argv[1];
   if (command == "cbrt") {
     if (argc != 4) {
-      std::cerr << "Usage: " << argv[0]
-                << " cbrt (atlas|egg|kahan|microsoft) iterations";
+      std::cerr << "Usage: " << argv[0] << " cbrt methods iterations";
     }
-    std::string method = argv[2];
+    std::string const method_arg = argv[2];
     std::int64_t iterations = std::atoll(argv[3]);
     std::mt19937_64 mersenne;
     std::uint64_t const binary64_1 = principia::to_integer(1);
     std::uint64_t const binary64_8 = principia::to_integer(8);
-    int incorrect_roundings = 0;
-    int unfaithful_roundings = 0;
-    double max_ulps = 0;
-    double min_positive_correct_ulps =
-        std::numeric_limits<double>::infinity();
+    struct MethodProperties {
+      int incorrect_roundings = 0;
+      int unfaithful_roundings = 0;
+      double max_ulps = 0;
+      std::uint64_t Y_worst = 0;
+    };
+    std::map<std::string, MethodProperties> properties;
+    double min_positive_correct_ulps = std::numeric_limits<double>::infinity();
     std::uint64_t Y_just_below_exact;
     double max_negative_correct_ulps =
         -std::numeric_limits<double>::infinity();
@@ -46,45 +50,52 @@ int main(int argc, char const* argv[]) {
     double max_negative_incorrect_ulps =
         -std::numeric_limits<double>::infinity();
     std::uint64_t Y_just_above_tie;
-    std::uint64_t Y_worst;
+    std::vector<std::string> methods;
+    if (method_arg == "all") {
+      for (auto const& pair :
+           principia::numerics::CubeRootRegistry::Instance().methods()) {
+        methods.emplace_back(pair.first);
+      }
+    } else {
+      for (int begin = 0, end = 0; end != std::string::npos; begin = end + 1) {
+        end = method_arg.find(',', begin);
+        methods.emplace_back(method_arg.substr(begin, end - begin));
+      }
+    }
+    std::cout << "Methods:\n";
+    for (auto const& method : methods) {
+      std::cout << "  " << method << "\n";
+    }
     for (std::int64_t i = 1; i <= iterations; ++i) {
       std::uint64_t const Y =
           mersenne() % (binary64_8 - binary64_1) + binary64_1;
       double const y = principia::to_double(Y);
       principia::slow_correct::RoundedReal const x_correct =
           principia::slow_correct::cube_root(y);
-      double x;
-      if (method == "atlas") {
-        x = principia::atlas::cbrt(y);
-      } else if (method == "householder_order_10_estrin") {
-        x = principia::householder_order_10_estrin::cbrt(y);
-      } else if (method == "egg") {
-        x = principia::egg::cbrt(y);
-      } else if (method == "kahan") {
-        x = principia::kahan::cbrt(y);
-      } else if (method == "microsoft") {
-        x = std::cbrt(y);
-      } else if (method == "sun") {
-        x = principia::sun::cbrt(y);
-      }
-      std::int64_t const ulps_from_correct =
-          principia::to_integer(x) -
-          principia::to_integer(x_correct.nearest_rounding);
-      double const ulps_from_exact = x_correct.nearest_ulps + ulps_from_correct;
-      double const abs_ulps_from_exact = std::abs(ulps_from_exact);
-      if (abs_ulps_from_exact > max_ulps) {
-        max_ulps = abs_ulps_from_exact;
-        Y_worst = Y;
-      }
-      if (x != x_correct.nearest_rounding) {
-        ++incorrect_roundings;
-        CHECK_GT(abs_ulps_from_exact, 0.5);
-        if (x != x_correct.furthest_rounding) {
-          ++unfaithful_roundings;
-          CHECK_GT(abs_ulps_from_exact, 1);
+      for (auto const& method : methods) {
+        double const x =
+            principia::numerics::CubeRootRegistry::Instance().methods().at(
+                method)(y);
+        std::int64_t const ulps_from_correct =
+            principia::to_integer(x) -
+            principia::to_integer(x_correct.nearest_rounding);
+        double const ulps_from_exact =
+            x_correct.nearest_ulps + ulps_from_correct;
+        double const abs_ulps_from_exact = std::abs(ulps_from_exact);
+        if (abs_ulps_from_exact > properties[method].max_ulps) {
+          properties[method].max_ulps = abs_ulps_from_exact;
+          properties[method].Y_worst = Y;
         }
-      } else {
-        CHECK_LE(abs_ulps_from_exact, 0.5);
+        if (x != x_correct.nearest_rounding) {
+          ++properties[method].incorrect_roundings;
+          CHECK_GT(abs_ulps_from_exact, 0.5);
+          if (x != x_correct.furthest_rounding) {
+            ++properties[method].unfaithful_roundings;
+            CHECK_GT(abs_ulps_from_exact, 1);
+          }
+        } else {
+          CHECK_LE(abs_ulps_from_exact, 0.5);
+        }
       }
 
       std::int64_t const ulps_incorrect_from_correct =
@@ -118,15 +129,7 @@ int main(int argc, char const* argv[]) {
       }
 
       if (i % 1'000'000 == 0) {
-        std::cout << "Method " << method << ".\n"
-                  << "Tested " << i << " values in [1, 8[.\n"
-                  << "incorrect roundings  : " << incorrect_roundings << " ("
-                  << 100.0 * incorrect_roundings / i << " %)\n"
-                  << "unfaithful roundings : " << unfaithful_roundings << " ("
-                  << 100.0 * unfaithful_roundings / i << " %)\n"
-                  << "maximal error        : " << max_ulps << " ULPs, for "
-                  << std::hex << std::uppercase << "16^^" << Y_worst << std::dec
-                  << "\n\n"
+        std::cout << "Tested " << i << " values in [1, 8[.\n\n"
                   << "Trickiest sample values:\n"
                   << "closest to ties      : 1/2 + "
                   << min_positive_incorrect_ulps - 0.5 << " ULPs, for "
@@ -142,7 +145,21 @@ int main(int argc, char const* argv[]) {
                   << "\n"
                   << "                            " << max_negative_correct_ulps
                   << " ULPs, for " << std::hex << std::uppercase << "16^^"
-                  << Y_just_above_exact << std::dec << "\n";
+                  << Y_just_above_exact << std::dec << "\n\n";
+        for (auto const& method : methods) {
+          std::cout << "Method " << method << "\n"
+                    << "incorrect roundings  : "
+                    << properties[method].incorrect_roundings << " ("
+                    << 100.0 * properties[method].incorrect_roundings / i
+                    << " %)\n"
+                    << "unfaithful roundings : "
+                    << properties[method].unfaithful_roundings << " ("
+                    << 100.0 * properties[method].unfaithful_roundings / i
+                    << " %)\n"
+                    << "maximal error        : " << properties[method].max_ulps
+                    << " ULPs, for " << std::hex << std::uppercase << "16^^"
+                    << properties[method].Y_worst << std::dec << "\n\n";
+        }
       }
     }
   } else if (command == "generate_configuration") {

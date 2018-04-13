@@ -64,5 +64,8 @@
     <ClInclude Include="quantities_body.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="cbrt.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

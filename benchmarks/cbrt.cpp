@@ -1,4 +1,6 @@
 ﻿
+#include "benchmarks/cbrt.hpp"
+
 #include <string>
 
 #include "glog/logging.h"
@@ -20,6 +22,26 @@
 #endif
 
 namespace principia {
+namespace numerics {
+
+CubeRootRegistry& CubeRootRegistry::Instance() {
+  static CubeRootRegistry* registry = new CubeRootRegistry();
+  return *registry;
+}
+
+SingleParameterScalarFunction* CubeRootRegistry::Register(
+    std::string const& name,
+    SingleParameterScalarFunction* cbrt) {
+  CHECK(methods_.emplace(name, cbrt).second) << name;
+  return cbrt;
+}
+
+std::map<std::string, SingleParameterScalarFunction*> const&
+CubeRootRegistry::methods() const {
+  return methods_;
+}
+
+}  // namespace numerics
 
 namespace {
 std::uint64_t to_integer(double x) {
@@ -95,19 +117,7 @@ namespace atlas {
 #include "benchmarks/atlas_cbrt"
 }  // namespace atlas
 
-namespace one_halley_iterate {
-constexpr std::uint64_t C = 0x2a9f76253119d328;
-double cbrt(double const y) {
-  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  std::uint64_t Y = to_integer(y);
-  std::uint64_t Q = C + Y / 3;
-  double x = to_double(Q);
-  // One M = 3 iterate.
-  double x³ = x * x * x;
-  x = x - (x³ - y) * x / (2 * x³ + y);
-  return x;
-}
-}  // namespace one_halley_iterate
+PRINCIPIA_REGISTER_CBRT(atlas);
 
 namespace householder_order_10 {
 constexpr std::uint64_t C = 0x2a9f76253119d328;
@@ -135,6 +145,8 @@ double cbrt(double const y) {
 }
 }  // namespace householder_order_10
 
+PRINCIPIA_REGISTER_CBRT(householder_order_10);
+
 namespace householder_order_10_estrin {
 constexpr std::uint64_t C = 0x2a9f76253119d328;
 double cbrt(double const y) {
@@ -158,6 +170,8 @@ double cbrt(double const y) {
 }
 }  // namespace householder_order_10_estrin
 
+PRINCIPIA_REGISTER_CBRT(householder_order_10_estrin);
+
 namespace kahan {
 constexpr std::uint64_t C = 0x2a9f76253119d328;
 double cbrt(double const y) {
@@ -177,6 +191,8 @@ double cbrt(double const y) {
   return x;
 }
 }  // namespace kahan
+
+PRINCIPIA_REGISTER_CBRT(kahan);
 
 namespace kahan_no_div {
 constexpr std::uint64_t G  = 0x553ef0ff289dd796;
@@ -203,6 +219,8 @@ double cbrt(double const y) {
   return x;
 }
 }  // namespace kahan_no_div
+
+PRINCIPIA_REGISTER_CBRT(kahan_no_div);
 
 namespace egg {
 constexpr std::uint64_t G = 0x553ef0ff289dd796;
@@ -236,6 +254,8 @@ double cbrt(double const IACA_VOLATILE input) {
 }
 }  // namespace egg
 
+PRINCIPIA_REGISTER_CBRT(egg);
+
 namespace sun {
 
 #define __STDC__
@@ -259,6 +279,13 @@ using u_int32_t = std::uint32_t;
 
 }  // namespace sun
 
+PRINCIPIA_REGISTER_CBRT(sun);
+
+namespace microsoft {
+double cbrt(double y) { return std::cbrt(y); }
+}
+PRINCIPIA_REGISTER_CBRT(microsoft);
+
 #if !NO_BENCHMARK
 void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
   double total = 0;
@@ -277,10 +304,6 @@ void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
 
 void BM_AtlasCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &atlas::cbrt);
-}
-
-void BM_OneHalleyIterateCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &one_halley_iterate::cbrt);
 }
 
 void BM_HouseholderOrder10EstrinCbrt(benchmark::State& state) {
@@ -316,7 +339,6 @@ void BM_SlowCorrectCbrt(benchmark::State& state) {
 }
 
 BENCHMARK(BM_AtlasCbrt);
-BENCHMARK(BM_OneHalleyIterateCbrt);
 BENCHMARK(BM_HouseholderOrder10EstrinCbrt);
 BENCHMARK(BM_HouseholderOrder10Cbrt);
 BENCHMARK(BM_KahanCbrt);
