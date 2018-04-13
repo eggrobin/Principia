@@ -191,6 +191,35 @@ double cbrt(double const IACA_VOLATILE input) {
 
 PRINCIPIA_REGISTER_CBRT(egg);
 
+namespace egg_halley {
+constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+double cbrt(double const IACA_VOLATILE input) {
+  IACA_VC64_START
+  double const y = input;
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  // Approximate ∛y with an error below 3,2 %.
+  std::uint64_t const Y = to_integer(y);
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q³ = q * q * q;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  double const ξ = q - (q³ - y) * q / (2 * q³ + y);
+  std::uint64_t const Ξ = to_integer(ξ) & 0xFFFF'FFF0'0000'0000;
+  double const x = to_double(Ξ);
+  // One round of 6th order Householder.
+  double const x³ = x * x * x;
+  double const x⁶ = x³ * x³;
+  double const y² = y * y;
+  double const numerator = x * (x³ - y) * ((5 * x³ + 17 * y) * x³ + 5 * y²);
+  double const denominator = (7 * x³ + 42 * y) * x⁶ + (30 * x³ + 2 * y) * y²;
+  double const IACA_VOLATILE result = x - numerator / denominator;
+  IACA_VC64_END
+  return result;
+}
+}  // namespace egg_halley
+
+PRINCIPIA_REGISTER_CBRT(egg_halley);
+
 namespace microsoft {
   using std::cbrt;
 }
@@ -228,6 +257,10 @@ void BM_EggCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &egg::cbrt);
 }
 
+void BM_EggHalleyCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &egg_halley::cbrt);
+}
+
 void BM_MicrosoftCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &std::cbrt);
 }
@@ -236,6 +269,7 @@ BENCHMARK(BM_HouseholderOrder10Cbrt);
 BENCHMARK(BM_KahanCbrt);
 BENCHMARK(BM_KahanNoDivCbrt);
 BENCHMARK(BM_EggCbrt);
+BENCHMARK(BM_EggHalleyCbrt);
 BENCHMARK(BM_MicrosoftCbrt);
 #endif
 
