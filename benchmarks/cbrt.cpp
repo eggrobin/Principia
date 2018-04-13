@@ -91,34 +91,6 @@ double cbrt(double const y) {
   double const x = to_double(Q & 0xFFFF'FFF0'0000'0000);
   double const x³ = x * x * x;
   double const y² = y * y;
-  double const y³ = y * y²;
-  double const y⁴ = y² * y²;
-  double const y⁵ = y² * y³;
-  double const y⁶ = y³ * y³;
-  double const numerator_big_factor =
-      (y⁵ + x³ * (46 * y⁴ +
-                  x³ * (256 * y³ + x³ * (323 * y² + x³ * (5 * x³ + 98 * y)))));
-  double const numerator = 9 * x * (x³ - y) * numerator_big_factor;
-  double const denominator =
-      y⁶ + x³ * (210 * y⁵ +
-                 x³ * (2850 * y⁴ +
-                       x³ * (8350 * y³ +
-                             x³ * (6765 * y² + x³* (55 * x³ + 1452 * y)))));
-  return x - numerator / denominator;
-}
-}  // namespace householder_order_10
-
-PRINCIPIA_REGISTER_CBRT(householder_order_10);
-
-namespace householder_order_10_estrin {
-constexpr std::uint64_t C = 0x2a9f76253119d328;
-double cbrt(double const y) {
-  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  std::uint64_t Y = to_integer(y);
-  std::uint64_t Q = C + Y / 3;
-  double const x = to_double(Q & 0xFFFF'FFF0'0000'0000);
-  double const x³ = x * x * x;
-  double const y² = y * y;
   double const y⁴ = y² * y²;
   double const x⁶ = x³ * x³;
   double const x⁹ = x⁶ * x³;
@@ -131,9 +103,9 @@ double cbrt(double const y) {
       ((2850 * x³ + 210 * y) * x³ + y²) * y⁴;
   return x - numerator / denominator;
 }
-}  // namespace householder_order_10_estrin
+}  // namespace householder_order_10
 
-PRINCIPIA_REGISTER_CBRT(householder_order_10_estrin);
+PRINCIPIA_REGISTER_CBRT(householder_order_10);
 
 namespace kahan {
 constexpr std::uint64_t C = 0x2a9f76253119d328;
@@ -240,10 +212,6 @@ void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
                  quantities::DebugString(cbrt(2)));
 }
 
-void BM_HouseholderOrder10EstrinCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &householder_order_10_estrin::cbrt);
-}
-
 void BM_HouseholderOrder10Cbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &householder_order_10::cbrt);
 }
@@ -264,7 +232,6 @@ void BM_MicrosoftCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &std::cbrt);
 }
 
-BENCHMARK(BM_HouseholderOrder10EstrinCbrt);
 BENCHMARK(BM_HouseholderOrder10Cbrt);
 BENCHMARK(BM_KahanCbrt);
 BENCHMARK(BM_KahanNoDivCbrt);
