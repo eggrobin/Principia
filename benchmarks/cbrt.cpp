@@ -88,7 +88,7 @@ double cbrt(double const y) {
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   std::uint64_t Y = to_integer(y);
   std::uint64_t Q = C + Y / 3;
-  double const x = to_double(Q);
+  double const x = to_double(Q & 0xFFFF'FFF0'0000'0000);
   double const x³ = x * x * x;
   double const y² = y * y;
   double const y³ = y * y²;
