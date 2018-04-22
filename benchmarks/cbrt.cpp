@@ -129,6 +129,29 @@ double cbrt(double const y) {
 
 PRINCIPIA_REGISTER_CBRT(kahan);
 
+namespace kahan_other {
+constexpr std::uint64_t C = 0x2a9f76253119d328;
+double cbrt(double const y) {
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  std::uint64_t const Y = to_integer(y);
+  std::uint64_t const Q = C + Y / 3;
+  double x = to_double(Q);
+  // One M = 3 iterate.
+  double x³ = x * x * x;
+  x = x - (x³ - y) * x / (2 * x³ + y);
+  std::uint64_t const X = to_integer(x) & 0xFFFF'FFF0'0000'0000;
+  x = to_double(X);
+  // One M = 4 iterate, Γ = -1.
+  x³ = x * x * x;
+  constexpr double λ = 0.272165526975908677577476008301;
+  double const z = x³ - y;
+  x = x - (y * z) * x / (3 * (y - λ * z) * (y +  λ * z) + 2 * (y * z));
+  return x;
+}
+}  // namespace kahan_other
+
+PRINCIPIA_REGISTER_CBRT(kahan_other);
+
 namespace kahan_no_div {
 constexpr std::uint64_t G  = 0x553ef0ff289dd796;
 double cbrt(double const y) {
@@ -245,6 +268,10 @@ void BM_HouseholderOrder10Cbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &householder_order_10::cbrt);
 }
 
+void BM_KahanOtherCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &kahan_other::cbrt);
+}
+
 void BM_KahanCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &kahan::cbrt);
 }
@@ -265,12 +292,22 @@ void BM_MicrosoftCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &std::cbrt);
 }
 
+double identity(double x) {
+  return x;
+}
+
+void BM_NoCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &identity);
+}
+
 BENCHMARK(BM_HouseholderOrder10Cbrt);
 BENCHMARK(BM_KahanCbrt);
+BENCHMARK(BM_KahanOtherCbrt);
 BENCHMARK(BM_KahanNoDivCbrt);
 BENCHMARK(BM_EggCbrt);
 BENCHMARK(BM_EggHalleyCbrt);
 BENCHMARK(BM_MicrosoftCbrt);
+BENCHMARK(BM_NoCbrt);
 #endif
 
 }  // namespace numerics
