@@ -155,6 +155,68 @@ double cbrt(double const IACA_VOLATILE input) {
 
 PRINCIPIA_REGISTER_CBRT(egg_signed);
 
+namespace egg_scaling {
+constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+static const __m128i sign_bit = _mm_cvtsi64_si128(0x8000'0000'0000'0000);
+static const __m128i sixteen_bits_of_mantissa =
+    _mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000);
+// TODO(egg): actually compute these constants values.
+constexpr double smol = 0x1p-358;
+constexpr double smol_σ = 0x1p-240;
+constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
+constexpr double big = 0x1p358;
+constexpr double big_σ = 0x1p240;
+constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
+double cbrt(double const IACA_VOLATILE input) {
+  IACA_VC64_START
+  double const y = input;
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  __m128i Y_0 = _mm_castpd_si128(_mm_set_sd(y));
+  __m128i const sign = _mm_and_si128(sign_bit, Y_0);
+  Y_0 = _mm_andnot_si128(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(_mm_castsi128_pd(Y_0));
+  if (abs_y < smol) {
+    if (abs_y == 0) {
+      return y;
+    }
+    return cbrt(y * smol_σ⁻³) * smol_σ;
+  } else if (abs_y > big) {
+    if (abs_y == std::numeric_limits<double>::infinity()) {
+      return y;
+    }
+    return cbrt(y * big_σ⁻³) * big_σ;
+  }
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
+  std::uint64_t const Y = _mm_cvtsi128_si64(Y_0);
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q³ = q * q * q;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  double const ξ = q - (q³ - abs_y) * q / (2 * q³ + abs_y);
+  double const x = _mm_cvtsd_f64(_mm_castsi128_pd(_mm_and_si128(
+      _mm_castpd_si128(_mm_set_sd(ξ)), sixteen_bits_of_mantissa)));
+  // One round of 6th order Householder.
+  double const x³ = x * x * x;
+  double const x⁶ = x³ * x³;
+  double const y² = y * y;
+  double const numerator =
+      x * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
+  double const denominator =
+      (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
+  double const result = x - numerator / denominator;
+  double const IACA_VOLATILE signed_result = _mm_cvtsd_f64(
+      _mm_castsi128_pd(
+      _mm_or_si128(
+      _mm_castpd_si128(_mm_set_sd(result)), sign)));
+  IACA_VC64_END
+  return signed_result;
+}
+}  // namespace egg_scaling
+
+PRINCIPIA_REGISTER_CBRT(egg_scaling);
+
 #if PRINCIPIA_BENCHMARKS
 void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
   double total = 0;
@@ -168,8 +230,10 @@ void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
     ++iterations;
   }
   state.SetLabel(quantities::DebugString(total / iterations) + u8"; ∛2 = " +
-                 quantities::DebugString(cbrt(2)) + u8"; -∛-2 = " +
-                 quantities::DebugString(-cbrt(-2)));
+                 quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
+                 quantities::DebugString(cbrt(-2)) + u8"; ∛2e306 = " +
+                 quantities::DebugString(cbrt(2e306)) + u8"; ∛2e-306 = " +
+                 quantities::DebugString(cbrt(2e-306)));
 }
 
 void BM_EggCbrt(benchmark::State& state) {
@@ -180,8 +244,13 @@ void BM_EggSignedCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &egg_signed::cbrt);
 }
 
+void BM_EggScalingCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &egg_scaling::cbrt);
+}
+
 BENCHMARK(BM_EggCbrt);
 BENCHMARK(BM_EggSignedCbrt);
+BENCHMARK(BM_EggScalingCbrt);
 #endif
 
 }  // namespace numerics
