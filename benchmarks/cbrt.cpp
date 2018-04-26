@@ -8,7 +8,7 @@
 
 #include "mpirxx.h"
 
-#if 0
+#if 1
 #include "Intel/IACA 2.1/iacaMarks.h"
 #define IACA_VOLATILE volatile
 #else
@@ -82,139 +82,7 @@ RoundedReal correct_cube_root(double const y) {
   return result;
 }
 
-namespace householder_order_10 {
-constexpr std::uint64_t C = 0x2a9f76253119d328;
-double cbrt(double const y) {
-  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  std::uint64_t Y = to_integer(y);
-  std::uint64_t Q = C + Y / 3;
-  double const x = to_double(Q & 0xFFFF'FFF0'0000'0000);
-  double const x³ = x * x * x;
-  double const y² = y * y;
-  double const y⁴ = y² * y²;
-  double const x⁶ = x³ * x³;
-  double const x⁹ = x⁶ * x³;
-  double const numerator_big_factor =
-      ((5 * x³ + 98 * y) * x⁶ + (323 * x³ + 256 * y) * y²) * x⁶ +
-      (46 * x³ + y) * y⁴;
-  double const numerator = 9 * x * (x³ - y) * numerator_big_factor;
-  double const denominator =
-      ((55 * x³ + 1452 * y) * x⁶ + (6765 * x³ + 8350 * y) * y²) * x⁹ +
-      ((2850 * x³ + 210 * y) * x³ + y²) * y⁴;
-  return x - numerator / denominator;
-}
-}  // namespace householder_order_10
-
-PRINCIPIA_REGISTER_CBRT(householder_order_10);
-
-namespace kahan {
-constexpr std::uint64_t C = 0x2a9f76253119d328;
-double cbrt(double const y) {
-  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  std::uint64_t const Y = to_integer(y);
-  std::uint64_t const Q = C + Y / 3;
-  double x = to_double(Q);
-  // One M = 3 iterate.
-  double x³ = x * x * x;
-  x = x - (x³ - y) * x / (2 * x³ + y);
-  std::uint64_t const X = to_integer(x) & 0xFFFF'FFF0'0000'0000;
-  x = to_double(X);
-  // One M = 4 iterate, Γ = -35/3.
-  x³ = x * x * x;
-  double const s = (x³ - y) / y;
-  x = x - x * ((14.0 / 81.0 * s - 2.0 / 9.0) * s + 1.0 / 3.0) * s;
-  return x;
-}
-}  // namespace kahan
-
-PRINCIPIA_REGISTER_CBRT(kahan);
-
-namespace kahan_other {
-constexpr std::uint64_t C = 0x2a9f76253119d328;
-double cbrt(double const y) {
-  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  std::uint64_t const Y = to_integer(y);
-  std::uint64_t const Q = C + Y / 3;
-  double x = to_double(Q);
-  // One M = 3 iterate.
-  double x³ = x * x * x;
-  x = x - (x³ - y) * x / (2 * x³ + y);
-  std::uint64_t const X = to_integer(x) & 0xFFFF'FFF0'0000'0000;
-  x = to_double(X);
-  // One M = 4 iterate, Γ = -1.
-  x³ = x * x * x;
-  constexpr double λ = 0.272165526975908677577476008301;
-  double const z = x³ - y;
-  x = x - (y * z) * x / (3 * (y - λ * z) * (y +  λ * z) + 2 * (y * z));
-  return x;
-}
-}  // namespace kahan_other
-
-PRINCIPIA_REGISTER_CBRT(kahan_other);
-
-namespace kahan_no_div {
-constexpr std::uint64_t G  = 0x553ef0ff289dd796;
-double cbrt(double const y) {
-  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  std::uint64_t Y = to_integer(y);
-  std::uint64_t R = G - Y / 3;
-  double z = to_double(R);
-  double z²;
-  double z⁴;
-  z² = z * z;
-  z⁴ = z² * z²;
-  z = z + (1.0 / 3.0) * (z - z⁴ * y);
-  z² = z * z;
-  z⁴ = z² * z²;
-  z = z + (1.0 / 3.0) * (z - z⁴ * y);
-  z² = z * z;
-  z⁴ = z² * z²;
-  z = z + (1.0 / 3.0) * (z - z⁴ * y);
-  z² = z * z;
-  z⁴ = z² * z²;
-  z = z + (1.0 / 3.0) * (z - z⁴ * y);
-  double const x = z * z * y;
-  return x;
-}
-}  // namespace kahan_no_div
-
-PRINCIPIA_REGISTER_CBRT(kahan_no_div);
-
 namespace egg {
-constexpr std::uint64_t G = 0x553EEE713FD44BE6;
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
-  double const y = input;
-  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  // Approximate 1/∛y with an error below 3,5 %.
-  std::uint64_t const Y = to_integer(y);
-  std::uint64_t const R = G - Y / 3;
-  double const r = to_double(R);
-  // z = z₁z₂ is the approximation of 1/∛y by two rounds of Newton on r.
-  // TODO(egg): error here.
-  double const r³y = (r * r) * (r * y);
-  double const r⁶y² = r³y * r³y;
-  double const z₁ = -1.0 / 243.0 * r * (r³y - 4);
-  double const z₂ = ((108 - 64 * r³y) + (48 - 12 * r³y + r⁶y²) * r⁶y²);
-  // An approximation of ∛y [TODO(egg): error here].
-  double const yz² = y * (z₁ * z₁) * (z₂ * z₂);
-  std::uint64_t const X = to_integer(yz²) & 0xFFFF'FFF0'0000'0000;
-  double const x = to_double(X);
-  // One round of 6th order Householder.
-  double const x³ = x * x * x;
-  double const x⁶ = x³ * x³;
-  double const y² = y * y;
-  double const numerator = x * (x³ - y) * ((5 * x³ + 17 * y) * x³ + 5 * y²);
-  double const denominator = (7 * x³ + 42 * y) * x⁶ + (30 * x³ + 2 * y) * y²;
-  double const IACA_VOLATILE result = x - numerator / denominator;
-  IACA_VC64_END
-  return result;
-}
-}  // namespace egg
-
-PRINCIPIA_REGISTER_CBRT(egg);
-
-namespace egg_halley {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 double cbrt(double const IACA_VOLATILE input) {
   IACA_VC64_START
@@ -241,12 +109,83 @@ double cbrt(double const IACA_VOLATILE input) {
 }
 }  // namespace egg_halley
 
-PRINCIPIA_REGISTER_CBRT(egg_halley);
+PRINCIPIA_REGISTER_CBRT(egg);
 
-namespace microsoft {
-  using std::cbrt;
+namespace egg_signed {
+constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+double cbrt(double const IACA_VOLATILE input) {
+  IACA_VC64_START
+  double const y = input;
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  // Approximate ∛y with an error below 3,2 %.
+  std::uint64_t Y = to_integer(y);
+  std::uint64_t const sign = 0x8000'0000'0000'0000 & Y;
+  Y &= ~0x8000'0000'0000'0000;
+  double const abs_y = to_double(Y);
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q³ = q * q * q;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  double const ξ = q - (q³ - abs_y) * q / (2 * q³ + abs_y);
+  std::uint64_t const Ξ = to_integer(ξ) & 0xFFFF'FFF0'0000'0000;
+  double const x = to_double(Ξ);
+  // One round of 6th order Householder.
+  double const x³ = x * x * x;
+  double const x⁶ = x³ * x³;
+  double const y² = y * y;
+  double const numerator =
+      x * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
+  double const denominator =
+      (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
+  double const result = x - numerator / denominator;
+  double const IACA_VOLATILE signed_result =
+      to_double(to_integer(result) | sign);
+  IACA_VC64_END
+  return signed_result;
 }
-PRINCIPIA_REGISTER_CBRT(microsoft);
+}  // namespace egg_signed
+
+namespace egg_signed_intrinsic {
+constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+static const __m128i sign_bit = _mm_cvtsi64_si128(0x8000'0000'0000'0000);
+static const __m128i sixteen_bits_of_mantissa =
+    _mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000);
+double cbrt(double const IACA_VOLATILE input) {
+  IACA_VC64_START
+  double const y = input;
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  // Approximate ∛y with an error below 3,2 %.
+  __m128i Y_0 = _mm_castpd_si128(_mm_set_sd(y));
+  __m128i const sign = _mm_and_si128(sign_bit, Y_0);
+  Y_0 = _mm_andnot_si128(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(_mm_castsi128_pd(Y_0));
+  std::uint64_t const Y = _mm_cvtsi128_si64(Y_0);
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q³ = q * q * q;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  double const ξ = q - (q³ - abs_y) * q / (2 * q³ + abs_y);
+  double const x = _mm_cvtsd_f64(_mm_castsi128_pd(_mm_and_si128(
+      _mm_castpd_si128(_mm_set_sd(ξ)), sixteen_bits_of_mantissa)));
+  // One round of 6th order Householder.
+  double const x³ = x * x * x;
+  double const x⁶ = x³ * x³;
+  double const y² = y * y;
+  double const numerator =
+      x * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
+  double const denominator =
+      (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
+  double const result = x - numerator / denominator;
+  double const IACA_VOLATILE signed_result = _mm_cvtsd_f64(
+      _mm_castsi128_pd(
+      _mm_or_si128(
+      _mm_castpd_si128(_mm_set_sd(result)), sign)));
+  IACA_VC64_END
+  return signed_result;
+}
+}  // namespace egg_signed_intrinsic
+
+PRINCIPIA_REGISTER_CBRT(egg_signed_intrinsic);
 
 #if PRINCIPIA_BENCHMARKS
 void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
@@ -261,53 +200,25 @@ void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
     ++iterations;
   }
   state.SetLabel(quantities::DebugString(total / iterations) + u8"; ∛2 = " +
-                 quantities::DebugString(cbrt(2)));
-}
-
-void BM_HouseholderOrder10Cbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &householder_order_10::cbrt);
-}
-
-void BM_KahanOtherCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &kahan_other::cbrt);
-}
-
-void BM_KahanCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &kahan::cbrt);
-}
-
-void BM_KahanNoDivCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &kahan_no_div::cbrt);
+                 quantities::DebugString(cbrt(2)) + u8"; -∛-2 = " +
+                 quantities::DebugString(-cbrt(-2)));
 }
 
 void BM_EggCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &egg::cbrt);
 }
 
-void BM_EggHalleyCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &egg_halley::cbrt);
+void BM_EggSignedCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &egg_signed::cbrt);
 }
 
-void BM_MicrosoftCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &std::cbrt);
+void BM_EggSignedIntrinsicCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &egg_signed_intrinsic::cbrt);
 }
 
-double identity(double x) {
-  return x;
-}
-
-void BM_NoCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &identity);
-}
-
-BENCHMARK(BM_HouseholderOrder10Cbrt);
-BENCHMARK(BM_KahanCbrt);
-BENCHMARK(BM_KahanOtherCbrt);
-BENCHMARK(BM_KahanNoDivCbrt);
 BENCHMARK(BM_EggCbrt);
-BENCHMARK(BM_EggHalleyCbrt);
-BENCHMARK(BM_MicrosoftCbrt);
-BENCHMARK(BM_NoCbrt);
+BENCHMARK(BM_EggSignedCbrt);
+BENCHMARK(BM_EggSignedIntrinsicCbrt);
 #endif
 
 }  // namespace numerics
