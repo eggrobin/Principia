@@ -8,7 +8,7 @@
 
 #include "mpirxx.h"
 
-#if 1
+#if 0
 #include "Intel/IACA 2.1/iacaMarks.h"
 #define IACA_VOLATILE volatile
 #else
@@ -154,11 +154,13 @@ double cbrt(double const IACA_VOLATILE input) {
   IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  // Approximate ∛y with an error below 3,2 %.
   __m128i Y_0 = _mm_castpd_si128(_mm_set_sd(y));
   __m128i const sign = _mm_and_si128(sign_bit, Y_0);
   Y_0 = _mm_andnot_si128(sign_bit, Y_0);
   double const abs_y = _mm_cvtsd_f64(_mm_castsi128_pd(Y_0));
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
   std::uint64_t const Y = _mm_cvtsi128_si64(Y_0);
   std::uint64_t const Q = C + Y / 3;
   double const q = to_double(Q);
