@@ -107,45 +107,11 @@ double cbrt(double const IACA_VOLATILE input) {
   IACA_VC64_END
   return result;
 }
-}  // namespace egg_halley
+}  // namespace egg
 
 PRINCIPIA_REGISTER_CBRT(egg);
 
 namespace egg_signed {
-constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
-  double const y = input;
-  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  // Approximate ∛y with an error below 3,2 %.
-  std::uint64_t Y = to_integer(y);
-  std::uint64_t const sign = 0x8000'0000'0000'0000 & Y;
-  Y &= ~0x8000'0000'0000'0000;
-  double const abs_y = to_double(Y);
-  std::uint64_t const Q = C + Y / 3;
-  double const q = to_double(Q);
-  double const q³ = q * q * q;
-  // An approximation of ∛y with a relative error below 2⁻¹⁵.
-  double const ξ = q - (q³ - abs_y) * q / (2 * q³ + abs_y);
-  std::uint64_t const Ξ = to_integer(ξ) & 0xFFFF'FFF0'0000'0000;
-  double const x = to_double(Ξ);
-  // One round of 6th order Householder.
-  double const x³ = x * x * x;
-  double const x⁶ = x³ * x³;
-  double const y² = y * y;
-  double const numerator =
-      x * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
-  double const denominator =
-      (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const result = x - numerator / denominator;
-  double const IACA_VOLATILE signed_result =
-      to_double(to_integer(result) | sign);
-  IACA_VC64_END
-  return signed_result;
-}
-}  // namespace egg_signed
-
-namespace egg_signed_intrinsic {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128i sign_bit = _mm_cvtsi64_si128(0x8000'0000'0000'0000);
 static const __m128i sixteen_bits_of_mantissa =
@@ -185,9 +151,9 @@ double cbrt(double const IACA_VOLATILE input) {
   IACA_VC64_END
   return signed_result;
 }
-}  // namespace egg_signed_intrinsic
+}  // namespace egg_signed
 
-PRINCIPIA_REGISTER_CBRT(egg_signed_intrinsic);
+PRINCIPIA_REGISTER_CBRT(egg_signed);
 
 #if PRINCIPIA_BENCHMARKS
 void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
@@ -214,13 +180,8 @@ void BM_EggSignedCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &egg_signed::cbrt);
 }
 
-void BM_EggSignedIntrinsicCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &egg_signed_intrinsic::cbrt);
-}
-
 BENCHMARK(BM_EggCbrt);
 BENCHMARK(BM_EggSignedCbrt);
-BENCHMARK(BM_EggSignedIntrinsicCbrt);
 #endif
 
 }  // namespace numerics
