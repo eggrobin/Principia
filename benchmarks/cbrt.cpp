@@ -161,8 +161,8 @@ static const __m128i sign_bit = _mm_cvtsi64_si128(0x8000'0000'0000'0000);
 static const __m128i sixteen_bits_of_mantissa =
     _mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000);
 // TODO(egg): actually compute these constants.
-constexpr double smol = 0x1p-358;
-constexpr double smol_σ = 0x1p-240;
+constexpr double smol = 0x1p-400;
+constexpr double smol_σ = 0x1p-280;
 constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p358;
 constexpr double big_σ = 0x1p240;
