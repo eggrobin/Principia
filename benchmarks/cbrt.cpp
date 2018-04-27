@@ -161,10 +161,10 @@ static const __m128i sign_bit = _mm_cvtsi64_si128(0x8000'0000'0000'0000);
 static const __m128i sixteen_bits_of_mantissa =
     _mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000);
 // TODO(egg): actually compute these constants.
-constexpr double smol = 0x1p-400;
+constexpr double smol = 0x1p-225;
 constexpr double smol_σ = 0x1p-280;
 constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
-constexpr double big = 0x1p358;
+constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p240;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
 double cbrt(double const IACA_VOLATILE input) {
@@ -237,6 +237,12 @@ void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
                  quantities::DebugString(0x1p341 * cbrt(0x1p-1022)) +
                  u8"; 2³⁵⁸ ∛2⁻¹⁰⁷³ = " +
                  quantities::DebugString(0x1p358 * cbrt(0x1p-1073)));
+  LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::big));
+  LOG(ERROR) << quantities::DebugString(
+      cbrt(egg_scaling::big * egg_scaling::big_σ⁻³) * egg_scaling::big_σ);
+  LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::smol));
+  LOG(ERROR) << quantities::DebugString(
+      cbrt(egg_scaling::smol * egg_scaling::smol_σ⁻³) * egg_scaling::smol_σ);
 }
 
 void BM_EggCbrt(benchmark::State& state) {
