@@ -160,7 +160,7 @@ constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128i sign_bit = _mm_cvtsi64_si128(0x8000'0000'0000'0000);
 static const __m128i sixteen_bits_of_mantissa =
     _mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000);
-// TODO(egg): actually compute these constants values.
+// TODO(egg): actually compute these constants.
 constexpr double smol = 0x1p-358;
 constexpr double smol_σ = 0x1p-240;
 constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
@@ -229,11 +229,14 @@ void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
     total += x;
     ++iterations;
   }
-  state.SetLabel(quantities::DebugString(total / iterations) + u8"; ∛2 = " +
+  state.SetLabel(quantities::DebugString(total / iterations, 3) + u8"; ∛2 = " +
                  quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
-                 quantities::DebugString(cbrt(-2)) + u8"; ∛2e306 = " +
-                 quantities::DebugString(cbrt(2e306)) + u8"; ∛2e-306 = " +
-                 quantities::DebugString(cbrt(2e-306)));
+                 quantities::DebugString(cbrt(-2)) + u8"; 2⁻³⁴⁰ ∛2¹⁰²¹ = " +
+                 quantities::DebugString(0x1p-340 * cbrt(0x1p1021)) +
+                 u8"; 2³⁴¹ ∛2⁻¹⁰²² = " +
+                 quantities::DebugString(0x1p341 * cbrt(0x1p-1022)) +
+                 u8"; 2³⁵⁸ ∛2⁻¹⁰⁷³ = " +
+                 quantities::DebugString(0x1p358 * cbrt(0x1p-1073)));
 }
 
 void BM_EggCbrt(benchmark::State& state) {
