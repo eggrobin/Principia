@@ -162,10 +162,10 @@ static const __m128i sixteen_bits_of_mantissa =
     _mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000);
 // TODO(egg): actually compute these constants.
 constexpr double smol = 0x1p-225;
-constexpr double smol_σ = 0x1p-280;
+constexpr double smol_σ = 0x1p-154;
 constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
-constexpr double big_σ = 0x1p240;
+constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
 double cbrt(double const IACA_VOLATILE input) {
   IACA_VC64_START
