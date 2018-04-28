@@ -84,34 +84,46 @@ RoundedReal correct_cube_root(double const y) {
 
 namespace egg {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+static const __m128d sign_bit = _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
+static const __m128d sixteen_bits_of_mantissa =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
 double cbrt(double const IACA_VOLATILE input) {
   IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  // Approximate ∛y with an error below 3,2 %.
-  std::uint64_t const Y = to_integer(y);
+  __m128d Y_0 = _mm_set_sd(y);
+  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
+  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(Y_0);
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
+  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
   std::uint64_t const Q = C + Y / 3;
   double const q = to_double(Q);
   double const q³ = q * q * q;
   // An approximation of ∛y with a relative error below 2⁻¹⁵.
-  double const ξ = q - (q³ - y) * q / (2 * q³ + y);
-  std::uint64_t const Ξ = to_integer(ξ) & 0xFFFF'FFF0'0000'0000;
-  double const x = to_double(Ξ);
+  double const ξ = q - (q³ - abs_y) * q / (2 * q³ + abs_y);
+  double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
   // One round of 6th order Householder.
   double const x³ = x * x * x;
   double const x⁶ = x³ * x³;
   double const y² = y * y;
-  double const numerator = x * (x³ - y) * ((5 * x³ + 17 * y) * x³ + 5 * y²);
-  double const denominator = (7 * x³ + 42 * y) * x⁶ + (30 * x³ + 2 * y) * y²;
-  double const IACA_VOLATILE result = x - numerator / denominator;
+  double const numerator =
+      x * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
+  double const denominator =
+      (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
+  double const result = x - numerator / denominator;
+  double const IACA_VOLATILE signed_result =
+      _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(result), sign));
   IACA_VC64_END
-  return result;
+  return signed_result;
 }
 }  // namespace egg
 
 PRINCIPIA_REGISTER_CBRT(egg);
 
-namespace egg_signed {
+namespace egg_pand {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128i sign_bit = _mm_cvtsi64_si128(0x8000'0000'0000'0000);
 static const __m128i sixteen_bits_of_mantissa =
@@ -151,9 +163,9 @@ double cbrt(double const IACA_VOLATILE input) {
   IACA_VC64_END
   return signed_result;
 }
-}  // namespace egg_signed
+}  // namespace egg_pand
 
-PRINCIPIA_REGISTER_CBRT(egg_signed);
+PRINCIPIA_REGISTER_CBRT(egg_pand);
 
 namespace egg_scaling {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
@@ -239,20 +251,20 @@ void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
                  quantities::DebugString(0x1p341 * cbrt(0x1p-1022)) +
                  u8"; 2³⁵⁸ ∛2⁻¹⁰⁷³ = " +
                  quantities::DebugString(0x1p358 * cbrt(0x1p-1073)));
-  LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::big));
+  /*LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::big));
   LOG(ERROR) << quantities::DebugString(
       cbrt(egg_scaling::big * egg_scaling::big_σ⁻³) * egg_scaling::big_σ);
   LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::smol));
   LOG(ERROR) << quantities::DebugString(
-      cbrt(egg_scaling::smol * egg_scaling::smol_σ⁻³) * egg_scaling::smol_σ);
+      cbrt(egg_scaling::smol * egg_scaling::smol_σ⁻³) * egg_scaling::smol_σ);*/
 }
 
 void BM_EggCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &egg::cbrt);
 }
 
-void BM_EggSignedCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &egg_signed::cbrt);
+void BM_EggPandCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &egg_pand::cbrt);
 }
 
 void BM_EggScalingCbrt(benchmark::State& state) {
@@ -260,7 +272,7 @@ void BM_EggScalingCbrt(benchmark::State& state) {
 }
 
 BENCHMARK(BM_EggCbrt);
-BENCHMARK(BM_EggSignedCbrt);
+BENCHMARK(BM_EggPandCbrt);
 BENCHMARK(BM_EggScalingCbrt);
 #endif
 
