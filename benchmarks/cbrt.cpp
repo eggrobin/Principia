@@ -82,7 +82,7 @@ RoundedReal correct_cube_root(double const y) {
   return result;
 }
 
-namespace egg {
+namespace egg_andps {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit = _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
 static const __m128d sixteen_bits_of_mantissa =
@@ -119,9 +119,9 @@ double cbrt(double const IACA_VOLATILE input) {
   IACA_VC64_END
   return signed_result;
 }
-}  // namespace egg
+}  // namespace egg_andps
 
-PRINCIPIA_REGISTER_CBRT(egg);
+PRINCIPIA_REGISTER_CBRT(egg_andps);
 
 namespace egg_pand {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
@@ -167,7 +167,69 @@ double cbrt(double const IACA_VOLATILE input) {
 
 PRINCIPIA_REGISTER_CBRT(egg_pand);
 
-namespace egg_scaling {
+namespace egg_scaling_andps {
+constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+static const __m128d sign_bit =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
+static const __m128d sixteen_bits_of_mantissa =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
+// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
+// finite magnitudes inside the non-rescaling range; for very small and very
+// large values, rescaling occurs twice.
+constexpr double smol = 0x1p-225;
+constexpr double smol_σ = 0x1p-154;
+constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
+constexpr double big = 0x1p237;
+constexpr double big_σ = 0x1p154;
+constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
+double cbrt(double const IACA_VOLATILE input) {
+  IACA_VC64_START
+  double const y = input;
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  __m128d Y_0 = _mm_set_sd(y);
+  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
+  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(Y_0);
+  if (abs_y < smol) {
+    if (abs_y == 0) {
+      return y;
+    }
+    return cbrt(y * smol_σ⁻³) * smol_σ;
+  } else if (abs_y > big) {
+    if (abs_y == std::numeric_limits<double>::infinity()) {
+      return y;
+    }
+    return cbrt(y * big_σ⁻³) * big_σ;
+  }
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
+  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q³ = q * q * q;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  double const ξ = q - (q³ - abs_y) * q / (2 * q³ + abs_y);
+  double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
+  // One round of 6th order Householder.
+  double const x³ = x * x * x;
+  double const x⁶ = x³ * x³;
+  double const y² = y * y;
+  double const numerator =
+      x * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
+  double const denominator =
+      (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
+  double const result = x - numerator / denominator;
+  double const IACA_VOLATILE signed_result =
+      _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(result), sign));
+  IACA_VC64_END
+  return signed_result;
+}
+}  // namespace egg_scaling_andps
+
+PRINCIPIA_REGISTER_CBRT(egg_scaling_andps);
+
+namespace egg_scaling_pand {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128i sign_bit = _mm_cvtsi64_si128(0x8000'0000'0000'0000);
 static const __m128i sixteen_bits_of_mantissa =
@@ -227,9 +289,9 @@ double cbrt(double const IACA_VOLATILE input) {
   IACA_VC64_END
   return signed_result;
 }
-}  // namespace egg_scaling
+}  // namespace egg_scaling_pand
 
-PRINCIPIA_REGISTER_CBRT(egg_scaling);
+PRINCIPIA_REGISTER_CBRT(egg_scaling_pand);
 
 #if PRINCIPIA_BENCHMARKS
 void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
@@ -259,21 +321,26 @@ void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
       cbrt(egg_scaling::smol * egg_scaling::smol_σ⁻³) * egg_scaling::smol_σ);*/
 }
 
-void BM_EggCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &egg::cbrt);
+void BM_EggAndpsCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &egg_andps::cbrt);
 }
 
 void BM_EggPandCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &egg_pand::cbrt);
 }
 
-void BM_EggScalingCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &egg_scaling::cbrt);
+void BM_EggScalingAndpsCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &egg_scaling_andps::cbrt);
 }
 
-BENCHMARK(BM_EggCbrt);
+void BM_EggScalingPandCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &egg_scaling_pand::cbrt);
+}
+
+BENCHMARK(BM_EggAndpsCbrt);
 BENCHMARK(BM_EggPandCbrt);
-BENCHMARK(BM_EggScalingCbrt);
+BENCHMARK(BM_EggScalingAndpsCbrt);
+BENCHMARK(BM_EggScalingPandCbrt);
 #endif
 
 }  // namespace numerics
