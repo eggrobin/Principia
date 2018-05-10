@@ -128,9 +128,23 @@ public partial class PrincipiaPluginAdapter
   [KSPField(isPersistant = true)]
   private bool must_record_journal_ = false;
 
-  // Whether to compress saves.
+  // The compression method used for saves; no compression if empty.
   [KSPField(isPersistant = true)]
   private string serialization_compression_ = "";
+
+  // The encoding used to store the save as a sequence of strings.
+  const string Hexadecimal = "hexadecimal";
+  const string Base32768 = "base32768";
+  [KSPField(isPersistant = true)]
+  private string encoding_ = Hexadecimal;
+
+  delegate string PluginSerializer(IntPtr plugin,
+                                   ref IntPtr serializer,
+                                   string compressor);
+  delegate void PluginDeserializer(string serialization,
+                                   ref IntPtr deserializer,
+                                   ref IntPtr plugin,
+                                   string compressor);
 
   // Whether the plotting frame must be set to something convenient at the next
   // opportunity.
@@ -599,10 +613,17 @@ public partial class PrincipiaPluginAdapter
     if (PluginRunning()) {
       String serialization;
       IntPtr serializer = IntPtr.Zero;
+      PluginSerializer serialize;
+      if (encoding_ == Hexadecimal) {
+        serialize = Interface.SerializePluginHexadecimal;
+      } else if (encoding_ == Base32768) {
+        serialize = Interface.SerializePluginBase32768;
+      } else {
+        throw Log.Fatal("Invalid encoding " + encoding_);
+      }
       for (;;) {
-        serialization = plugin_.SerializePluginHexadecimal(
-                            ref serializer,
-                            serialization_compression_);
+        serialization =
+            serialize(plugin_, ref serializer, serialization_compression_);
         if (serialization == null) {
           break;
         }
@@ -628,20 +649,39 @@ public partial class PrincipiaPluginAdapter
       IntPtr deserializer = IntPtr.Zero;
       String[] serializations = node.GetValues(principia_serialized_plugin_);
       Log.Info("Serialization has " + serializations.Length + " chunks");
-      foreach (String serialization in serializations) {
-        Interface.DeserializePluginHexadecimal(serialization,
-                                               serialization.Length,
-                                               ref deserializer,
-                                               ref plugin_,
-                                               serialization_compression_);
+      PluginDeserializer deserialize;
+      if (encoding_ == Hexadecimal) {
+        // TODO(egg): Simplify this once the |size| parameter of
+        // |DeserializePluginHexadecimal| is gone.
+        deserialize = (string serialization,
+                       ref IntPtr push_deserializer,
+                       ref IntPtr plugin,
+                       string compressor) =>
+            Interface.DeserializePluginHexadecimal(serialization,
+                                                   serialization.Length,
+                                                   ref push_deserializer,
+                                                   ref plugin,
+                                                   compressor);
+      } else if (encoding_ == Base32768) {
+        deserialize = Interface.DeserializePluginBase32768;
+      } else {
+        throw Log.Fatal("Invalid encoding " + encoding_);
       }
-      Interface.DeserializePluginHexadecimal("",
-                                             0,
-                                             ref deserializer,
-                                             ref plugin_,
-                                             serialization_compression_);
+      foreach (String serialization in serializations) {
+        deserialize(serialization,
+                    ref deserializer,
+                    ref plugin_,
+                    serialization_compression_);
+      }
+      deserialize("",
+                  ref deserializer,
+                  ref plugin_,
+                  serialization_compression_);
       if (serialization_compression_ == "") {
         serialization_compression_ = "gipfeli";
+      }
+      if (encoding_ == Hexadecimal) {
+        encoding_ = Base32768;
       }
 
       plotting_frame_selector_.reset(
