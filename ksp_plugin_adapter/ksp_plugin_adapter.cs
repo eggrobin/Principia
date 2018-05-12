@@ -132,11 +132,15 @@ public partial class PrincipiaPluginAdapter
   [KSPField(isPersistant = true)]
   private string serialization_compression_ = "";
 
+  string compression_when_read_;
+
   // The encoding used to store the save as a sequence of strings.
   const string Hexadecimal = "hexadecimal";
   const string Base32768 = "base32768";
   [KSPField(isPersistant = true)]
   private string encoding_ = Hexadecimal;
+
+  private string encoding_when_read_;
 
   delegate string PluginSerializer(IntPtr plugin,
                                    ref IntPtr serializer,
@@ -608,8 +612,15 @@ public partial class PrincipiaPluginAdapter
                                  BetterLateThanNever);
   }
 
+  static TimeSpan serialization_duration_;
+  static TimeSpan base_onsave_duration_;
+  static TimeSpan onsave_duration_;
+
   public override void OnSave(ConfigNode node) {
+    var onsave_start = DateTime.UtcNow;
     base.OnSave(node);
+    base_onsave_duration_ = DateTime.UtcNow - onsave_start;
+    onsave_start = DateTime.UtcNow;
     if (PluginRunning()) {
       String serialization;
       IntPtr serializer = IntPtr.Zero;
@@ -621,19 +632,57 @@ public partial class PrincipiaPluginAdapter
       } else {
         throw Log.Fatal("Invalid encoding " + encoding_);
       }
+      OutUTF8Marshaler.free_duration = TimeSpan.Zero;
+      OutUTF8Marshaler.native_to_managed_duration = TimeSpan.Zero;
+      OutUTF8Marshaler.time = true;
+      serialization_duration_ = TimeSpan.Zero;
       for (;;) {
+        var serialize_start = DateTime.UtcNow;
         serialization =
             serialize(plugin_, ref serializer, serialization_compression_);
+        serialization_duration_ += DateTime.UtcNow - serialize_start;
+        OutUTF8Marshaler.time = false;
         if (serialization == null) {
           break;
         }
         node.AddValue(principia_serialized_plugin_, serialization);
       }
     }
+    onsave_duration_ = DateTime.UtcNow - onsave_start;
+      Log.Error(
+          "base.OnSave: " + base_onsave_duration_.TotalSeconds + " s");
+      Log.Error(
+          "OnSave: " + onsave_duration_.TotalSeconds + " s");
+      Log.Error(
+          "> serialization: " + serialization_duration_.TotalSeconds + " s");
   }
 
+  TimeSpan deserialization_duration_;
+  TimeSpan base_onload_duration_;
+  TimeSpan onload_duration_;
+  TimeSpan readalllines_;
+  TimeSpan cfgnode_load_;
+  TimeSpan cfgnode_save_;
+  int cumulated_indices_;
+
   public override void OnLoad(ConfigNode node) {
+      var readalllines_start = DateTime.UtcNow;
+      File.ReadAllLines(
+          @"C:\Users\robin\Projects\KSP_win64 1.4.2\saves\big\persistent.sfs");
+      readalllines_ = DateTime.UtcNow - readalllines_start;
+      var cfgnode_start_load = DateTime.UtcNow;
+      var bignode = ConfigNode.Load(
+          @"C:\Users\robin\Projects\KSP_win64 1.4.2\saves\big\persistent.sfs");
+          cfgnode_load_ = DateTime.UtcNow - cfgnode_start_load;
+      var cfgnode_start_save = DateTime.UtcNow;
+      bignode.Save(
+          @"C:\Users\robin\Projects\KSP_win64 1.4.2\saves\big\benchmarking_porpoises");
+          cfgnode_save_ = DateTime.UtcNow - cfgnode_start_save;
+
+    var onload_start = DateTime.UtcNow;
     base.OnLoad(node);
+    base_onload_duration_ = DateTime.UtcNow - onload_start;
+    onload_start = DateTime.UtcNow;
     if (must_record_journal_) {
       journaling_ = true;
       Log.ActivateRecorder(true);
@@ -667,6 +716,10 @@ public partial class PrincipiaPluginAdapter
       } else {
         throw Log.Fatal("Invalid encoding " + encoding_);
       }
+      InUTF8Marshaler.free_duration = TimeSpan.Zero;
+      InUTF8Marshaler.managed_to_native_duration = TimeSpan.Zero;
+      InUTF8Marshaler.time = true;
+      var deserialization_start = DateTime.UtcNow;
       foreach (String serialization in serializations) {
         deserialize(serialization,
                     ref deserializer,
@@ -677,12 +730,10 @@ public partial class PrincipiaPluginAdapter
                   ref deserializer,
                   ref plugin_,
                   serialization_compression_);
-      if (serialization_compression_ == "") {
-        serialization_compression_ = "gipfeli";
-      }
-      if (encoding_ == Hexadecimal) {
-        encoding_ = Base32768;
-      }
+      deserialization_duration_ = DateTime.UtcNow - deserialization_start;
+      InUTF8Marshaler.time = false;
+      compression_when_read_ = serialization_compression_;
+      encoding_when_read_ = encoding_;
 
       plotting_frame_selector_.reset(
           new ReferenceFrameSelector(this, 
@@ -698,6 +749,7 @@ public partial class PrincipiaPluginAdapter
       Log.Warning("No principia state found, creating one");
       ResetPlugin();
     }
+    onload_duration_ = DateTime.UtcNow - onload_start;
   }
 
   #endregion
@@ -2099,6 +2151,51 @@ public partial class PrincipiaPluginAdapter
 
   private void DrawMainWindow(int window_id) {
     using (new VerticalLayout()) {
+      if (UnityEngine.GUILayout.Toggle(encoding_ == Hexadecimal, "Save to hex")) {
+        encoding_ = Hexadecimal;
+      } else {
+        encoding_ = Base32768;
+      }
+      if (UnityEngine.GUILayout.Toggle(serialization_compression_ == "gipfeli",
+                                       "Compress")) {
+        serialization_compression_ = "gipfeli";
+      } else {
+        serialization_compression_ = "";
+      }
+      UnityEngine.GUILayout.TextArea(encoding_when_read_);
+      UnityEngine.GUILayout.TextArea("compression: " + compression_when_read_);
+      UnityEngine.GUILayout.TextArea(
+          "ConfigNode.Save: " + cfgnode_save_.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          "ConfigNode.Load: " + cfgnode_load_.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          "> File.ReadAllLines: " + readalllines_.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          "base.OnLoad: " + base_onload_duration_.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          "OnLoad: " + onload_duration_.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          "> deserialization: " + deserialization_duration_.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          ">> in UTF-8 allocation & conversion: " +
+          InUTF8Marshaler.managed_to_native_duration.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          ">> in UTF-8 deallocation: " +
+          InUTF8Marshaler.free_duration.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          "> deserialization: " + deserialization_duration_.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          "base.OnSave: " + base_onsave_duration_.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          "OnSave: " + onsave_duration_.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          "> serialization: " + serialization_duration_.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          ">> out UTF-8 conversion: " +
+          OutUTF8Marshaler.native_to_managed_duration.TotalSeconds + " s");
+      UnityEngine.GUILayout.TextArea(
+          ">> out UTF-8 deallocation: " +
+          OutUTF8Marshaler.free_duration.TotalSeconds + " s");
       if (!PluginRunning()) {
         UnityEngine.GUILayout.TextArea(text : "Plugin is not started");
       }
