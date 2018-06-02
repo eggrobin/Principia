@@ -45,6 +45,7 @@ using quantities::Angle;
 using quantities::Derivative;
 using quantities::Difference;
 using quantities::Exponentiation;
+using quantities::Abs;
 using quantities::ArcTan;
 using quantities::Cos;
 using quantities::Pow;
@@ -366,6 +367,17 @@ struct Measured {
 using MeasuredTransits = std::vector<Measured<Instant>>;
 using MeasuredTransitsByPlanet = std::map<std::string, MeasuredTransits>;
 
+// These periods, from https://arxiv.org/abs/1801.02554v1 Table 1, are used
+// solely for transit epoch computation.
+std::map<std::string, Time> nominal_periods = {
+    {"Trappist-1b", 1.51087637 * Day},
+    {"Trappist-1c", 2.42180746 * Day},
+    {"Trappist-1d", 4.049959 * Day},
+    {"Trappist-1e", 6.099043 * Day},
+    {"Trappist-1f", 9.205585 * Day},
+    {"Trappist-1g", 12.354473 * Day},
+    {"Trappist-1h", 18.767953 * Day}};
+
 MeasuredTransitsByPlanet const observations = {
     {"Trappist-1b",
      {{JD(2457322.51531), 0.00071 * Day}, {JD(2457325.53910), 0.00100 * Day},
@@ -531,30 +543,43 @@ double Transitsχ²(MeasuredTransitsByPlanet const& observations,
     if (computed_transits.empty()) {
       return std::numeric_limits<double>::infinity();
     }
+    Instant const& initial_observed_transit = observed_transits.front().estimated_value;
+    auto initial_computed_transit = std::lower_bound(computed_transits.begin(),
+                                                     computed_transits.end(),
+                                                     initial_observed_transit);
+    if (initial_computed_transit == computed_transits.end()) {
+      --initial_computed_transit;
+    } else if (initial_computed_transit != computed_transits.begin() &&
+               *initial_computed_transit - initial_observed_transit >
+                   initial_observed_transit - initial_computed_transit[-1]) {
+      --initial_computed_transit;
+    }
+    int const relevant_computed_transits_size =
+        computed_transits.end() - initial_computed_transit;
     for (auto const& observed_transit : observed_transits) {
-      auto const next_computed_transit =
-          std::lower_bound(computed_transits.begin(),
-                           computed_transits.end(),
-                           observed_transit.estimated_value);
-      Time error;
-      if (next_computed_transit == computed_transits.begin()) {
-        error = *next_computed_transit - observed_transit.estimated_value;
-      } else if (next_computed_transit == computed_transits.end()) {
-        error = observed_transit.estimated_value - computed_transits.back();
-      } else {
-        error =
-            std::min(*next_computed_transit - observed_transit.estimated_value,
-                     observed_transit.estimated_value -
-                         *std::prev(next_computed_transit));
+      int const transit_epoch = std::round(
+          (observed_transit.estimated_value - initial_observed_transit) /
+          nominal_periods.at(name));
+      if (transit_epoch >= relevant_computed_transits_size) {
+        // No computed transit corresponds to the observed transit.  Either the
+        // planet has escaped, or its period is so low that it does not transit
+        // enough over the simulation interval.  In any case, something is very
+        // wrong.
+        return std::numeric_limits<double>::infinity();
       }
+      auto const computed_transit = initial_computed_transit[transit_epoch];
+      Time const error =
+          Abs(computed_transit - observed_transit.estimated_value);
       CHECK_LE(0.0 * Second, error);
       LOG_IF(ERROR, verbose) << name << ": " << error;
       if (error > max_error) {
         max_error = error;
         LOG_IF(ERROR, verbose)
-            << name << ": " << ShortDays(*std::prev(next_computed_transit))
-            << " " << ShortDays(observed_transit.estimated_value) << " "
-            << ShortDays(*next_computed_transit) << " " << error;
+            << name << " [" << transit_epoch << "]"
+            << ": computed: " << ShortDays(computed_transit)
+            << "; observed: " << ShortDays(observed_transit.estimated_value)
+            << u8" ± " << observed_transit.standard_uncertainty
+            << "; residual: " << error;
       }
       sum_of_squared_errors +=
           Pow<2>(error / observed_transit.standard_uncertainty);
