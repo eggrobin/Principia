@@ -212,7 +212,7 @@ Population GenerateTrialStatesDEMCMC(Population const& population,
   return trial;
 }
 
-void RunDCMCMC(Population& population,
+void RunDEMCMC(Population& population,
                int const number_of_generations,
                int const number_of_generations_between_kicks,
                int const number_of_burn_in_generations,
@@ -778,23 +778,27 @@ TEST_F(TrappistDynamicsTest, Optimisation) {
   for (int i = 0; i < 50; ++i) {
     great_old_ones.emplace_back();
     SystemParameters& great_old_one = great_old_ones.back();
-    std::normal_distribution<> angle_distribution(0.0, 10.0);
+    std::normal_distribution<> angle_distribution(0.0, 70.0);
+    std::normal_distribution<> period_distribution(0.0, 1.0);
+    std::normal_distribution<> eccentricity_distribution(0.0, 6.0e-3);
     for (int j = 0; j < great_old_one.size(); ++j) {
       auto perturbed_elements = original_elements[j];
+      *perturbed_elements.period += period_distribution(engine) * Second;
       *perturbed_elements.argument_of_periapsis +=
           angle_distribution(engine) * Degree;
       *perturbed_elements.mean_anomaly +=
           angle_distribution(engine) * Degree;
+      *perturbed_elements.eccentricity += eccentricity_distribution(engine);
       great_old_one[j] = MakePlanetParameters(perturbed_elements);
     }
   }
 
   τ = 1000.0;
-  RunDCMCMC(great_old_ones,
+  RunDEMCMC(great_old_ones,
             /*number_of_generations=*/100,
             /*number_of_generations_between_kicks=*/10,
             /*number_of_burn_in_generations=*/10,
-            /*ε=*/0.01,
+            /*ε=*/0.05,
             log_pdf_of_system_parameters);
 }
 
