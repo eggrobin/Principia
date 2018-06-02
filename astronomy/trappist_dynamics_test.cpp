@@ -45,8 +45,11 @@ using quantities::Angle;
 using quantities::Derivative;
 using quantities::Difference;
 using quantities::Exponentiation;
+using quantities::ArcTan;
+using quantities::Cos;
 using quantities::Pow;
 using quantities::Square;
+using quantities::Sin;
 using quantities::Sqrt;
 using quantities::Time;
 using quantities::astronomy::JulianYear;
@@ -55,16 +58,17 @@ using quantities::si::Degree;
 using quantities::si::Hour;
 using quantities::si::Metre;
 using quantities::si::Milli;
+using quantities::si::Radian;
 using quantities::si::Second;
 
 namespace astronomy {
 
 struct PlanetParameters {
   constexpr static int count = 4;
-  double eccentricity;
   Time period;
-  Angle argument_of_periapsis;
-  Angle mean_anomaly;
+  double x{};
+  double y{};
+  Time time_to_first_transit;
 };
 
 using SystemParameters = std::array<PlanetParameters, 7>;
@@ -76,29 +80,29 @@ using Calculator = std::function<double(SystemParameters const&)>;
 PlanetParameters operator+(PlanetParameters const& left,
                            PlanetParameters const& right) {
   PlanetParameters result = left;
-  result.eccentricity += right.eccentricity;
   result.period += right.period;
-  result.argument_of_periapsis += right.argument_of_periapsis;
-  result.mean_anomaly += right.mean_anomaly;
+  result.x += right.x;
+  result.y += right.y;
+  result.time_to_first_transit += right.time_to_first_transit;
   return result;
 }
 
 PlanetParameters operator-(PlanetParameters const& left,
                            PlanetParameters const& right) {
   PlanetParameters result = left;
-  result.eccentricity -= right.eccentricity;
   result.period -= right.period;
-  result.argument_of_periapsis -= right.argument_of_periapsis;
-  result.mean_anomaly -= right.mean_anomaly;
+  result.x -= right.x;
+  result.y -= right.y;
+  result.time_to_first_transit -= right.time_to_first_transit;
   return result;
 }
 
 PlanetParameters operator*(double const left, PlanetParameters const& right) {
   PlanetParameters result = right;
-  result.eccentricity *= left;
   result.period *= left;
-  result.argument_of_periapsis *= left;
-  result.mean_anomaly *= left;
+  result.x *= left;
+  result.y *= left;
+  result.time_to_first_transit *= left;
   return result;
 }
 
@@ -149,20 +153,25 @@ KeplerianElements<Trappist> MakeKeplerianElements(
   elements.longitude_of_periapsis = std::nullopt;
   elements.true_anomaly = std::nullopt;
   elements.hyperbolic_mean_anomaly = std::nullopt;
-  *elements.argument_of_periapsis = parameters.argument_of_periapsis;
-  *elements.mean_anomaly = parameters.mean_anomaly;
+  *elements.argument_of_periapsis = ArcTan(parameters.y, parameters.x);
+  *elements.mean_anomaly =
+      π / 2 * Radian - *elements.argument_of_periapsis -
+      (2 * π * Radian) * parameters.time_to_first_transit / *elements.period;
   *elements.period = parameters.period;
-  *elements.eccentricity = parameters.eccentricity;
+  *elements.eccentricity = Pow<2>(parameters.x) + Pow<2>(parameters.y);
   return elements;
 }
 
 PlanetParameters MakePlanetParameters(
     KeplerianElements<Trappist> const& elements) {
   PlanetParameters result;
-  result.argument_of_periapsis = *elements.argument_of_periapsis;
-  result.eccentricity = *elements.eccentricity;
-  result.mean_anomaly = *elements.mean_anomaly;
   result.period = *elements.period;
+  result.x = *elements.eccentricity * Cos(*elements.argument_of_periapsis);
+  result.y = *elements.eccentricity * Sin(*elements.argument_of_periapsis);
+  result.time_to_first_transit =
+      *elements.period / (2 * π * Radian) *
+      (π / 2 * Radian - *elements.argument_of_periapsis -
+       *elements.mean_anomaly);
   return result;
 }
 
