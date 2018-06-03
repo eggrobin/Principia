@@ -544,22 +544,31 @@ double Transitsχ²(MeasuredTransitsByPlanet const& observations,
       return std::numeric_limits<double>::infinity();
     }
     Instant const& initial_observed_transit = observed_transits.front().estimated_value;
-    auto initial_computed_transit = std::lower_bound(computed_transits.begin(),
-                                                     computed_transits.end(),
-                                                     initial_observed_transit);
-    if (initial_computed_transit == computed_transits.end()) {
-      --initial_computed_transit;
-    } else if (initial_computed_transit != computed_transits.begin() &&
-               *initial_computed_transit - initial_observed_transit >
-                   initial_observed_transit - initial_computed_transit[-1]) {
-      --initial_computed_transit;
+    // The simulation starts at JD 2457010, and JD 2457282.80570 is the first
+    // observed transit (planet c, by TRAPPIST-South).  JD 2457282 is before any
+    // observed transit, yet sufficiently far into the simulation that there are
+    // probably computed transits on either side; we use the first transit after
+    // that instant as our transit epoch for each planet.
+    int epoch_of_first_observation =
+        (initial_observed_transit - JD(2457282)) / nominal_periods.at(name);
+    Instant const epoch_transit =
+        initial_observed_transit -
+        epoch_of_first_observation * nominal_periods.at(name);
+    auto computed_epoch_transit = std::lower_bound(
+        computed_transits.begin(), computed_transits.end(), epoch_transit);
+    if (computed_epoch_transit == computed_transits.end()) {
+      --computed_epoch_transit;
+    } else if (computed_epoch_transit != computed_transits.begin() &&
+               *computed_epoch_transit - epoch_transit >
+                   epoch_transit - computed_epoch_transit[-1]) {
+      --computed_epoch_transit;
     }
     int const relevant_computed_transits_size =
-        computed_transits.end() - initial_computed_transit;
+        computed_transits.end() - computed_epoch_transit;
     for (auto const& observed_transit : observed_transits) {
-      int const transit_epoch = std::round(
-          (observed_transit.estimated_value - initial_observed_transit) /
-          nominal_periods.at(name));
+      int const transit_epoch =
+          std::round((observed_transit.estimated_value - epoch_transit) /
+                     nominal_periods.at(name));
       if (transit_epoch >= relevant_computed_transits_size) {
         // No computed transit corresponds to the observed transit.  Either the
         // planet has escaped, or its period is so low that it does not transit
@@ -567,7 +576,7 @@ double Transitsχ²(MeasuredTransitsByPlanet const& observations,
         // wrong.
         return std::numeric_limits<double>::infinity();
       }
-      auto const computed_transit = initial_computed_transit[transit_epoch];
+      auto const computed_transit = computed_epoch_transit[transit_epoch];
       Time const error =
           Abs(computed_transit - observed_transit.estimated_value);
       CHECK_LE(0.0 * Second, error);
