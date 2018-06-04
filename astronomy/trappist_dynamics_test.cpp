@@ -870,7 +870,7 @@ TEST_F(TrappistDynamicsTest, Optimisation) {
     }
   }
 
-  τ = 1000.0;
+  τ = 1;
   auto const best_parameters =
       RunDEMCMC(great_old_ones,
                 /*number_of_generations=*/1000,
