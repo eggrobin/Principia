@@ -183,7 +183,7 @@ std::vector<double> EvaluatePopulation(
     std::vector<std::string>& info) {
   std::vector<double> log_pdf(population.size());
   info.resize(population.size());
-  Bundle bundle(4);
+  Bundle bundle(8);
   for (int i = 0; i < population.size(); ++i) {
     auto const& parameters = population[i];
     bundle.Add([&calculate_log_pdf, i, &log_pdf, &parameters, &info]() {
@@ -225,12 +225,12 @@ Population GenerateTrialStatesDEMCMC(Population const& population,
   return trial;
 }
 
-void RunDEMCMC(Population& population,
-               int const number_of_generations,
-               int const number_of_generations_between_kicks,
-               int const number_of_burn_in_generations,
-               double const ε,
-               Calculator const& calculate_log_pdf) {
+SystemParameters RunDEMCMC(Population& population,
+                           int const number_of_generations,
+                           int const number_of_generations_between_kicks,
+                           int const number_of_burn_in_generations,
+                           double const ε,
+                           Calculator const& calculate_log_pdf) {
   CHECK_LE(1, number_of_generations);
   CHECK_LT(std::tuple_size<SystemParameters>::value * PlanetParameters::count,
            population.size());
@@ -238,6 +238,7 @@ void RunDEMCMC(Population& population,
   std::uniform_real_distribution<> distribution(0.0, 1.0);
 
   static double best_log_pdf = -std::numeric_limits<double>::infinity();
+  SystemParameters best_system_parameters;
 
   std::vector<std::string> infos;
   auto log_pdf = EvaluatePopulation(population, calculate_log_pdf, infos);
@@ -276,15 +277,19 @@ void RunDEMCMC(Population& population,
     }
 
     // Traces.
-    best_log_pdf = std::max(best_log_pdf,
-                            *std::max_element(log_pdf.begin(), log_pdf.end()));
-    int const max_index = std::max_element(log_pdf.begin(), log_pdf.end()) - log_pdf.begin();
+    int const max_index =
+        std::max_element(log_pdf.begin(), log_pdf.end()) - log_pdf.begin();
+    if (best_log_pdf < log_pdf[max_index]) {
+      best_system_parameters = population[max_index];
+      best_log_pdf = log_pdf[max_index];
+    }
     LOG(ERROR) << "Min: " << *std::min_element(log_pdf.begin(), log_pdf.end())
-               << " Max: " << *std::max_element(log_pdf.begin(), log_pdf.end())
+               << " Max: " << log_pdf[max_index]
                << " Best: " << best_log_pdf;
     LOG(ERROR) << "Max: " << infos[max_index];
     LOG(ERROR) << "Acceptance: " << accepted << " / " << population.size();
   }
+  return best_system_parameters;
 }
 
 #if 0
@@ -866,12 +871,18 @@ TEST_F(TrappistDynamicsTest, Optimisation) {
   }
 
   τ = 1000.0;
-  RunDEMCMC(great_old_ones,
-            /*number_of_generations=*/100,
-            /*number_of_generations_between_kicks=*/30,
-            /*number_of_burn_in_generations=*/10,
-            /*ε=*/0.05,
-            log_pdf_of_system_parameters);
+  auto const best_parameters =
+      RunDEMCMC(great_old_ones,
+                /*number_of_generations=*/1000,
+                /*number_of_generations_between_kicks=*/30,
+                /*number_of_burn_in_generations=*/10,
+                /*ε=*/0.05,
+                log_pdf_of_system_parameters);
+  for (int i = 0; i < best_parameters.size(); ++i) {
+    LOG(ERROR) << planet_names[i];
+    LOG(ERROR) << MakeKeplerianElements(original_elements[i],
+                                        best_parameters[i]);
+  }
 }
 
 }  // namespace astronomy
