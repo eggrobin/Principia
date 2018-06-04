@@ -842,7 +842,7 @@ TEST_F(TrappistDynamicsTest, Optimisation) {
         }
         double const χ² = Transitsχ²(observations, computations, info);
         info = u8"χ² = " + std::to_string(χ²) + " " + info;
-        return χ² / (2.0 * τ);
+        return -χ² / (2.0 * τ);
       };
 
   Population great_old_ones;
