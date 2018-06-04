@@ -155,11 +155,11 @@ KeplerianElements<Trappist> MakeKeplerianElements(
   elements.true_anomaly = std::nullopt;
   elements.hyperbolic_mean_anomaly = std::nullopt;
   *elements.argument_of_periapsis = ArcTan(parameters.y, parameters.x);
+  *elements.period = parameters.period;
   *elements.mean_anomaly =
       π / 2 * Radian - *elements.argument_of_periapsis -
       (2 * π * Radian) * parameters.time_to_first_transit / *elements.period;
-  *elements.period = parameters.period;
-  *elements.eccentricity = Pow<2>(parameters.x) + Pow<2>(parameters.y);
+  *elements.eccentricity = Sqrt(Pow<2>(parameters.x) + Pow<2>(parameters.y));
   return elements;
 }
 
