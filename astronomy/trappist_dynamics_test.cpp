@@ -76,7 +76,8 @@ using SystemParameters = std::array<PlanetParameters, 7>;
 
 using Population = std::vector<SystemParameters>;
 
-using Calculator = std::function<double(SystemParameters const&)>;
+using Calculator =
+    std::function<double(SystemParameters const&, std::string& info)>;
 
 PlanetParameters operator+(PlanetParameters const& left,
                            PlanetParameters const& right) {
@@ -178,13 +179,15 @@ PlanetParameters MakePlanetParameters(
 
 std::vector<double> EvaluatePopulation(
     Population const& population,
-    Calculator const& calculate_log_pdf) {
+    Calculator const& calculate_log_pdf,
+    std::vector<std::string>& info) {
   std::vector<double> log_pdf(population.size());
+  info.resize(population.size());
   Bundle bundle(4);
   for (int i = 0; i < population.size(); ++i) {
     auto const& parameters = population[i];
-    bundle.Add([&calculate_log_pdf, i, &log_pdf, &parameters]() {
-      log_pdf[i] = calculate_log_pdf(parameters);
+    bundle.Add([&calculate_log_pdf, i, &log_pdf, &parameters, &info]() {
+      log_pdf[i] = calculate_log_pdf(parameters, info[i]);
       return Status::OK;
     });
   }
@@ -234,19 +237,15 @@ void RunDEMCMC(Population& population,
   std::mt19937_64 engine;
   std::uniform_real_distribution<> distribution(0.0, 1.0);
 
-  static double best_log_pdf = std::numeric_limits<double>::lowest();
-  std::vector<Population> ancestry;
-  std::vector<std::vector<double>> ancestry_log_pdf;
-  std::vector<int> accepts_chain(population.size(), 0);
-  std::vector<int> rejects_chain(population.size(), 0);
-  std::vector<int> accepts_generation(number_of_generations, 0);
-  std::vector<int> rejects_generation(number_of_generations, 0);
+  static double best_log_pdf = -std::numeric_limits<double>::infinity();
 
-  auto log_pdf = EvaluatePopulation(population, calculate_log_pdf);
+  std::vector<std::string> infos;
+  auto log_pdf = EvaluatePopulation(population, calculate_log_pdf, infos);
 
   // Loop over generations.
   for (int generation = 0; generation < number_of_generations; ++generation) {
     LOG_IF(ERROR, generation % 50 == 0) << "Generation: " << generation;
+    int accepted = 0;
 
     // Every 10th generation try full-size steps.
     double const
@@ -260,7 +259,9 @@ void RunDEMCMC(Population& population,
 
     // Evaluate model for each set of trial parameters.
     auto const trial = GenerateTrialStatesDEMCMC(population, γ, ε, engine);
-    auto const log_pdf_trial = EvaluatePopulation(trial, calculate_log_pdf);
+    std::vector<std::string> trial_infos;
+    auto const log_pdf_trial =
+        EvaluatePopulation(trial, calculate_log_pdf, trial_infos);
 
     // For each member of population.
     for (int i = 0; i < population.size(); ++i) {
@@ -269,29 +270,20 @@ void RunDEMCMC(Population& population,
           log_pdf_ratio > std::log(distribution(engine))) {
         population[i] = trial[i];
         log_pdf[i] = log_pdf_trial[i];
-        ++accepts_chain[i];
-        ++accepts_generation[generation];
-      } else {
-        ++rejects_chain[i];
-        ++rejects_generation[generation];
+        infos[i] = trial_infos[i];
+        ++accepted;
       }
     }
 
     // Traces.
     best_log_pdf = std::max(best_log_pdf,
                             *std::max_element(log_pdf.begin(), log_pdf.end()));
+    int const max_index = std::max_element(log_pdf.begin(), log_pdf.end()) - log_pdf.begin();
     LOG(ERROR) << "Min: " << *std::min_element(log_pdf.begin(), log_pdf.end())
                << " Max: " << *std::max_element(log_pdf.begin(), log_pdf.end())
                << " Best: " << best_log_pdf;
-
-    // Record results.
-    ancestry.push_back(population);
-    ancestry_log_pdf.push_back(log_pdf);
-  }
-
-  for (int generation = 0; generation < number_of_generations; ++generation) {
-    LOG(ERROR) << generation << " Accepts: " << accepts_generation[generation]
-               << " Rejects: " << rejects_generation[generation];
+    LOG(ERROR) << "Max: " << infos[max_index];
+    LOG(ERROR) << "Acceptance: " << accepted << " / " << population.size();
   }
 }
 
@@ -531,11 +523,14 @@ MeasuredTransitsByPlanet const observations = {
       {JD(2457812.69870), 0.00450 * Day}, {JD(2457831.46625), 0.00047 * Day},
       {JD(2457962.86271), 0.00083 * Day}}}};
 
-double Transitsχ²(MeasuredTransitsByPlanet const& observations,
+   double Transitsχ²(MeasuredTransitsByPlanet const& observations,
                   TransitsByPlanet const& computations,
-                  bool const verbose) {
+                  std::string& info) {
   double sum_of_squared_errors = 0;
-  Time max_error;
+  Time max_Δt;
+  Time total_Δt;
+  std::string transit_with_max_Δt;
+  int number_of_observations = 0;
   for (auto const& pair : observations) {
     auto const& name = pair.first;
     auto const& observed_transits = pair.second;
@@ -543,7 +538,8 @@ double Transitsχ²(MeasuredTransitsByPlanet const& observations,
     if (computed_transits.empty()) {
       return std::numeric_limits<double>::infinity();
     }
-    Instant const& initial_observed_transit = observed_transits.front().estimated_value;
+    Instant const& initial_observed_transit =
+        observed_transits.front().estimated_value;
     auto initial_computed_transit = std::lower_bound(computed_transits.begin(),
                                                      computed_transits.end(),
                                                      initial_observed_transit);
@@ -561,30 +557,30 @@ double Transitsχ²(MeasuredTransitsByPlanet const& observations,
           (observed_transit.estimated_value - initial_observed_transit) /
           nominal_periods.at(name));
       if (transit_epoch >= relevant_computed_transits_size) {
-        // No computed transit corresponds to the observed transit.  Either the
-        // planet has escaped, or its period is so low that it does not transit
-        // enough over the simulation interval.  In any case, something is very
-        // wrong.
+        // No computed transit corresponds to the observed transit.  Either
+        // the planet has escaped, or its period is so low that it does not
+        // transit enough over the simulation interval.  In any case,
+        // something is very wrong.
         return std::numeric_limits<double>::infinity();
       }
       auto const computed_transit = initial_computed_transit[transit_epoch];
       Time const error =
           Abs(computed_transit - observed_transit.estimated_value);
-      CHECK_LE(0.0 * Second, error);
-      LOG_IF(ERROR, verbose) << name << ": " << error;
-      if (error > max_error) {
-        max_error = error;
-        LOG_IF(ERROR, verbose)
-            << name << " [" << transit_epoch << "]"
-            << ": computed: " << ShortDays(computed_transit)
-            << "; observed: " << ShortDays(observed_transit.estimated_value)
-            << u8" ± " << observed_transit.standard_uncertainty
-            << "; residual: " << error;
+      if (error > max_Δt) {
+        max_Δt = error;
+        transit_with_max_Δt =
+            name + "[" +
+            std::to_string(ShortDays(observed_transit.estimated_value)) + "]";
       }
+      total_Δt += error;
+      ++number_of_observations;
       sum_of_squared_errors +=
           Pow<2>(error / observed_transit.standard_uncertainty);
     }
   }
+  info = u8"max Δt = " + std::to_string(max_Δt / Second) + " s (" +
+         transit_with_max_Δt + u8") avg Δt = " +
+         std::to_string(total_Δt / number_of_observations / Second) + u8" s";
   return sum_of_squared_errors;
 }
 
@@ -755,8 +751,9 @@ TEST_F(TrappistDynamicsTest, MathematicaTransits) {
 
   LOG(ERROR) << "max error: "
              << Error(observations, computations, /*verbose=*/true);
+  std::string info;
   LOG(ERROR) << "χ²: "
-             << Transitsχ²(observations, computations, /*verbose=*/true);
+             << Transitsχ²(observations, computations, info);
 }
 
 TEST_F(TrappistDynamicsTest, Optimisation) {
@@ -765,7 +762,6 @@ TEST_F(TrappistDynamicsTest, Optimisation) {
       SOLUTION_DIR / "astronomy" /
           "trappist_initial_state_jd_2457010_000000000.proto.txt");
 
-  bool verbose = false;
   auto planet_names = system.names();
   planet_names.erase(
       std::find(planet_names.begin(), planet_names.end(), star_name));
@@ -816,8 +812,9 @@ TEST_F(TrappistDynamicsTest, Optimisation) {
 
   double τ = 0.0;
   auto log_pdf_of_system_parameters = 
-      [&original_elements, &planet_names, &system, &verbose, &τ](
-          SystemParameters const& system_parameters) {
+      [&original_elements, &planet_names, &system, &τ](
+          SystemParameters const& system_parameters,
+          std::string& info) {
         auto modified_system = system;
         for (int i = 0; i < planet_names.size(); ++i) {
           modified_system.ReplaceElements(
@@ -843,7 +840,9 @@ TEST_F(TrappistDynamicsTest, Optimisation) {
                 ComputeTransits(*ephemeris, star, planet);
           }
         }
-        return -Transitsχ²(observations, computations, verbose) / (2.0 * τ);
+        double const χ² = Transitsχ²(observations, computations, info);
+        info = u8"χ² = " + std::to_string(χ²) + info;
+        return χ² / (2.0 * τ);
       };
 
   Population great_old_ones;
