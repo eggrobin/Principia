@@ -763,7 +763,7 @@ TEST_F(TrappistDynamicsTest, Optimisation) {
   SolarSystem<Trappist> const system(
       SOLUTION_DIR / "astronomy" / "trappist_gravity_model.proto.txt",
       SOLUTION_DIR / "astronomy" /
-          "trappist_initial_state_jd_2457000_000000000.proto.txt");
+          "trappist_initial_state_jd_2457010_000000000.proto.txt");
 
   bool verbose = false;
   auto planet_names = system.names();
