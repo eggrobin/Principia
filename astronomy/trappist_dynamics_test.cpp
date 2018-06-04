@@ -238,6 +238,7 @@ SystemParameters RunDEMCMC(Population& population,
   std::uniform_real_distribution<> distribution(0.0, 1.0);
 
   static double best_log_pdf = -std::numeric_limits<double>::infinity();
+  std::string best_info;
   SystemParameters best_system_parameters;
 
   std::vector<std::string> infos;
@@ -245,7 +246,6 @@ SystemParameters RunDEMCMC(Population& population,
 
   // Loop over generations.
   for (int generation = 0; generation < number_of_generations; ++generation) {
-    LOG_IF(ERROR, generation % 50 == 0) << "Generation: " << generation;
     int accepted = 0;
 
     // Every 10th generation try full-size steps.
@@ -282,11 +282,16 @@ SystemParameters RunDEMCMC(Population& population,
     if (best_log_pdf < log_pdf[max_index]) {
       best_system_parameters = population[max_index];
       best_log_pdf = log_pdf[max_index];
+      best_info = infos[max_index];
     }
-    LOG(ERROR) << "Min: " << *std::min_element(log_pdf.begin(), log_pdf.end())
+    LOG(ERROR) << "Step " << generation
+               << "; Min: " << *std::min_element(log_pdf.begin(), log_pdf.end())
                << " Max: " << log_pdf[max_index]
                << " Best: " << best_log_pdf;
-    LOG(ERROR) << "Max: " << infos[max_index];
+    LOG(ERROR) << "Max  : " << infos[max_index];
+    if (best_info != infos[max_index]) {
+      LOG(ERROR) << "Best : " << best_info;
+    }
     LOG(ERROR) << "Acceptance: " << accepted << " / " << population.size();
   }
   return best_system_parameters;
