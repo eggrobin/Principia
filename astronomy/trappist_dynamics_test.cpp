@@ -770,10 +770,49 @@ TEST_F(TrappistDynamicsTest, Optimisation) {
   planet_names.erase(
       std::find(planet_names.begin(), planet_names.end(), star_name));
   std::vector<KeplerianElements<Trappist>> original_elements;
-  for (auto const& planet_name : planet_names) {
-    original_elements.push_back(SolarSystem<Trappist>::MakeKeplerianElements(
-        system.keplerian_initial_state_message(planet_name).elements()));
-  }
+  original_elements.resize(7);
+  original_elements[0].eccentricity = +2.02705328748448545e-03;
+  original_elements[0].period = +1.30517077364481869e+05 * Second;
+  original_elements[0].inclination = +1.56311687808612154e+00 * Radian;
+  original_elements[0].argument_of_periapsis =
+      +5.60504512486831796e+00 * Radian;
+  original_elements[0].mean_anomaly = +3.18716485622527079e+00 * Radian;
+  original_elements[1].eccentricity = +8.98159420336746574e-04;
+  original_elements[1].period = +2.09283659710707900e+05 * Second;
+  original_elements[1].inclination = +1.56556033903891367e+00 * Radian;
+  original_elements[1].argument_of_periapsis =
+      +5.40841559458665611e+00 * Radian;
+  original_elements[1].mean_anomaly = +4.69600866763205271e+00 * Radian;
+  original_elements[2].eccentricity = +1.30094428542837614e-04;
+  original_elements[2].period = +3.49928258414271753e+05 * Second;
+  original_elements[2].inclination = +1.56887646461770291e+00 * Radian;
+  original_elements[2].argument_of_periapsis =
+      +4.16529213201573967e+00 * Radian;
+  original_elements[2].mean_anomaly = +3.65922924130441984e+00 * Radian;
+  original_elements[3].eccentricity = +3.90800313706634282e-03;
+  original_elements[3].period = +5.26993106439254596e+05 * Second;
+  original_elements[3].inclination = +1.56618865756963155e+00 * Radian;
+  original_elements[3].argument_of_periapsis =
+      +4.17876656790375289e+00 * Radian;
+  original_elements[3].mean_anomaly = +6.02749175472930432e+00 * Radian;
+  original_elements[4].eccentricity = +1.02102525682123812e-02;
+  original_elements[4].period = +7.95297414279872784e+05 * Second;
+  original_elements[4].inclination = +1.56589195159679240e+00 * Radian;
+  original_elements[4].argument_of_periapsis =
+      +3.39160133646944795e+00 * Radian;
+  original_elements[4].mean_anomaly = +5.47565323174217156e+00 * Radian;
+  original_elements[5].eccentricity = +7.17001276390272040e-05;
+  original_elements[5].period = +1.06735544168427191e+06 * Second;
+  original_elements[5].inclination = +1.56592685818183242e+00 * Radian;
+  original_elements[5].argument_of_periapsis =
+      +3.61891602322995665e+00 * Radian;
+  original_elements[5].mean_anomaly = +3.88870909989183255e+00 * Radian;
+  original_elements[6].eccentricity = +2.41228631012153813e-04;
+  original_elements[6].period = +1.62158639135768986e+06 * Second;
+  original_elements[6].inclination = +1.56723585512082830e+00 * Radian;
+  original_elements[6].argument_of_periapsis =
+      +2.72935318649175374e+00 * Radian;
+  original_elements[6].mean_anomaly = +2.56999254013473566e-01 * Radian;
 
   double τ = 0.0;
   auto log_pdf_of_system_parameters = 
@@ -812,9 +851,9 @@ TEST_F(TrappistDynamicsTest, Optimisation) {
   for (int i = 0; i < 50; ++i) {
     great_old_ones.emplace_back();
     SystemParameters& great_old_one = great_old_ones.back();
-    std::normal_distribution<> angle_distribution(0.0, 70.0);
+    std::normal_distribution<> angle_distribution(0.0, 0.1);
     std::normal_distribution<> period_distribution(0.0, 1.0);
-    std::normal_distribution<> eccentricity_distribution(0.0, 6.0e-3);
+    std::normal_distribution<> eccentricity_distribution(0.0, 1e-4);
     for (int j = 0; j < great_old_one.size(); ++j) {
       auto perturbed_elements = original_elements[j];
       *perturbed_elements.period += period_distribution(engine) * Second;
@@ -830,7 +869,7 @@ TEST_F(TrappistDynamicsTest, Optimisation) {
   τ = 1000.0;
   RunDEMCMC(great_old_ones,
             /*number_of_generations=*/100,
-            /*number_of_generations_between_kicks=*/10,
+            /*number_of_generations_between_kicks=*/30,
             /*number_of_burn_in_generations=*/10,
             /*ε=*/0.05,
             log_pdf_of_system_parameters);
