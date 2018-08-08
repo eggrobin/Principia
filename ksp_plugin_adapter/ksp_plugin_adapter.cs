@@ -1007,10 +1007,10 @@ public partial class PrincipiaPluginAdapter
       previous_display_mode_ = null;
     }
 
-    if (PluginRunning()) {
+    if (PluginRunning()) {/*
       plugin_.SetMainBody(
           (FlightGlobals.currentMainBody
-               ?? FlightGlobals.GetHomeBody()).flightGlobalsIndex);
+               ?? FlightGlobals.GetHomeBody()).flightGlobalsIndex);*/
 
       plugin_.ForgetAllHistoriesBefore(plugin_.CurrentTime() -
                                        history_lengths_[history_length_index_]);
@@ -1269,6 +1269,26 @@ public partial class PrincipiaPluginAdapter
       }
     }
 
+    Log.Error("Active vessel " +
+              FlightGlobals.ActiveVessel?.name ?? "<null>" +
+              " is " + (FlightGlobals.ActiveVessel?.packed == true
+                            ? "packed"
+                            : "unpacked"));
+
+    // WIP WIP WIP
+    plugin_.SetMainBody(
+        (FlightGlobals.currentMainBody
+             ?? FlightGlobals.GetHomeBody()).flightGlobalsIndex);
+
+    if (FlightGlobals.currentMainBody?.inverseRotation == true) {
+      plugin_.SetWorldRotationalReferenceFrame(
+          FlightGlobals.currentMainBody.flightGlobalsIndex);
+    } else {
+      plugin_.ClearWorldRotationalReferenceFrame();
+    }
+    // WIP WIP WIP
+
+
     // Advance the lagging vessels and kill those which collided with a
     // celestial.
     {
@@ -1291,6 +1311,8 @@ public partial class PrincipiaPluginAdapter
         plugin_.HasVessel(FlightGlobals.ActiveVessel.id.ToString())) {
       Vector3d q_correction_at_root_part = Vector3d.zero;
       Vector3d v_correction_at_root_part = Vector3d.zero;
+      List<Vector3d> rb_corrections = new List<Vector3d>();
+      List<Vector3d> rb_transform_corrections = new List<Vector3d>();
       foreach (Vessel vessel in FlightGlobals.Vessels.Where(v => !v.packed)) {
         // TODO(egg): if I understand anything, there should probably be a
         // special treatment for loaded packed vessels.  I don't understand
@@ -1298,6 +1320,12 @@ public partial class PrincipiaPluginAdapter
         if (!plugin_.HasVessel(vessel.id.ToString())) {
           continue;
         }
+        Log.Error(
+            "Reference part position: " +
+            FlightGlobals.ActiveVessel.rootPart.rb.position +
+            "; main body position: " +
+            FlightGlobals.ActiveVessel.mainBody.position +
+            "; home body position: " + FlightGlobals.GetHomeBody().position);
         foreach (Part part in vessel.parts) {
           if (part.rb == null) {
             continue;
@@ -1322,12 +1350,27 @@ public partial class PrincipiaPluginAdapter
 
           // TODO(egg): use the centre of mass.  Here it's a bit tedious, some
           // transform nonsense must probably be done.
+          rb_corrections.Add((Vector3d)part_actual_degrees_of_freedom.q -
+                             part.rb.position);
           part.rb.position = (Vector3d)part_actual_degrees_of_freedom.q;
+          rb_transform_corrections.Add(
+              (Vector3d)part_actual_degrees_of_freedom.q -
+              part.rb.transform.position);
           part.rb.transform.position =
               (Vector3d)part_actual_degrees_of_freedom.q;
           part.rb.velocity = (Vector3d)part_actual_degrees_of_freedom.p;
         }
       }
+      Log.Error("rb.position corrections: " +
+                string.Join(", ",
+                            (from c in rb_corrections select "{" + c.x + ", " +
+                             c.y + ", " + c.z + "}")
+                                .ToArray()));
+      Log.Error("rb.transform.position corrections: " +
+                string.Join(", ",
+                            (from c in rb_transform_corrections select "{" +
+                             c.x + ", " + c.y + ", " + c.z + "}")
+                                .ToArray()));
       foreach (
           physicalObject physical_object in FlightGlobals.physicalObjects.Where(
               o => o != null && o.rb != null)) {
@@ -1530,7 +1573,7 @@ public partial class PrincipiaPluginAdapter
     }
   }
 
-  private void Late() {
+  private void Late() {/*
     if (PluginRunning()) {
       if (FlightGlobals.currentMainBody?.inverseRotation == true) {
         plugin_.SetWorldRotationalReferenceFrame(
@@ -1538,7 +1581,7 @@ public partial class PrincipiaPluginAdapter
       } else {
         plugin_.ClearWorldRotationalReferenceFrame();
       }
-    }
+    }*/
   }
 
   private void BetterLateThanNever() {

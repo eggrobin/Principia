@@ -297,6 +297,12 @@ void Plugin::UpdateCelestialHierarchy(Index const celestial_index,
 }
 
 void Plugin::SetMainBody(Index const index) {
+  if (FindOrDie(celestials_, index)->body() != main_body_) {
+    LOG(ERROR) << "Main body change: "
+               << (main_body_ == nullptr ? "null" : main_body_->name())
+               << " -> "
+               << FindOrDie(celestials_, index)->body()->name();
+  }
   main_body_ = FindOrDie(celestials_, index)->body();
   LOG_IF(FATAL, main_body_ == nullptr) << index;
   UpdatePlanetariumRotation();
