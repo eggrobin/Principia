@@ -209,7 +209,7 @@ FixedStepSizeIntegrator<ODE_>::ReadFromMessage(
                         McLachlanAtela1992Order4Optimal);
     PRINCIPIA_CASE_SRKN(MCLACHLAN_ATELA_1992_ORDER_5_OPTIMAL,
                         McLachlanAtela1992Order5Optimal);
-    PRINCIPIA_CASE_SPRK(NEWTON_DELAMBRE_STORMER_VERLET_LEAPFROG,
+    PRINCIPIA_CASE_SPRK(NEWTON_DELAMBRE_STØRMER_VERLET_LEAPFROG,
                         NewtonDelambreStørmerVerletLeapfrog);
     PRINCIPIA_CASE_SRKN(OKUNBOR_SKEEL_1994_ORDER_6_METHOD_13,
                         OkunborSkeel1994Order6Method13);
@@ -381,7 +381,7 @@ AdaptiveStepSizeIntegrator<ODE_>::ReadFromMessage(
     serialization::AdaptiveStepSizeIntegrator const& message) {
   using ASSI = serialization::AdaptiveStepSizeIntegrator;
   switch (message.kind()) {
-    case ASSI::DORMAND_ELMIKKAWY_PRINCE_1986_RKN_434FM:
+    case ASSI::DORMAND_المكاوى_PRINCE_1986_RKN_434FM:
       return EmbeddedExplicitRungeKuttaNyströmIntegrator<
           methods::DormandالمكاوىPrince1986RKN434FM,
           typename ODE::Position>();

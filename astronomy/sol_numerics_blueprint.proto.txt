@@ -8,7 +8,7 @@ numerics_blueprint {
     step       : "10 s"
   }
   psychohistory {
-    integrator : DORMAND_ELMIKKAWY_PRINCE_1986_RKN_434FM
+    integrator : DORMAND_???????_PRINCE_1986_RKN_434FM
     length_integration_tolerance : "1 mm"
     speed_integration_tolerance  : "1 mm/s"
   }

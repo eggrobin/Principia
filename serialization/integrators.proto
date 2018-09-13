@@ -17,7 +17,7 @@ message AdaptiveStepSizeIntegrator {
     optional AdaptiveStepSizeIntegrator extension = 3000;
   }
   enum Kind {
-    DORMAND_ELMIKKAWY_PRINCE_1986_RKN_434FM = 1;
+    DORMAND_المكاوى_PRINCE_1986_RKN_434FM = 1;
   }
   required Kind kind = 1;
 }
@@ -46,7 +46,7 @@ message FixedStepSizeIntegrator {
     MCLACHLAN_ATELA_1992_ORDER_3_OPTIMAL = 28;
     MCLACHLAN_ATELA_1992_ORDER_4_OPTIMAL = 6;
     MCLACHLAN_ATELA_1992_ORDER_5_OPTIMAL = 7;
-    NEWTON_DELAMBRE_STORMER_VERLET_LEAPFROG = 15;
+    NEWTON_DELAMBRE_STØRMER_VERLET_LEAPFROG = 15;
     OKUNBOR_SKEEL_1994_ORDER_6_METHOD_13 = 8;
     QUINLAN_1999_ORDER_8A = 9;
     QUINLAN_1999_ORDER_8B = 10;

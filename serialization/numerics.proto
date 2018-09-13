@@ -1,4 +1,4 @@
-syntax = "proto2";
+﻿syntax = "proto2";
 
 import "serialization/geometry.proto";
 import "serialization/quantities.proto";
@@ -9,7 +9,7 @@ option cc_enable_arenas = true;
 
 // We would like to use Cyrillic for the name of this message, but the protobuf
 // language only supports ASCII in identifiers.  Sigh.  Blame Kenton.
-message ChebyshevSeries {
+message ЧебышёвSeries {
   message Coefficient {
     oneof coefficient {
       double double = 1;

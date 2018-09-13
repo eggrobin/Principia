@@ -352,7 +352,7 @@ struct Fine1987RKNG34 : EmbeddedExplicitGeneralizedRungeKuttaNyström {
   static constexpr bool first_same_as_last = false;
   static constexpr serialization::AdaptiveStepSizeIntegrator::Kind kind =
       serialization::AdaptiveStepSizeIntegrator::
-          DORMAND_ELMIKKAWY_PRINCE_1986_RKN_434FM;
+          DORMAND_المكاوى_PRINCE_1986_RKN_434FM;
   static constexpr FixedVector<double, stages> c{{
       { 0           ,    2 /   9.0,   1 /     3.0,  3 /     4.0,  1.0}}};
   static constexpr FixedStrictlyLowerTriangularMatrix<double, stages> a{{
@@ -386,7 +386,7 @@ struct DormandالمكاوىPrince1986RKN434FM :
   static constexpr bool first_same_as_last = true;
   static constexpr serialization::AdaptiveStepSizeIntegrator::Kind kind =
       serialization::AdaptiveStepSizeIntegrator::
-          DORMAND_ELMIKKAWY_PRINCE_1986_RKN_434FM;
+          DORMAND_المكاوى_PRINCE_1986_RKN_434FM;
   static constexpr FixedVector<double, stages> c{{
       { 0.0         ,   1.0 /   4.0,   7.0 /  10.0,  1.0}}};
   static constexpr FixedStrictlyLowerTriangularMatrix<double, stages> a{{
@@ -728,7 +728,7 @@ struct NewtonDelambreStørmerVerletLeapfrog : SymplecticPartitionedRungeKutta {
   static constexpr bool first_same_as_last = true;
   static constexpr serialization::FixedStepSizeIntegrator::Kind kind =
       serialization::FixedStepSizeIntegrator::
-          NEWTON_DELAMBRE_STORMER_VERLET_LEAPFROG;
+          NEWTON_DELAMBRE_STØRMER_VERLET_LEAPFROG;
   static constexpr int stages = Stages(evaluations, first_same_as_last);
   static constexpr FixedVector<double, stages> a{{{1.0, 0.0}}};
   static constexpr FixedVector<double, stages> b{{{0.5, 0.5}}};
