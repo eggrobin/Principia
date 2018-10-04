@@ -19,15 +19,19 @@ using base::dynamic_cast_not_null;
 using base::not_null;
 using base::Status;
 using geometry::AngleBetween;
+using geometry::Bivector;
+using geometry::DefinesFrame;
 using geometry::Displacement;
 using geometry::Instant;
 using geometry::Position;
+using geometry::Rotation;
 using geometry::Velocity;
 using integrators::EmbeddedExplicitRungeKuttaNyströmIntegrator;
 using integrators::SymmetricLinearMultistepIntegrator;
 using integrators::methods::DormandالمكاوىPrince1986RKN434FM;
 using integrators::methods::Quinlan1999Order8A;
 using integrators::methods::QuinlanTremaine1990Order12;
+using physics::BodyCentredNonRotatingDynamicFrame;
 using physics::BodySurfaceDynamicFrame;
 using physics::ContinuousTrajectory;
 using physics::DegreesOfFreedom;
@@ -37,6 +41,8 @@ using physics::KeplerianElements;
 using physics::KeplerOrbit;
 using physics::MasslessBody;
 using physics::OblateBody;
+using physics::RigidMotion;
+using physics::RigidTransformation;
 using physics::SolarSystem;
 using quantities::si::ArcMinute;
 using quantities::si::ArcSecond;
@@ -55,22 +61,32 @@ using ::testing::Eq;
 class GeodesyTest : public ::testing::Test {
  protected:
   GeodesyTest()
-      : solar_system_2000_(
+      : solar_system_2010_(
             SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
             SOLUTION_DIR / "astronomy" /
-                "sol_initial_state_jd_2451545_000000000.proto.txt"),
-        ephemeris_(solar_system_2000_.MakeEphemeris(
+                "sol_initial_state_jd_2455200_500000000.proto.txt"),
+        ephemeris_(solar_system_2010_.MakeEphemeris(
             /*fitting_tolerance=*/5 * Milli(Metre),
             Ephemeris<ICRS>::FixedStepParameters(
                 SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
                                                    Position<ICRS>>(),
                 /*step=*/10 * Minute))),
         earth_(dynamic_cast_not_null<OblateBody<ICRS> const*>(
-            solar_system_2000_.massive_body(*ephemeris_, "Earth"))),
+            solar_system_2010_.massive_body(*ephemeris_, "Earth"))),
         earth_trajectory_(*ephemeris_->trajectory(earth_)),
         itrs_(ephemeris_.get(), earth_) {}
 
-  SolarSystem<ICRS> solar_system_2000_;
+  RigidMotion<GCRS, ITRS> ToITRS(Instant t){return RigidMotion<GCRS, ITRS>(
+      RigidTransformation<GCRS, ITRS>(
+          GCRS::origin,
+          ITRS::origin,
+          Rotation<GCRS, ITRS>(Bivector<double, GCRS>({0, 0, 1}),
+                               EarthRotationAngle(t),
+                               DefinesFrame<ITRS>)),
+      // TODO(egg): LOD,
+      Velocity<GCRS>{})}
+
+  SolarSystem<ICRS> solar_system_2010_;
   not_null<std::unique_ptr<Ephemeris<ICRS>>> const ephemeris_;
   not_null<OblateBody<ICRS> const*> const earth_;
   ContinuousTrajectory<ICRS> const& earth_trajectory_;
@@ -79,7 +95,7 @@ class GeodesyTest : public ::testing::Test {
   // - a systematic error of 2.8 arcminutes;
   // - a systematic drift of 2.6 milliarcseconds per year;
   // - short-period errors at the milliarcsecond level;
-  BodySurfaceDynamicFrame<ICRS, ITRS> itrs_;
+  BodyCentredNonRotatingDynamicFrame<ICRS, GCRS> gcrs_;
 };
 
 #if !defined(_DEBUG)
