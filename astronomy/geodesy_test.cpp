@@ -19,6 +19,7 @@ using base::dynamic_cast_not_null;
 using base::not_null;
 using base::Status;
 using geometry::AngleBetween;
+using geometry::AngularVelocity;
 using geometry::Bivector;
 using geometry::DefinesFrame;
 using geometry::Displacement;
@@ -44,6 +45,8 @@ using physics::OblateBody;
 using physics::RigidMotion;
 using physics::RigidTransformation;
 using physics::SolarSystem;
+using quantities::AngularFrequency;
+using quantities::Time;
 using quantities::si::ArcMinute;
 using quantities::si::ArcSecond;
 using quantities::si::Centi;
@@ -53,6 +56,8 @@ using quantities::si::Kilo;
 using quantities::si::Metre;
 using quantities::si::Milli;
 using quantities::si::Minute;
+using quantities::si::Pico;
+using quantities::si::Radian;
 using quantities::si::Second;
 using testing_utilities::AbsoluteError;
 using testing_utilities::IsNear;
@@ -74,17 +79,31 @@ class GeodesyTest : public ::testing::Test {
         earth_(dynamic_cast_not_null<OblateBody<ICRS> const*>(
             solar_system_2010_.massive_body(*ephemeris_, "Earth"))),
         earth_trajectory_(*ephemeris_->trajectory(earth_)),
-        itrs_(ephemeris_.get(), earth_) {}
+        gcrs_(ephemeris_.get(), earth_) {}
 
-  RigidMotion<GCRS, ITRS> ToITRS(Instant t){return RigidMotion<GCRS, ITRS>(
-      RigidTransformation<GCRS, ITRS>(
-          GCRS::origin,
-          ITRS::origin,
-          Rotation<GCRS, ITRS>(Bivector<double, GCRS>({0, 0, 1}),
-                               EarthRotationAngle(t),
-                               DefinesFrame<ITRS>)),
-      // TODO(egg): LOD,
-      Velocity<GCRS>{})}
+  RigidMotion<ICRS, ITRS> ICRSToITRS(Instant t) {
+    // Assuming constant LOD.  LOD actually varies between about +2.5 ms and
+    // -0.6 ms over the relevant period.
+    Time const lod = 1 * Milli(Second);
+    // See https://www.iers.org/IERS/EN/Science/EarthRotation/UT1LOD.html.
+    AngularFrequency const
+        ω = 72921151.467064 * (Pico(Radian) / Second) -
+            0.843994809 * (Pico(Radian) / Second / (Milli(Second))) * lod;
+    auto const gcrs_to_itrs = RigidMotion<GCRS, ITRS>(
+        RigidTransformation<GCRS, ITRS>(
+            GCRS::origin,
+            ITRS::origin,
+            Rotation<GCRS, ITRS>(EarthRotationAngle(t),
+                                 Bivector<double, GCRS>({0, 0, 1}),
+                                 DefinesFrame<ITRS>()).Forget()),
+        AngularVelocity<GCRS>({0 * Radian / Second, 0 * Radian / Second, ω}),
+        Velocity<GCRS>{});
+    return gcrs_to_itrs * gcrs_.ToThisFrameAtTime(t);
+  }
+
+  RigidMotion<ITRS, ICRS> ITRSToICRS(Instant t) {
+    return ICRSToITRS(t).Inverse();
+  }
 
   SolarSystem<ICRS> solar_system_2010_;
   not_null<std::unique_ptr<Ephemeris<ICRS>>> const ephemeris_;
@@ -192,10 +211,10 @@ TEST_F(GeodesyTest, LAGEOS2) {
 
   DiscreteTrajectory<ICRS> primary_lageos2_trajectory;
   primary_lageos2_trajectory.Append(
-      initial_time, itrs_.FromThisFrameAtTime(initial_time)(initial_dof_ilrsa));
+      initial_time, ITRSToICRS(initial_time)(initial_dof_ilrsa));
   DiscreteTrajectory<ICRS> secondary_lageos2_trajectory;
   secondary_lageos2_trajectory.Append(
-      initial_time, itrs_.FromThisFrameAtTime(initial_time)(initial_dof_ilrsb));
+      initial_time, ITRSToICRS(initial_time)(initial_dof_ilrsb));
   auto flow_lageos2 =
       [this,
        final_time](DiscreteTrajectory<ICRS>& lageos2_trajectory) -> Status {
@@ -224,9 +243,9 @@ TEST_F(GeodesyTest, LAGEOS2) {
   EXPECT_THAT(primary_lageos2_trajectory.last().time(), Eq(final_time));
   EXPECT_THAT(secondary_lageos2_trajectory.last().time(), Eq(final_time));
 
-  auto const primary_actual_final_dof = itrs_.ToThisFrameAtTime(final_time)(
+  auto const primary_actual_final_dof = ICRSToITRS(final_time)(
       primary_lageos2_trajectory.last().degrees_of_freedom());
-  auto const secondary_actual_final_dof = itrs_.ToThisFrameAtTime(final_time)(
+  auto const secondary_actual_final_dof = ICRSToITRS(final_time)(
       secondary_lageos2_trajectory.last().degrees_of_freedom());
 
   // Absolute error in position.
@@ -248,14 +267,14 @@ TEST_F(GeodesyTest, LAGEOS2) {
       KeplerOrbit<ICRS>(
           *earth_,
           lageos2,
-          itrs_.FromThisFrameAtTime(final_time)(expected_final_dof) -
+          ITRSToICRS(final_time)(expected_final_dof) -
               earth_trajectory_.EvaluateDegreesOfFreedom(final_time),
           final_time).elements_at_epoch();
   KeplerianElements<ICRS> const actual_elements =
       KeplerOrbit<ICRS>(
           *earth_,
           lageos2,
-          itrs_.FromThisFrameAtTime(final_time)(primary_actual_final_dof) -
+          ITRSToICRS(final_time)(primary_actual_final_dof) -
               earth_trajectory_.EvaluateDegreesOfFreedom(final_time),
           final_time).elements_at_epoch();
 
