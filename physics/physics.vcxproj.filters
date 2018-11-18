@@ -235,5 +235,8 @@
     <ClCompile Include="geopotential_test.cpp">
       <Filter>Test Files</Filter>
     </ClCompile>
+    <ClCompile Include="geopotential_convergence_test.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
