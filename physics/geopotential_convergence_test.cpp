@@ -3,6 +3,7 @@
 
 #include "astronomy/epoch.hpp"
 #include "astronomy/frames.hpp"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "integrators/methods.hpp"
 #include "integrators/symmetric_linear_multistep_integrator.hpp"
@@ -30,12 +31,17 @@ using integrators::methods::QuinlanTremaine1990Order12;
 using quantities::ArcSin;
 using quantities::Sqrt;
 using quantities::Time;
+using quantities::astronomy::EarthEquatorialRadius;
 using quantities::astronomy::JulianYear;
 using quantities::si::Day;
+using quantities::si::Kilo;
 using quantities::si::Metre;
 using quantities::si::Minute;
 using quantities::si::Milli;
 using quantities::si::Radian;
+using ::testing::AllOf;
+using ::testing::Gt;
+using ::testing::Lt;
 
 namespace physics {
 
@@ -44,7 +50,9 @@ class GeopotentialConvergenceTest : public ::testing::Test {
   static void SetUpTestCase() {
     google::LogToStderr();
     ephemeris_ = solar_system_2000_.MakeEphemeris(
-        /*fitting_tolerance=*/5 * Milli(Metre),
+        Ephemeris<ICRS>::AccuracyParameters(
+            /*fitting_tolerance=*/5 * Milli(Metre),
+            /*geopotential_tolerance=*/0x1p-24),
         Ephemeris<ICRS>::FixedStepParameters(
             SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
                                                Position<ICRS>>(),
@@ -62,19 +70,20 @@ SolarSystem<ICRS> GeopotentialConvergenceTest::solar_system_2000_(
 std::unique_ptr<Ephemeris<ICRS>> GeopotentialConvergenceTest::ephemeris_;
 
 
-TEST_F(GeopotentialConvergenceTest, Молния) {
+TEST_F(GeopotentialConvergenceTest, EccentricOrbit) {
   auto const earth_body = dynamic_cast_not_null<OblateBody<ICRS> const*>(
       solar_system_2000_.massive_body(*ephemeris_, "Earth"));
   auto const earth_degrees_of_freedom =
       solar_system_2000_.degrees_of_freedom("Earth");
+  auto const& geopotential = ephemeris_->geopotential(earth_body);
 
   Time const sidereal_day = Day * 365.2425 / 366.2425;
 
-  // These data are from https://en.wikipedia.org/wiki/Molniya_orbit.  The
-  // eccentricity is from the "External links" section.
+  // An orbit with the Молния inclination, but with a much longer period, so as
+  // to cross the outer sectoral threshold.
   KeplerianElements<ICRS> initial_elements;
-  initial_elements.eccentricity = 0.74105;
-  initial_elements.mean_motion = 2.0 * π * Radian / (sidereal_day / 2.0);
+  initial_elements.periapsis_distance = EarthEquatorialRadius + 1000 * Kilo(Metre);
+  initial_elements.mean_motion = 2.0 * π * Radian / (10 * sidereal_day);
   initial_elements.inclination = ArcSin(2.0 / Sqrt(5.0));
   initial_elements.argument_of_periapsis = -π / 2.0 * Radian;
   initial_elements.longitude_of_ascending_node = 1 * Radian;
@@ -85,8 +94,11 @@ TEST_F(GeopotentialConvergenceTest, Молния) {
       *earth_body, satellite, initial_elements, J2000);
   auto const satellite_state_vectors = initial_orbit.StateVectors(J2000);
 
-  LOG(ERROR) << *initial_orbit.elements_at_epoch().apoapsis_distance;
-  LOG(FATAL) << *initial_orbit.elements_at_epoch().apoapsis_distance;
+  EXPECT_THAT(*initial_orbit.elements_at_epoch().apoapsis_distance,
+              AllOf(Gt(geopotential.sectoral_damping().outer_threshold()),
+                    Lt(geopotential.degree_damping()[2].inner_threshold())));
+  EXPECT_THAT(*initial_orbit.elements_at_epoch().periapsis_distance,
+              Lt(geopotential.degree_damping().back().inner_threshold()));
 
   [this, &earth_degrees_of_freedom, &satellite_state_vectors](
       Time const integration_step) {

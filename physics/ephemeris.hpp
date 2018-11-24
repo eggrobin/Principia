@@ -165,6 +165,8 @@ class Ephemeris {
   // Returns the trajectory for the given |body|.
   virtual not_null<ContinuousTrajectory<Frame> const*> trajectory(
       not_null<MassiveBody const*> body) const;
+  virtual Geopotential<Frame> const& Ephemeris<Frame>::geopotential(
+    not_null<MassiveBody const*> body) const;
 
   // Returns true if at least one of the trajectories is empty.
   virtual bool empty() const EXCLUDES(lock_);
@@ -401,6 +403,8 @@ class Ephemeris {
   // The indices in |bodies_| correspond to those in |trajectories_|.
   std::vector<not_null<ContinuousTrajectory<Frame>*>> trajectories_;
 
+  std::map<not_null<MassiveBody const*>, not_null<Geopotential<Frame> const*>>
+      bodies_to_geopotentials_;
   std::map<not_null<MassiveBody const*>,
            not_null<std::unique_ptr<ContinuousTrajectory<Frame>>>>
       bodies_to_trajectories_;

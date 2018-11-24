@@ -320,6 +320,10 @@ Ephemeris<Frame>::Ephemeris(
     }
   }
 
+  for (int i = 0; i < number_of_oblate_bodies_; ++i) {
+    bodies_to_geopotentials_.emplace(bodies_[i].get(), &geopotentials_[i]);
+  }
+
   instance_ = fixed_step_parameters_.integrator_->NewInstance(
       problem,
       /*append_state=*/std::bind(
@@ -337,6 +341,12 @@ template<typename Frame>
 not_null<ContinuousTrajectory<Frame> const*> Ephemeris<Frame>::trajectory(
     not_null<MassiveBody const*> body) const {
   return FindOrDie(bodies_to_trajectories_, body).get();
+}
+
+template<typename Frame>
+Geopotential<Frame> const& Ephemeris<Frame>::geopotential(
+    not_null<MassiveBody const*> body) const {
+  return *FindOrDie(bodies_to_geopotentials_, body);
 }
 
 template<typename Frame>
