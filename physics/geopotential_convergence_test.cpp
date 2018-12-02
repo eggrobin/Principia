@@ -36,9 +36,10 @@ using quantities::astronomy::JulianYear;
 using quantities::si::Day;
 using quantities::si::Kilo;
 using quantities::si::Metre;
-using quantities::si::Minute;
 using quantities::si::Milli;
+using quantities::si::Minute;
 using quantities::si::Radian;
+using quantities::si::Second;
 using ::testing::AllOf;
 using ::testing::Gt;
 using ::testing::Lt;
@@ -52,7 +53,7 @@ class GeopotentialConvergenceTest : public ::testing::Test {
     ephemeris_ = solar_system_2000_.MakeEphemeris(
         Ephemeris<ICRS>::AccuracyParameters(
             /*fitting_tolerance=*/5 * Milli(Metre),
-            /*geopotential_tolerance=*/0x1p-24),
+            /*geopotential_tolerance=*/0),
         Ephemeris<ICRS>::FixedStepParameters(
             SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
                                                Position<ICRS>>(),
@@ -100,8 +101,10 @@ TEST_F(GeopotentialConvergenceTest, EccentricOrbit) {
   EXPECT_THAT(*initial_orbit.elements_at_epoch().periapsis_distance,
               Lt(geopotential.degree_damping().back().inner_threshold()));
 
-  [this, &earth_degrees_of_freedom, &satellite_state_vectors](
-      Time const integration_step) {
+  auto flow_orbit_1_year = [this,
+                            &earth_degrees_of_freedom,
+                            &satellite_state_vectors](
+                               Time const integration_step) {
     Time const integration_duration = 1.0 * JulianYear;
     DiscreteTrajectory<ICRS> trajectory;
     trajectory.Append(J2000,
@@ -117,6 +120,13 @@ TEST_F(GeopotentialConvergenceTest, EccentricOrbit) {
     ephemeris_->FlowWithFixedStep(J2000 + integration_duration, *instance);
     return trajectory.last().degrees_of_freedom().position();
   };
+
+  Position<ICRS> const reference_solution = flow_orbit_1_year(1 * Second);
+  double const increment = std::pow(2, 0x1p-8);
+  for (Time Δt = 50 * Second; Δt < 100 * Second; Δt *= increment) {
+    LOG(ERROR) << Δt << ": "
+                     << (flow_orbit_1_year(Δt) - reference_solution).Norm();
+  }
 }
 
 }  // namespace physics
