@@ -43,8 +43,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="boxed.cs" />
+    <Compile Include="optional_marshaler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="utf8_marshaler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
