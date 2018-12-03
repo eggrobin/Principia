@@ -32,7 +32,7 @@ internal class OptionalMarshaler<T> : ICustomMarshaler where T : struct {
   IntPtr ICustomMarshaler.MarshalManagedToNative(object managed_object) {
     if (managed_object == null) {
       // This is not our job.
-      throw Log.Fatal("The runtime returns null for null objects");
+      throw new Exception("The runtime returns null for null objects");
     }
     T value;
     var value_if_boxed = managed_object as T?;
@@ -43,7 +43,7 @@ internal class OptionalMarshaler<T> : ICustomMarshaler where T : struct {
       if (value_if_strongly_boxed != null) {
         value = value_if_strongly_boxed.all;
       } else {
-        throw Log.Fatal(
+        throw new Exception(
             String.Format(
                 CultureInfo.InvariantCulture,
                 "|{0}<{1}>| must be used on a boxed |{1}| or on a |{2}<{1}>|.",

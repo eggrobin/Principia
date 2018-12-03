@@ -9,8 +9,20 @@ using System.Threading.Tasks;
 namespace principia {
 namespace ksp_plugin_adapter {
 
+internal struct KeplerianElements {}
+
 class Program {
+
+  [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
+  [return: MarshalAs(UnmanagedType.Bool)]
+  static extern bool SetDllDirectory(string lpPathName);
   static void Main(string[] args) {
+  
+    if (!SetDllDirectory(@"C:\Users\robin\Projects\Kerbal Space Program\Plugins\Principia\Release\GameData\Principia\x64")) {
+      throw new Exception( "Failed to set DLL directory (error code " +
+              Marshal.GetLastWin32Error() + ").");
+    }
+
     var plugin_ = Interface.NewPlugin(
           game_epoch:"2000-01-01T12:00:00",
           solar_system_epoch:"2000-01-01T12:00:00",
@@ -22,8 +34,13 @@ class Program {
                                  mean_radius = "1 km",
                                  name = "test_body",
                                  reference_angle = "42 deg",
-                                 reference_instant = "2000-01-01T12:34:56"};
-    plugin_.InsertCelestialAbsoluteCartesian(
+                                 reference_instant = "2000-01-01T12:34:56",
+                                 reference_radius="1 m"};
+    parameters.geopotential = new Interface.BodyGeopotentialElement[]{
+    new Interface.BodyGeopotentialElement{degree="2", order="0", cos="2",sin="0"},
+    new Interface.BodyGeopotentialElement{degree="2", order="2", cos="3",sin="4"},
+    new Interface.BodyGeopotentialElement{degree="3", order="0", cos="3",sin= "0" } };
+        plugin_.InsertCelestialAbsoluteCartesian(
     celestial_index:0,
     parent_index:null,
     body_parameters:parameters,
@@ -58,6 +75,7 @@ internal partial struct BodyParameters {
   public String angular_frequency;
   public String reference_radius;
   public String j2;
+  [MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(BodyGeopotentialElementArrayMarshaler))]
   private BodyGeopotentialElement[] geopotential_;
   private int geopotential_size_;
   public BodyGeopotentialElement[] geopotential {
@@ -66,7 +84,7 @@ internal partial struct BodyParameters {
   }
 }
 
-const string dll_path = "ksp_plugin.dll";
+const string dll_path = "principia.dll";
 
   [DllImport(dllName           : dll_path,
              EntryPoint        = "principia__NewPlugin",
