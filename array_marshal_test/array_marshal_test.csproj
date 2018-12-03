@@ -49,5 +49,11 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ksp_plugin_adapter\ksp_plugin_adapter.csproj">
+      <Project>{e75b3f05-d64f-4afe-9493-2f94a9b37510}</Project>
+      <Name>ksp_plugin_adapter</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
