@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="array_marshaler.cs" />
     <Compile Include="boxed.cs" />
     <Compile Include="optional_marshaler.cs" />
     <Compile Include="Program.cs" />

@@ -155,6 +155,7 @@ serialization::OblateBody::Geopotential MakeGeopotential(
     int const order = std::stoi(element.order);
     double const cos = ParseQuantity<double>(element.cos);
     double const sin = ParseQuantity<double>(element.sin);
+    LOG(ERROR) << degree << " " << order << " " << cos << " " << sin;
     serialization::OblateBody::Geopotential::GeopotentialRow::GeopotentialColumn
         column;
     column.set_order(order);
@@ -666,6 +667,7 @@ void principia__InsertCelestialAbsoluteCartesian(
        body_parameters,
        x, y, z,
        vx, vy, vz});
+  LOG(ERROR) << NAMED(&body_parameters);
   CHECK_NOTNULL(plugin);
   serialization::InitialState::Cartesian::Body initial_state;
   initial_state.set_name(body_parameters.name);

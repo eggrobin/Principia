@@ -35,6 +35,7 @@ internal class InUTF8Marshaler : UTF8Marshaler {
 
   public override void CleanUpNativeData(IntPtr native_data) {
     Marshal.FreeHGlobal(native_data);
+    Console.WriteLine("   Deallocated string");
   }
 
   public override IntPtr MarshalManagedToNative(object managed_object) {
@@ -53,6 +54,7 @@ internal class InUTF8Marshaler : UTF8Marshaler {
     utf8_.GetBytes(value, 0, value.Length, bytes_, 0);
     bytes_[size] = 0;
     Marshal.Copy(bytes_, 0, buffer, size + 1);
+    Console.WriteLine("   Allocated string");
     return buffer;
   }
 
