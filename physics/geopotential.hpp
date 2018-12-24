@@ -117,7 +117,7 @@ class Geopotential {
   struct Precomputations;
 
   // Helper templates for iterating over the degrees/orders of the geopotential.
-  template<int degree, int order>
+  template<int order, bool sectoral>
   struct DegreeNOrderM;
   template<int degree, typename>
   struct DegreeNAllOrders;
