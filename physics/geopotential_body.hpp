@@ -124,10 +124,11 @@ struct Geopotential<Frame>::Precomputations {
 };
 
 template<typename Frame>
-template<int order, bool sectoral>
+template<bool is_zonal, Sectorality sectorality, bool is_2_1, bool m_even>
 struct Geopotential<Frame>::DegreeNOrderM {
   FORCE_INLINE(static)
-  auto Acceleration(int const degree,
+  auto Acceleration(int const n,
+                    int const m,
                     Inverse<Square<Length>> const& σℜ_over_r,
                     Vector<Inverse<Square<Length>>, Frame> const& grad_σℜ,
                     Precomputations& precomputations)
@@ -159,21 +160,27 @@ struct Geopotential<Frame>::AllDegrees<std::integer_sequence<int, degrees...>> {
 };
 
 template<typename Frame>
-template<int order, bool sectoral>
-auto Geopotential<Frame>::DegreeNOrderM<order, sectoral>::Acceleration(
-    int const degree,
-    Inverse<Square<Length>> const& σℜ_over_r,
-    Vector<Inverse<Square<Length>>, Frame> const& grad_σℜ,
-    Precomputations& precomputations)
-    -> Vector<ReducedAcceleration, Frame> {
-  if (degree == 2 && order == 1) {
+template<bool is_zonal, Sectorality sectorality, bool is_2_1, bool m_even>
+auto Geopotential<Frame>::DegreeNOrderM<is_zonal, sectorality, is_2_1, m_even>::
+    Acceleration(int const n,
+                 int const m,
+                 Inverse<Square<Length>> const& σℜ_over_r,
+                 Vector<Inverse<Square<Length>>, Frame> const& grad_σℜ,
+                 Precomputations& precomputations)
+        -> Vector<ReducedAcceleration, Frame> {
+  DCHECK_EQ(is_zonal, m == 0);
+  DCHECK_EQ(sectorality == Sectoral, n == m);
+  DCHECK_EQ(sectorality == PenultimateOrder, n == m + 1);
+  DCHECK_EQ(sectorality == AntepenultimateOrder, n == m + 2);
+  DCHECK_EQ(sectorality == SmallOrder, n > m + 2);
+  DCHECK_EQ(is_2_1, n == 2 && m == 1);
+  DCHECK_EQ(m_even, m % 2 == 0);
+  if constexpr (is_2_1) {
     // Let's not forget the Legendre derivative that we would compute if we did
     // not short-circuit.
     precomputations.DmPn_of_sin_β[2][2] = 3;
     return {};
   } else {
-    int const n = degree;
-    constexpr int m = order;
     double normalization_factor = LegendreNormalizationFactor[n][m];
 
     double const cos_β = precomputations.cos_β;
@@ -197,12 +204,10 @@ auto Geopotential<Frame>::DegreeNOrderM<order, sectoral>::Acceleration(
 
     // The caller ensures that we process n and m by increasing values.  Thus,
     // only the last value of m needs to be initialized for a given value of n.
-    if constexpr (sectoral) {
-      static_assert(m >= 2);
-
+    if constexpr (sectorality == Sectoral) {
       // Compute the values for m * λ based on the values around m/2 * λ to
       // reduce error accumulation.
-      if constexpr (m % 2 == 0) {
+      if constexpr (m_even) {
         int const h = m / 2;
         double const cos_hλ = precomputations.cos_mλ[h];
         double const sin_hλ = precomputations.sin_mλ[h];
@@ -226,7 +231,7 @@ auto Geopotential<Frame>::DegreeNOrderM<order, sectoral>::Acceleration(
     }
 
     // Recurrence relationship between the Legendre polynomials.
-    if constexpr (m == 0) {
+    if constexpr (is_zonal) {
       DmPn_of_sin_β[n][0] = ((2 * n - 1) * sin_β * DmPn_of_sin_β[n - 1][0] -
                              (n - 1) * DmPn_of_sin_β[n - 2][0]) /
                             n;
@@ -234,12 +239,12 @@ auto Geopotential<Frame>::DegreeNOrderM<order, sectoral>::Acceleration(
 
     // Recurrence relationship between the associated Legendre polynomials.
     // Account for the fact that DmPn_of_sin_β is identically zero if m > n.
-    if constexpr (sectoral) {
+    if constexpr (sectorality == Sectoral) {
       // Do not store the zero.
-    } else if (m == n - 1) {
+    } else if constexpr (sectorality == PenultimateOrder) {
       DmPn_of_sin_β[n][m + 1] =
           ((2 * n - 1) * (m + 1) * DmPn_of_sin_β[n - 1][m]) / n;
-    } else if (m == n - 2) {
+    } else if constexpr (sectorality == AntepenultimateOrder) {
       DmPn_of_sin_β[n][m + 1] =
           ((2 * n - 1) * (sin_β * DmPn_of_sin_β[n - 1][m + 1] +
                           (m + 1) * DmPn_of_sin_β[n - 1][m])) /
@@ -259,10 +264,10 @@ auto Geopotential<Frame>::DegreeNOrderM<order, sectoral>::Acceleration(
     double const 𝔅 = cos_β_to_the_m * DmPn_of_sin_β[n][m];
 
     double grad_𝔅_polynomials = 0;
-    if constexpr (!sectoral) {
+    if constexpr (sectorality != Sectoral) {
       grad_𝔅_polynomials = cos_β * cos_β_to_the_m * DmPn_of_sin_β[n][m + 1];
     }
-    if constexpr (m > 0) {
+    if constexpr (!is_zonal) {
       cos_β_to_the_m_minus_1 = precomputations.cos_β_to_the_m[m - 1];
       // Remove a singularity when m == 0 and cos_β == 0.
       grad_𝔅_polynomials -=
@@ -272,7 +277,7 @@ auto Geopotential<Frame>::DegreeNOrderM<order, sectoral>::Acceleration(
     double const Cnm = cos[n][m];
     double const Snm = sin[n][m];
     double 𝔏;
-    if constexpr (m == 0) {
+    if constexpr (is_zonal) {
       𝔏 = Cnm;
     } else {
       𝔏 = Cnm * cos_mλ + Snm * sin_mλ;
@@ -282,7 +287,7 @@ auto Geopotential<Frame>::DegreeNOrderM<order, sectoral>::Acceleration(
     Vector<ReducedAcceleration, Frame> const ℜ𝔏_grad_𝔅 =
         (ℜ_over_r * 𝔏 * grad_𝔅_polynomials) * grad_𝔅_vector;
     Vector<ReducedAcceleration, Frame> grad_ℜ𝔅𝔏 = 𝔅𝔏_grad_ℜ + ℜ𝔏_grad_𝔅;
-    if constexpr (m > 0) {
+    if constexpr (!is_zonal) {
       // Compensate a cos_β to remove a singularity when cos_β == 0.
       Vector<ReducedAcceleration, Frame> const ℜ𝔅_grad_𝔏 =
           (ℜ_over_r *
@@ -344,8 +349,14 @@ Acceleration(Geopotential<Frame> const& geopotential,
       // (σ = 0).
       DCHECK_LT(r_norm, geopotential.degree_damping_[2].outer_threshold());
       Vector<ReducedAcceleration, Frame> const j2_acceleration =
-          DegreeNOrderM</*order=*/0, /*sectoral=*/false>::Acceleration(
-              /*degree=*/2, σℜ_over_r, grad_σℜ, precomputations);
+          DegreeNOrderM</*is_zonal=*/true,
+                        /*sectorality=*/AntepenultimateOrder,
+                        /*is_2_1=*/false,
+                        /*m_even=*/true>::Acceleration(2,
+                                                       0,
+                                                       σℜ_over_r,
+                                                       grad_σℜ,
+                                                       precomputations);
       geopotential.sectoral_damping_.ComputeDampedRadialQuantities(
           r_norm,
           r²,
@@ -359,11 +370,23 @@ Acceleration(Geopotential<Frame> const& geopotential,
       DCHECK_LT(r_norm, geopotential.sectoral_damping_.outer_threshold());
       // Perform the precomputations for order 1 (but the result is known to be
       // 0, so don't bother adding it).
-      DegreeNOrderM</*order=*/1, /*sectoral=*/false>::Acceleration(
-          /*degree=*/2, σℜ_over_r, grad_σℜ, precomputations);
+      DegreeNOrderM</*is_zonal=*/false,
+                    /*sectorality=*/PenultimateOrder,
+                    /*is_2_1=*/true,
+                    /*m_even=*/false>::Acceleration(2,
+                                                    1,
+                                                    σℜ_over_r,
+                                                    grad_σℜ,
+                                                    precomputations);
       Vector<ReducedAcceleration, Frame> const c22_s22_acceleration =
-          DegreeNOrderM</*order=*/2, /*sectoral=*/false>::Acceleration(
-              /*degree=*/2, σℜ_over_r, grad_σℜ, precomputations);
+          DegreeNOrderM</*is_zonal=*/false,
+                        /*sectorality=*/Sectoral,
+                        /*is_2_1=*/false,
+                        /*m_even=*/true>::Acceleration(2,
+                                                       2,
+                                                       σℜ_over_r,
+                                                       grad_σℜ,
+                                                       precomputations);
       return j2_acceleration + c22_s22_acceleration;
     } else {
       geopotential.degree_damping_[n].ComputeDampedRadialQuantities(
@@ -380,8 +403,12 @@ Acceleration(Geopotential<Frame> const& geopotential,
 
       // Force the evaluation by increasing order using an initializer list.
       ReducedAccelerations<size> const accelerations = {
-          DegreeNOrderM<orders, degree == orders>::Acceleration(
-              degree, σℜ_over_r, grad_σℜ, precomputations)...};
+          DegreeNOrderM</*is_zonal=*/orders == 0,
+                        /*sectorality=*/Sectorality(
+                            std::min(degree - orders, 3)),
+                        /*is_2_1=*/degree == 2 && orders == 1,
+                        /*m_even=*/orders % 2 == 0>::Acceleration(
+              degree, orders, σℜ_over_r, grad_σℜ, precomputations)...};
 
       return (accelerations[orders] + ...);
     }

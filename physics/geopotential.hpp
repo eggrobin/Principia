@@ -70,6 +70,14 @@ class HarmonicDamping final {
       numerics::EstrinEvaluator>::Coefficients sigmoid_coefficients_;
 };
 
+// The sectorality of (n, m) can be computed as std::min(n - m, 3).
+enum Sectorality {
+  Sectoral = 0,              // n = m.
+  PenultimateOrder = 1,      // n = m + 1.
+  AntepenultimateOrder = 2,  // n = m + 2.
+  SmallOrder = 3,            // n > m + 2.
+};
+
 // Representation of the geopotential model of an oblate body.
 template<typename Frame>
 class Geopotential {
@@ -117,7 +125,7 @@ class Geopotential {
   struct Precomputations;
 
   // Helper templates for iterating over the degrees/orders of the geopotential.
-  template<int order, bool sectoral>
+  template<bool is_zonal, Sectorality sectorality, bool is_2_1, bool m_even>
   struct DegreeNOrderM;
   template<int degree, typename>
   struct DegreeNAllOrders;
