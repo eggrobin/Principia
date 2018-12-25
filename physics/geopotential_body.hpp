@@ -647,7 +647,7 @@ Geopotential<Frame>::GeneralSphericalHarmonicsAcceleration(
     PRINCIPIA_CASE_SPHERICAL_HARMONICS(8);
     PRINCIPIA_CASE_SPHERICAL_HARMONICS(9);
     PRINCIPIA_CASE_SPHERICAL_HARMONICS(10);
-    PRINCIPIA_CASE_SPHERICAL_HARMONICS(50);
+    //PRINCIPIA_CASE_SPHERICAL_HARMONICS(50);
     case 1:
       return Vector<Quotient<Acceleration, GravitationalParameter>, Frame>{};
     default:
