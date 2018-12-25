@@ -168,7 +168,7 @@ template<typename Frame>
 template<int degree, int... orders>
 struct Geopotential<Frame>::
 DegreeNAllOrders<degree, std::integer_sequence<int, orders...>> {
-  static inline auto Acceleration(Geopotential<Frame> const& geopotential,
+  static auto Acceleration(Geopotential<Frame> const& geopotential,
                                   Vector<double, Frame> const& r_normalized,
                                   Length const& r_norm,
                                   Square<Length> const& r²,
@@ -179,7 +179,7 @@ DegreeNAllOrders<degree, std::integer_sequence<int, orders...>> {
 template<typename Frame>
 template<int... degrees>
 struct Geopotential<Frame>::AllDegrees<std::integer_sequence<int, degrees...>> {
-  static inline auto Acceleration(Geopotential<Frame> const& geopotential,
+  static auto Acceleration(Geopotential<Frame> const& geopotential,
                                   Instant const& t,
                                   Displacement<Frame> const& r,
                                   Length const& r_norm,
@@ -647,7 +647,7 @@ Geopotential<Frame>::GeneralSphericalHarmonicsAcceleration(
     PRINCIPIA_CASE_SPHERICAL_HARMONICS(8);
     PRINCIPIA_CASE_SPHERICAL_HARMONICS(9);
     PRINCIPIA_CASE_SPHERICAL_HARMONICS(10);
-    //PRINCIPIA_CASE_SPHERICAL_HARMONICS(50);
+    PRINCIPIA_CASE_SPHERICAL_HARMONICS(50);
     case 1:
       return Vector<Quotient<Acceleration, GravitationalParameter>, Frame>{};
     default:
