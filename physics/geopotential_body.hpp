@@ -155,13 +155,12 @@ struct Geopotential<Frame>::Precomputations {
 template<typename Frame>
 template<bool is_zonal, Sectorality sectorality, bool is_2_1>
 struct Geopotential<Frame>::DegreeNOrderM {
-  FORCE_INLINE(static)
-  auto Acceleration(int const n,
-                    int const m,
-                    Inverse<Square<Length>> const& σℜ_over_r,
-                    Vector<Inverse<Square<Length>>, Frame> const& grad_σℜ,
-                    Precomputations& precomputations)
-      -> Vector<ReducedAcceleration, Frame>;
+  static auto Acceleration(
+      int const n,
+      int const m,
+      Inverse<Square<Length>> const& σℜ_over_r,
+      Vector<Inverse<Square<Length>>, Frame> const& grad_σℜ,
+      Precomputations& precomputations) -> Vector<ReducedAcceleration, Frame>;
 };
 
 template<typename Frame>
