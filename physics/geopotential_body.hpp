@@ -118,13 +118,42 @@ struct Geopotential<Frame>::Precomputations {
   FixedVector<double, size> sin_mλ{uninitialized};  // 0 unused.
   FixedVector<double, size> cos_β_to_the_m{uninitialized};
 
+  // Computes cos_mλ[m], sin_mλ[m], cos_β_to_the_m[m]; must be called by
+  // increasing m.
+  template<int m>
+  void ComputeTrigonometricLines() {
+    // Compute the values for m * λ based on the values around m/2 * λ to
+    // reduce error accumulation.
+    if constexpr (m % 2 == 0) {
+      int const h = m / 2;
+      double const cos_hλ = cos_mλ[h];
+      double const sin_hλ = sin_mλ[h];
+      double const cos_β_to_the_h = cos_β_to_the_m[h];
+      sin_mλ[m] = 2 * sin_hλ * cos_hλ;
+      cos_mλ[m] = (cos_hλ + sin_hλ) * (cos_hλ - sin_hλ);
+      cos_β_to_the_m[m] = cos_β_to_the_h * cos_β_to_the_h;
+    } else {
+      int const h1 = m / 2;
+      int const h2 = m - h1;
+      double const cos_h1λ = cos_mλ[h1];
+      double const sin_h1λ = sin_mλ[h1];
+      double const cos_β_to_the_h1 = cos_β_to_the_m[h1];
+      double const cos_h2λ = cos_mλ[h2];
+      double const sin_h2λ = sin_mλ[h2];
+      double const cos_β_to_the_h2 = cos_β_to_the_m[h2];
+      sin_mλ[m] = sin_h1λ * cos_h2λ + cos_h1λ * sin_h2λ;
+      cos_mλ[m] = cos_h1λ * cos_h2λ - sin_h1λ * sin_h2λ;
+      cos_β_to_the_m[m] = cos_β_to_the_h1 * cos_β_to_the_h2;
+    }
+  }
+
   // These quantities depend on both n and m.  Note that the zeros for m > n are
   // not stored.
   FixedLowerTriangularMatrix<double, size> DmPn_of_sin_β{uninitialized};
 };
 
 template<typename Frame>
-template<bool is_zonal, Sectorality sectorality, bool is_2_1, bool m_even>
+template<bool is_zonal, Sectorality sectorality, bool is_2_1>
 struct Geopotential<Frame>::DegreeNOrderM {
   FORCE_INLINE(static)
   auto Acceleration(int const n,
@@ -160,8 +189,8 @@ struct Geopotential<Frame>::AllDegrees<std::integer_sequence<int, degrees...>> {
 };
 
 template<typename Frame>
-template<bool is_zonal, Sectorality sectorality, bool is_2_1, bool m_even>
-auto Geopotential<Frame>::DegreeNOrderM<is_zonal, sectorality, is_2_1, m_even>::
+template<bool is_zonal, Sectorality sectorality, bool is_2_1>
+auto Geopotential<Frame>::DegreeNOrderM<is_zonal, sectorality, is_2_1>::
     Acceleration(int const n,
                  int const m,
                  Inverse<Square<Length>> const& σℜ_over_r,
@@ -174,7 +203,6 @@ auto Geopotential<Frame>::DegreeNOrderM<is_zonal, sectorality, is_2_1, m_even>::
   DCHECK_EQ(sectorality == AntepenultimateOrder, n == m + 2);
   DCHECK_EQ(sectorality == SmallOrder, n > m + 2);
   DCHECK_EQ(is_2_1, n == 2 && m == 1);
-  DCHECK_EQ(m_even, m % 2 == 0);
   if constexpr (is_2_1) {
     // Let's not forget the Legendre derivative that we would compute if we did
     // not short-circuit.
@@ -201,34 +229,6 @@ auto Geopotential<Frame>::DegreeNOrderM<is_zonal, sectorality, is_2_1, m_even>::
     auto& DmPn_of_sin_β = precomputations.DmPn_of_sin_β;
     auto const& cos = *precomputations.cos;
     auto const& sin = *precomputations.sin;
-
-    // The caller ensures that we process n and m by increasing values.  Thus,
-    // only the last value of m needs to be initialized for a given value of n.
-    if constexpr (sectorality == Sectoral) {
-      // Compute the values for m * λ based on the values around m/2 * λ to
-      // reduce error accumulation.
-      if constexpr (m_even) {
-        int const h = m / 2;
-        double const cos_hλ = precomputations.cos_mλ[h];
-        double const sin_hλ = precomputations.sin_mλ[h];
-        double const cos_β_to_the_h = precomputations.cos_β_to_the_m[h];
-        sin_mλ = 2 * sin_hλ * cos_hλ;
-        cos_mλ = (cos_hλ + sin_hλ) * (cos_hλ - sin_hλ);
-        cos_β_to_the_m = cos_β_to_the_h * cos_β_to_the_h;
-      } else {
-        int const h1 = m / 2;
-        int const h2 = m - h1;
-        double const cos_h1λ = precomputations.cos_mλ[h1];
-        double const sin_h1λ = precomputations.sin_mλ[h1];
-        double const cos_β_to_the_h1 = precomputations.cos_β_to_the_m[h1];
-        double const cos_h2λ = precomputations.cos_mλ[h2];
-        double const sin_h2λ = precomputations.sin_mλ[h2];
-        double const cos_β_to_the_h2 = precomputations.cos_β_to_the_m[h2];
-        sin_mλ = sin_h1λ * cos_h2λ + cos_h1λ * sin_h2λ;
-        cos_mλ = cos_h1λ * cos_h2λ - sin_h1λ * sin_h2λ;
-        cos_β_to_the_m = cos_β_to_the_h1 * cos_β_to_the_h2;
-      }
-    }
 
     // Recurrence relationship between the Legendre polynomials.
     if constexpr (is_zonal) {
@@ -336,6 +336,10 @@ Acceleration(Geopotential<Frame> const& geopotential,
 
     Inverse<Square<Length>> σℜ_over_r;
     Vector<Inverse<Square<Length>>, Frame> grad_σℜ;
+    if constexpr (size > 1) {
+      precomputations.ComputeTrigonometricLines<degree>();
+    }
+
     if constexpr (n == 2 && size > 1) {
       geopotential.degree_damping_[2].ComputeDampedRadialQuantities(
           r_norm,
@@ -351,8 +355,7 @@ Acceleration(Geopotential<Frame> const& geopotential,
       Vector<ReducedAcceleration, Frame> const j2_acceleration =
           DegreeNOrderM</*is_zonal=*/true,
                         /*sectorality=*/AntepenultimateOrder,
-                        /*is_2_1=*/false,
-                        /*m_even=*/true>::Acceleration(2,
+                        /*is_2_1=*/false>::Acceleration(2,
                                                        0,
                                                        σℜ_over_r,
                                                        grad_σℜ,
@@ -372,21 +375,19 @@ Acceleration(Geopotential<Frame> const& geopotential,
       // 0, so don't bother adding it).
       DegreeNOrderM</*is_zonal=*/false,
                     /*sectorality=*/PenultimateOrder,
-                    /*is_2_1=*/true,
-                    /*m_even=*/false>::Acceleration(2,
-                                                    1,
-                                                    σℜ_over_r,
-                                                    grad_σℜ,
-                                                    precomputations);
+                    /*is_2_1=*/true>::Acceleration(2,
+                                                   1,
+                                                   σℜ_over_r,
+                                                   grad_σℜ,
+                                                   precomputations);
       Vector<ReducedAcceleration, Frame> const c22_s22_acceleration =
           DegreeNOrderM</*is_zonal=*/false,
                         /*sectorality=*/Sectoral,
-                        /*is_2_1=*/false,
-                        /*m_even=*/true>::Acceleration(2,
-                                                       2,
-                                                       σℜ_over_r,
-                                                       grad_σℜ,
-                                                       precomputations);
+                        /*is_2_1=*/false>::Acceleration(2,
+                                                        2,
+                                                        σℜ_over_r,
+                                                        grad_σℜ,
+                                                        precomputations);
       return j2_acceleration + c22_s22_acceleration;
     } else {
       geopotential.degree_damping_[n].ComputeDampedRadialQuantities(
@@ -406,8 +407,7 @@ Acceleration(Geopotential<Frame> const& geopotential,
           DegreeNOrderM</*is_zonal=*/orders == 0,
                         /*sectorality=*/Sectorality(
                             std::min(degree - orders, 3)),
-                        /*is_2_1=*/degree == 2 && orders == 1,
-                        /*m_even=*/orders % 2 == 0>::Acceleration(
+                        /*is_2_1=*/degree == 2 && orders == 1>::Acceleration(
               degree, orders, σℜ_over_r, grad_σℜ, precomputations)...};
 
       return (accelerations[orders] + ...);
