@@ -4,6 +4,7 @@
 
 #include "astronomy/epoch.hpp"
 #include "astronomy/frames.hpp"
+#include "astronomy/orbit_analyser.hpp"
 #include "base/file.hpp"
 #include "base/macros.hpp"
 #include "base/not_null.hpp"
@@ -117,6 +118,13 @@ TEST_F(МолнияOrbitTest, Satellite) {
   KeplerOrbit<ICRS> initial_orbit(
       *earth_body, satellite, initial_elements, J2000);
   auto const satellite_state_vectors = initial_orbit.StateVectors(J2000);
+
+  OrbitAnalyser<ICRS> analyser(
+      ephemeris_.get(),
+      earth_body,
+      J2000,
+      earth_degrees_of_freedom + satellite_state_vectors);
+  analyser.Analyse();
 
   DiscreteTrajectory<ICRS> trajectory;
   trajectory.Append(J2000, earth_degrees_of_freedom + satellite_state_vectors);

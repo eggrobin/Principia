@@ -165,6 +165,12 @@
     <ClInclude Include="fortran_astrodynamics_toolkit_body.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="orbit_analyser.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="orbit_analyser_body.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lunar_eclipse_test.cpp">

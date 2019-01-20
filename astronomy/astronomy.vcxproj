@@ -49,6 +49,8 @@
     <ClInclude Include="date_time.hpp" />
     <ClInclude Include="date_time_body.hpp" />
     <ClInclude Include="fortran_astrodynamics_toolkit.hpp" />
+    <ClInclude Include="orbit_analyser.hpp" />
+    <ClInclude Include="orbit_analyser_body.hpp" />
     <ClInclude Include="solar_system_fingerprints.hpp" />
     <ClInclude Include="stabilize_ksp.hpp" />
     <ClInclude Include="stabilize_ksp_body.hpp" />
