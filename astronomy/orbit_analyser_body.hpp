@@ -108,7 +108,7 @@ MeasurementResult<T> AverageOfCorrelated(std::vector<T> const& time_series) {
     Difference<T> sqrt_n_im_fourier_coefficient{};
     // We use the convention from Koen and Lombard (2004), ω = 2πj/n, rather
     // than ω = j/n as in Koen and Lombard (1993).
-    double const ω = 2 * π * j * / n;
+    double const ω = 2 * π * j / n;
     for (int t = 0; t < n; ++t) {
       Difference<T> const Δy = time_series[t] - average;
       sqrt_n_re_fourier_coefficient += Δy * std::cos(ω * t);
@@ -136,7 +136,8 @@ std::ostream& operator<<(std::ostream& out,
   std::string uncertainty_digits = std::to_string(static_cast<int>(
       std::nearbyint(std::abs(measurement.standard_measurement_uncertainty) *
                      std::pow(10, 2 - uncertainty_decimal_exponent - 1))));
-  if (significant_digits >= value_decimal_exponent) {
+  if (value_decimal_exponent >= 0 &&
+      significant_digits >= value_decimal_exponent) {
     return out << (std::signbit(measurement.measured_value) ? "-" : "+")
                << value_digits.substr(0, value_decimal_exponent) << "."
                << value_digits.substr(value_decimal_exponent) << "("
