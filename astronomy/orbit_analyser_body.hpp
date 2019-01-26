@@ -48,6 +48,12 @@ template<typename T>
 struct MeasurementResult {
   T measured_value;
   Difference<T> standard_measurement_uncertainty;
+
+  template<typename U = T,
+           typename = std::enable_if_t<std::is_same<U, Difference<U>>::value>>
+  MeasurementResult<double> In(T unit) {
+    return {measured_value / unit, standard_measurement_uncertainty / unit};
+  }
 };
 
 template<typename T>
@@ -84,23 +90,35 @@ MeasurementResult<T> AverageOfCorrelated(std::vector<T> const& time_series) {
   //   Properties of Fourier Analysis, equation 5.4;
   // — Chris Koen and Fred Lombard (1993), The analysis of indexed astronomical
   //   time series — I. Basic methods, equations 15, 19, and 2 (we use L = 1).
+
+  // TODO(egg): L = 1 works well when the time series is dominated by periodic
+  // signals rather than noise; for a noisier time series, higher values of L
+  // behave better; perhaps to be safe we should use a slightly higher L.
+  // For L = n - 1, the estimate of the spectral density at 0 frequency becomes
+  // the experimental variance.
+  constexpr int L = 1;
+
   // Note that there is a typo in equation 2 of Koen & Lombard, the t is missing
   // from the exponent.  A correct expression for the periodogram may be found
   // in equation 4 of Chris Koen and Fred Lombard (2004), The analysis of
   // indexed astronomical time series — IX. A period change test.
-  Difference<T> re_second_fourier_coefficient{};
-  Difference<T> im_second_fourier_coefficient{};
-  // We use the convention from Koen and Lombard (2004), ω = 2π/n, rather than
-  // ω = 1/n as in Koen and Lombard (1993).
-  double const ω = 2 * π / n;
-  for (int t = 0; t < n; ++t) {
-    Difference<T> const Δy = time_series[t] - average;
-    re_second_fourier_coefficient += Δy * std::cos(ω * t);
-    im_second_fourier_coefficient += Δy * std::sin(ω * t);
+  Square<Difference<T>> spectral_density_at_0_frequency{};
+  for (int j = 1; j <= L; ++j) {
+    Difference<T> sqrt_n_re_fourier_coefficient{};
+    Difference<T> sqrt_n_im_fourier_coefficient{};
+    // We use the convention from Koen and Lombard (2004), ω = 2πj/n, rather
+    // than ω = j/n as in Koen and Lombard (1993).
+    double const ω = 2 * π * j * / n;
+    for (int t = 0; t < n; ++t) {
+      Difference<T> const Δy = time_series[t] - average;
+      sqrt_n_re_fourier_coefficient += Δy * std::cos(ω * t);
+      sqrt_n_im_fourier_coefficient += Δy * std::sin(ω * t);
+    }
+    spectral_density_at_0_frequency += (Pow<2>(sqrt_n_re_fourier_coefficient) +
+                                        Pow<2>(sqrt_n_im_fourier_coefficient)) /
+                                       n;
   }
-  Square<Difference<T>> const spectral_density_at_0_frequency =
-      (Pow<2>(re_second_fourier_coefficient) +
-       Pow<2>(im_second_fourier_coefficient)) / n;
+  spectral_density_at_0_frequency /= L;
   return {average, Sqrt(spectral_density_at_0_frequency / n)};
 }
 
@@ -266,11 +284,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"T = " << anomalistic_period_;
   LOG(ERROR) << "n = " << times_between_periapsides.size();
   auto T = AverageOfCorrelated(times_between_periapsides);
-  LOG(ERROR) << u8"T = "
-             << MeasurementResult<double>{T.measured_value / Second,
-                                          T.standard_measurement_uncertainty /
-                                              Second}
-             << " s";
+  LOG(ERROR) << u8"T = " << T.In(Second) << " s";
   base::OFStream f(SOLUTION_DIR / ("anomalistic_period_" + std::to_string(times_between_periapsides.size())));
   f << mathematica::Assign("tPe" + std::to_string(times_between_periapsides.size()), times_between_periapsides); 
 
@@ -352,6 +366,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   nodal_period_ = Mean(times_between_ascending_nodes);
   LOG(ERROR) << u8"Ω′ = " << nodal_precession_;
   LOG(ERROR) << u8"T☊ = " << nodal_period_;
+  auto Tn = AverageOfCorrelated(times_between_ascending_nodes);
+  LOG(ERROR) << u8"T☊ = " << Tn.In(Second) << " s";
 
   // By computing the "nodes" with respect to the xz plane, i.e., the crossings
   // of the xz plane, we compute the points at which the projection of the orbit
@@ -378,6 +394,9 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
       2 * π * Radian / primary_->angular_frequency();
   LOG(ERROR) << u8"T* / T🜨 = " << sidereal_period_ / sidereal_rotation_period;
   LOG(ERROR) << u8"T🜨 / T* = " << sidereal_rotation_period / sidereal_period_;
+  auto Ts = AverageOfCorrelated(times_between_xz_ascensions);
+  LOG(ERROR) << u8"T* = " << Tn.In(Second) << " s";
+  LOG(ERROR) << u8"T* = " << Tn.In(sidereal_rotation_period) << " T🜨";
 }
 
 }  // namespace internal_orbit_analyser
