@@ -118,6 +118,12 @@ std::ostream& operator<<(std::ostream& out,
   std::string uncertainty_digits = std::to_string(static_cast<int>(
       std::nearbyint(std::abs(measurement.standard_measurement_uncertainty) *
                      std::pow(10, 2 - uncertainty_decimal_exponent - 1))));
+  if (significant_digits >= value_decimal_exponent) {
+    return out << (std::signbit(measurement.measured_value) ? "-" : "+")
+               << value_digits.substr(0, value_decimal_exponent) << "."
+               << value_digits.substr(value_decimal_exponent) << "("
+               << uncertainty_digits << ")";
+  }
   return out << (std::signbit(measurement.measured_value) ? "-" : "+")
              << value_digits[0] << "." << value_digits.substr(1) << "("
              << uncertainty_digits << u8") × 10^"
