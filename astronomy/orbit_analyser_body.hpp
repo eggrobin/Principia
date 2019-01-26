@@ -38,6 +38,93 @@ using quantities::si::Radian;
 using testing_utilities::Mean;
 using testing_utilities::Slope;
 
+// TODO(egg): move this to a new file quantities/uncertainty.hpp.
+using quantities::NaN;
+using quantities::Difference;
+using quantities::Square;
+using quantities::Sqrt;
+
+template<typename T>
+struct MeasurementResult {
+  T measured_value;
+  Difference<T> standard_measurement_uncertainty;
+};
+
+template<typename T>
+T Average(std::vector<T> const& samples) {
+  // TODO(egg): BarycentreCalculator should have an unweighted version.
+  T total{};
+  for (T const& sample : samples) {
+    total += sample - T{};
+  }
+  return total / samples.size();
+}
+
+// See Guide to the expression of uncertainty in measurement, 4.2.
+template<typename T>
+MeasurementResult<T> AverageOfIndependent(std::vector<T> const& measured_values) {
+  int const n = measured_values.size();
+  T average = Average(measured_values);
+  Square<Difference<T>> experimental_variance{};
+  for (T const& measured_value : measured_values) {
+    experimental_variance += Pow<2>(measured_value - average);
+  }
+  experimental_variance /= n - 1;
+  Difference<T> experimental_standard_deviation_of_the_mean =
+      Sqrt(experimental_variance / n);
+  return {average, experimental_standard_deviation_of_the_mean};
+}
+
+template<typename T>
+MeasurementResult<T> AverageOfCorrelated(std::vector<T> const& time_series) {
+  int const n = time_series.size();
+  T average = Average(time_series);
+  // See:
+  // — Grant Foster (1996), Time Series Analysis by Projection. I. Statistical
+  //   Properties of Fourier Analysis, equation 5.4;
+  // — Chris Koen and Fred Lombard (1993), The analysis of indexed astronomical
+  //   time series — I. Basic methods, equations 15, 19, and 2 (we use L = 1).
+  // Note that there is a typo in equation 2 of Koen & Lombard, the t is missing
+  // from the exponent.  A correct expression for the periodogram may be found
+  // in equation 4 of Chris Koen and Fred Lombard (2004), The analysis of
+  // indexed astronomical time series — IX. A period change test.
+  Difference<T> re_second_fourier_coefficient{};
+  Difference<T> im_second_fourier_coefficient{};
+  // We use the convention from Koen and Lombard (2004), ω = 2π/n, rather than
+  // ω = 1/n as in Koen and Lombard (1993).
+  double const ω = 2 * π / n;
+  for (int t = 0; t < n; ++t) {
+    Difference<T> const Δy = time_series[t] - average;
+    re_second_fourier_coefficient += Δy * std::cos(ω * t);
+    im_second_fourier_coefficient += Δy * std::sin(ω * t);
+  }
+  Square<Difference<T>> const spectral_density_at_0_frequency =
+      (Pow<2>(re_second_fourier_coefficient) +
+       Pow<2>(im_second_fourier_coefficient)) / n;
+  return {average, Sqrt(spectral_density_at_0_frequency / n)};
+}
+
+std::ostream& operator<<(std::ostream& out,
+                         MeasurementResult<double> measurement) {
+  int const value_decimal_exponent =
+      std::floor(std::log10(measurement.measured_value));
+  int const uncertainty_decimal_exponent =
+      std::floor(std::log10(measurement.standard_measurement_uncertainty));
+  int const significant_digits =
+      value_decimal_exponent - uncertainty_decimal_exponent;
+  std::string value_digits = std::to_string(static_cast<int>(std::nearbyint(
+      std::abs(measurement.measured_value) *
+      std::pow(10, (significant_digits + 2) - value_decimal_exponent - 1))));
+  std::string uncertainty_digits = std::to_string(static_cast<int>(
+      std::nearbyint(std::abs(measurement.standard_measurement_uncertainty) *
+                     std::pow(10, 2 - uncertainty_decimal_exponent - 1))));
+  return out << (std::signbit(measurement.measured_value) ? "-" : "+")
+             << value_digits[0] << "." << value_digits.substr(1) << "("
+             << uncertainty_digits << u8") × 10^"
+             << (value_decimal_exponent >= 0 ? "+" : "")
+             << value_decimal_exponent;
+}
+
 template<typename Frame>
 OrbitAnalyser<Frame>::OrbitAnalyser(
     not_null<Ephemeris<Frame>*> const ephemeris,
@@ -71,7 +158,7 @@ void OrbitAnalyser<Frame>::Analyse() {
   // Try to make things scale-free by deriving tolerances from the orbit.
   // TODO(egg): perhaps we want to use a fixed-step integrator instead?
   Length const length_tolerance =
-      *initial_osculating_elements.semimajor_axis * 1e-9;
+      *initial_osculating_elements.semimajor_axis * 1e-6;
   Speed const speed_tolerance =
       2 * π * length_tolerance / initial_osculating_period;
 
@@ -87,6 +174,24 @@ void OrbitAnalyser<Frame>::Analyse() {
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
       t0 + 10 * initial_osculating_period,
+      parameters,
+      /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
+      /*last_point_only=*/false);
+  RecomputeProperties();
+
+  ephemeris_->FlowWithAdaptiveStep(
+      &trajectory_,
+      Ephemeris<Frame>::NoIntrinsicAcceleration,
+      t0 + 100 * initial_osculating_period,
+      parameters,
+      /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
+      /*last_point_only=*/false);
+  RecomputeProperties();
+
+  ephemeris_->FlowWithAdaptiveStep(
+      &trajectory_,
+      Ephemeris<Frame>::NoIntrinsicAcceleration,
+      t0 + 1000 * initial_osculating_period,
       parameters,
       /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
       /*last_point_only=*/false);
@@ -153,6 +258,16 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   anomalistic_period_ = Mean(times_between_periapsides);
   LOG(ERROR) << u8"ω′ = " << apsidal_precession_;
   LOG(ERROR) << u8"T = " << anomalistic_period_;
+  LOG(ERROR) << "n = " << times_between_periapsides.size();
+  auto T = AverageOfCorrelated(times_between_periapsides);
+  LOG(ERROR) << u8"T = "
+             << MeasurementResult<double>{T.measured_value / Second,
+                                          T.standard_measurement_uncertainty /
+                                              Second}
+             << " s";
+  base::OFStream f(SOLUTION_DIR / ("anomalistic_period_" + std::to_string(times_between_periapsides.size())));
+  f << mathematica::Assign("tPe" + std::to_string(times_between_periapsides.size()), times_between_periapsides); 
+
 
   enum class PrimaryTag { normal, sideways };
   // The origin of the reference frame is the centre of mass of |*primary_|.
@@ -253,6 +368,10 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   }
   sidereal_period_ = Mean(times_between_xz_ascensions);
   LOG(ERROR) << u8"T* = " << sidereal_period_;
+  Time const sidereal_rotation_period =
+      2 * π * Radian / primary_->angular_frequency();
+  LOG(ERROR) << u8"T* / T🜨 = " << sidereal_period_ / sidereal_rotation_period;
+  LOG(ERROR) << u8"T🜨 / T* = " << sidereal_rotation_period / sidereal_period_;
 }
 
 }  // namespace internal_orbit_analyser
