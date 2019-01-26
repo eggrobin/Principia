@@ -41,6 +41,8 @@ using testing_utilities::Slope;
 // TODO(egg): move this to a new file quantities/uncertainty.hpp.
 using quantities::NaN;
 using quantities::Difference;
+using quantities::Product;
+using quantities::Quotient;
 using quantities::Square;
 using quantities::Sqrt;
 
@@ -48,13 +50,37 @@ template<typename T>
 struct MeasurementResult {
   T measured_value;
   Difference<T> standard_measurement_uncertainty;
-
-  template<typename U = T,
-           typename = std::enable_if_t<std::is_same<U, Difference<U>>::value>>
-  MeasurementResult<double> In(T unit) {
-    return {measured_value / unit, standard_measurement_uncertainty / unit};
-  }
 };
+
+// Multiplication of a measurement result by an exact value.
+template<typename T, typename U>
+MeasurementResult<Product<T, U>> operator*(MeasurementResult<T> const& left,
+                                           U const& right) {
+  return {left.measured_value * right,
+          left.standard_measurement_uncertainty * right};
+}
+
+template<typename T, typename U>
+MeasurementResult<Product<T, U>> operator*(T const& left,
+                                           MeasurementResult<U> const& right) {
+  return {left * right.measured_value,
+          left * right.standard_measurement_uncertainty};
+}
+
+template<typename T, typename U>
+MeasurementResult<Quotient<T, U>> operator/(MeasurementResult<T> const&left, U const&right) {
+  return {left.measured_value / right,
+          left.standard_measurement_uncertainty / right};
+}
+
+// Inverse of a measurement result.
+template<typename T, typename U>
+MeasurementResult<Quotient<T, U>> operator/(T const& left,
+                                            MeasurementResult<U> const& right) {
+  return {left / right.measured_value,
+          left * right.standard_measurement_uncertainty /
+              Pow<2>(right.measured_value)};
+}
 
 template<typename T>
 T Average(std::vector<T> const& samples) {
@@ -69,27 +95,31 @@ T Average(std::vector<T> const& samples) {
 // See Guide to the expression of uncertainty in measurement, 4.2.
 template<typename T>
 MeasurementResult<T> AverageOfIndependent(std::vector<T> const& measured_values) {
-  int const n = measured_values.size();
-  T average = Average(measured_values);
-  Square<Difference<T>> experimental_variance{};
-  for (T const& measured_value : measured_values) {
-    experimental_variance += Pow<2>(measured_value - average);
+  int const n = time_series.size();
+  auto const& q = measured_values;
+  T const q̄ = Average(q);
+  // The estimate of the variance.
+  Square<Difference<T>> s²_q{};
+  for (T const& qⱼ : q) {
+    s²_q += Pow<2>(qⱼ - q̄);
   }
-  experimental_variance /= n - 1;
-  Difference<T> experimental_standard_deviation_of_the_mean =
-      Sqrt(experimental_variance / n);
-  return {average, experimental_standard_deviation_of_the_mean};
+  s²_q /= n - 1;
+  // The experimental standard deviation of the mean.
+  Difference<T> const s_q̄ = Sqrt(s²_q / n);
+  return {q̄, s_q̄};
 }
 
 template<typename T>
 MeasurementResult<T> AverageOfCorrelated(std::vector<T> const& time_series) {
-  int const n = time_series.size();
-  T average = Average(time_series);
   // See:
   // — Grant Foster (1996), Time Series Analysis by Projection. I. Statistical
   //   Properties of Fourier Analysis, equation 5.4;
   // — Chris Koen and Fred Lombard (1993), The analysis of indexed astronomical
-  //   time series — I. Basic methods, equations 15, 19, and 2 (we use L = 1).
+  //   time series — I. Basic methods, equations 15, 19, and 2.
+
+  int const n = time_series.size();
+  auto const& y = time_series;
+  T const ȳ = Average(y);
 
   // TODO(egg): L = 1 works well when the time series is dominated by periodic
   // signals rather than noise; for a noisier time series, higher values of L
@@ -98,28 +128,32 @@ MeasurementResult<T> AverageOfCorrelated(std::vector<T> const& time_series) {
   // the experimental variance.
   constexpr int L = 1;
 
-  // Note that there is a typo in equation 2 of Koen & Lombard, the t is missing
-  // from the exponent.  A correct expression for the periodogram may be found
-  // in equation 4 of Chris Koen and Fred Lombard (2004), The analysis of
-  // indexed astronomical time series — IX. A period change test.
-  Square<Difference<T>> spectral_density_at_0_frequency{};
+  // The estimated spectral density at zero frequency, see Koen and Lombard
+  // (1993), section 4.4.
+  Square<Difference<T>> Ŝε_0{};
   for (int j = 1; j <= L; ++j) {
-    Difference<T> sqrt_n_re_fourier_coefficient{};
-    Difference<T> sqrt_n_im_fourier_coefficient{};
+    // The real and imaginary parts of √n F(y)ⱼ, where y is the time series and F
+    // is the unitary discrete Fourier transform.
+    Difference<T> sqrt_n_re_fourier_j{};
+    Difference<T> sqrt_n_im_fourier_j{};
     // We use the convention from Koen and Lombard (2004), ω = 2πj/n, rather
     // than ω = j/n as in Koen and Lombard (1993).
     double const ω = 2 * π * j / n;
     for (int t = 0; t < n; ++t) {
-      Difference<T> const Δy = time_series[t] - average;
-      sqrt_n_re_fourier_coefficient += Δy * std::cos(ω * t);
-      sqrt_n_im_fourier_coefficient += Δy * std::sin(ω * t);
+      // Note that there is a typo in equation 2 of Koen & Lombard, the t is
+      // missing from the exponent.  A correct expression for the periodogram
+      // may be found in equation 4 of Chris Koen and Fred Lombard (2004), The
+      // analysis of indexed astronomical time series — IX. A period change
+      // test.
+      Difference<T> const Δy = y[t] - ȳ;
+      sqrt_n_re_fourier_j += Δy * std::cos(ω * t);
+      sqrt_n_im_fourier_j += Δy * std::sin(ω * t);
     }
-    spectral_density_at_0_frequency += (Pow<2>(sqrt_n_re_fourier_coefficient) +
-                                        Pow<2>(sqrt_n_im_fourier_coefficient)) /
-                                       n;
+    Ŝε_0 += Pow<2>(sqrt_n_re_fourier_j) + Pow<2>(sqrt_n_im_fourier_j);
   }
-  spectral_density_at_0_frequency /= L;
-  return {average, Sqrt(spectral_density_at_0_frequency / n)};
+  Ŝε_0 /= (n * L);
+
+  return {ȳ, Sqrt(Ŝε_0 / n)};
 }
 
 std::ostream& operator<<(std::ostream& out,
@@ -139,8 +173,8 @@ std::ostream& operator<<(std::ostream& out,
   if (value_decimal_exponent >= 0 &&
       significant_digits >= value_decimal_exponent) {
     return out << (std::signbit(measurement.measured_value) ? "-" : "+")
-               << value_digits.substr(0, value_decimal_exponent) << "."
-               << value_digits.substr(value_decimal_exponent) << "("
+               << value_digits.substr(0, value_decimal_exponent + 1) << "."
+               << value_digits.substr(value_decimal_exponent + 1) << "("
                << uncertainty_digits << ")";
   }
   return out << (std::signbit(measurement.measured_value) ? "-" : "+")
@@ -180,8 +214,9 @@ void OrbitAnalyser<Frame>::Analyse() {
   }
   Time const& initial_osculating_period = *initial_osculating_elements.period;
 
-  // Try to make things scale-free by deriving tolerances from the orbit.
-  // TODO(egg): perhaps we want to use a fixed-step integrator instead?
+  // TODO(egg): feed the uncertainties back into the tolerance so we don't use
+  // overly small tolerances when the uncertainty is large anyway.
+  // TODO(egg): consider using a fixed-step method.
   Length const length_tolerance =
       *initial_osculating_elements.semimajor_axis * 1e-6;
   Speed const speed_tolerance =
@@ -285,7 +320,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"T = " << anomalistic_period_;
   LOG(ERROR) << "n = " << times_between_periapsides.size();
   auto T = AverageOfCorrelated(times_between_periapsides);
-  LOG(ERROR) << u8"T = " << T.In(Second) << " s";
+  LOG(ERROR) << u8"T = " << T / Second << " s";
   base::OFStream f(SOLUTION_DIR / ("anomalistic_period_" + std::to_string(times_between_periapsides.size())));
   f << mathematica::Assign("tPe" + std::to_string(times_between_periapsides.size()), times_between_periapsides); 
 
@@ -368,7 +403,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"Ω′ = " << nodal_precession_;
   LOG(ERROR) << u8"T☊ = " << nodal_period_;
   auto Tn = AverageOfCorrelated(times_between_ascending_nodes);
-  LOG(ERROR) << u8"T☊ = " << Tn.In(Second) << " s";
+  LOG(ERROR) << u8"T☊ = " << Tn / Second << " s";
 
   // By computing the "nodes" with respect to the xz plane, i.e., the crossings
   // of the xz plane, we compute the points at which the projection of the orbit
@@ -396,8 +431,9 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"T* / T🜨 = " << sidereal_period_ / sidereal_rotation_period;
   LOG(ERROR) << u8"T🜨 / T* = " << sidereal_rotation_period / sidereal_period_;
   auto Ts = AverageOfCorrelated(times_between_xz_ascensions);
-  LOG(ERROR) << u8"T* = " << Tn.In(Second) << " s";
-  LOG(ERROR) << u8"T* = " << Tn.In(sidereal_rotation_period) << " T🜨";
+  LOG(ERROR) << u8"T*   = " << Ts / Second << " s";
+  LOG(ERROR) << u8"T*   = " << Ts / sidereal_rotation_period << u8" T🜨";
+  LOG(ERROR) << u8"1/T* = " << (1 / Ts) * sidereal_rotation_period << u8"/T🜨";
 }
 
 }  // namespace internal_orbit_analyser
