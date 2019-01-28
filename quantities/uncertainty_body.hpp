@@ -9,7 +9,7 @@ namespace internal_uncertainty {
 std::ostream& operator<<(std::ostream& out,
                          MeasurementResult<double> measurement) {
   int const value_decimal_exponent =
-      std::floor(std::log10(measurement.measured_value));
+      std::floor(std::log10(std::abs(measurement.measured_value)));
   int const uncertainty_decimal_exponent =
       std::floor(std::log10(measurement.standard_uncertainty));
   int const significant_digits =
@@ -21,7 +21,7 @@ std::ostream& operator<<(std::ostream& out,
       std::nearbyint(std::abs(measurement.standard_uncertainty) *
                      std::pow(10, 2 - uncertainty_decimal_exponent - 1))));
   if (value_decimal_exponent >= 0 &&
-      significant_digits >= value_decimal_exponent) {
+      significant_digits >= value_decimal_exponent + 1) {
     return out << (std::signbit(measurement.measured_value) ? "-" : "+")
                << value_digits.substr(0, value_decimal_exponent + 1) << "."
                << value_digits.substr(value_decimal_exponent + 1) << "("
