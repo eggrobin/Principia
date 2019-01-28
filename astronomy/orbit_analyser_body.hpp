@@ -6,7 +6,6 @@
 #include "physics/apsides.hpp"
 #include "physics/body_centred_non_rotating_dynamic_frame.hpp"
 #include "physics/kepler_orbit.hpp"
-#include "testing_utilities/statistics.hpp"
 
 namespace principia {
 namespace astronomy {
@@ -31,12 +30,15 @@ using physics::RigidMotion;
 using physics::RigidTransformation;
 using quantities::Abs;
 using quantities::Angle;
+using quantities::AverageOfCorrelated;
 using quantities::Length;
+using quantities::LinearRegression;
 using quantities::Speed;
 using quantities::Time;
+using quantities::si::Day;
+using quantities::si::Degree;
 using quantities::si::Radian;
-using testing_utilities::Mean;
-using testing_utilities::Slope;
+using quantities::si::Second;
 
 template<typename Frame>
 OrbitAnalyser<Frame>::OrbitAnalyser(
@@ -114,7 +116,7 @@ void OrbitAnalyser<Frame>::Analyse() {
   ephemeris_->FlowWithAdaptiveStep(
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
-      t0 + Abs(2 * π * Radian / nodal_precession_),
+      t0 + Abs(2 * π * Radian / nodal_precession_.measured_value),
       parameters,
       /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
       /*last_point_only=*/false);
@@ -123,7 +125,7 @@ void OrbitAnalyser<Frame>::Analyse() {
   ephemeris_->FlowWithAdaptiveStep(
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
-      t0 + Abs(2 * π * Radian / apsidal_precession_),
+      t0 + Abs(2 * π * Radian / apsidal_precession_.measured_value),
       parameters,
       /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
       /*last_point_only=*/false);
@@ -141,9 +143,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                  periapsides,
                  apoapsides);
 
-  // TODO(egg): the statistics functions should support affine spaces:
-  // |times_of_ascending_nodes| should hold instants.
-  std::vector<Time> times_of_periapsides;
+  std::vector<Instant> times_of_periapsides;
   std::vector<Time> times_between_periapsides;
   std::vector<Angle> arguments_of_periapsides;
   for (auto periapsis = periapsides.Begin();
@@ -162,22 +162,18 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
       ω += std::nearbyint((arguments_of_periapsides.back() - ω) /
                           (2 * π * Radian)) *
            2 * π * Radian;
-      times_between_periapsides.push_back(periapsis.time() - J2000 -
+      times_between_periapsides.push_back(periapsis.time() -
                                           times_of_periapsides.back());
     }
-    times_of_periapsides.push_back(periapsis.time() - J2000);
+    times_of_periapsides.push_back(periapsis.time());
     arguments_of_periapsides.push_back(ω);
   }
-  apsidal_precession_ = Slope(times_of_periapsides, arguments_of_periapsides);
-  anomalistic_period_ = Mean(times_between_periapsides);
-  LOG(ERROR) << u8"ω′ = " << apsidal_precession_;
-  LOG(ERROR) << u8"T = " << anomalistic_period_;
+  apsidal_precession_ =
+      LinearRegression(times_of_periapsides, arguments_of_periapsides).slope;
+  anomalistic_period_ = AverageOfCorrelated(times_between_periapsides);
+  LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / Day) << u8"° / d";
+  LOG(ERROR) << u8"T = " << anomalistic_period_ / Second << " s";
   LOG(ERROR) << "n = " << times_between_periapsides.size();
-  auto T = AverageOfCorrelated(times_between_periapsides);
-  LOG(ERROR) << u8"T = " << T / Second << " s";
-  base::OFStream f(SOLUTION_DIR / ("anomalistic_period_" + std::to_string(times_between_periapsides.size())));
-  f << mathematica::Assign("tPe" + std::to_string(times_between_periapsides.size()), times_between_periapsides); 
-
 
   enum class PrimaryTag { normal, sideways };
   // The origin of the reference frame is the centre of mass of |*primary_|.
@@ -228,9 +224,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                ascending_nodes,
                descending_nodes);
 
-  // TODO(egg): the statistics functions should support affine spaces:
-  // |times_of_ascending_nodes| should hold instants.
-  std::vector<Time> times_of_ascending_nodes;
+  std::vector<Instant> times_of_ascending_nodes;
   std::vector<Time> times_between_ascending_nodes;
   std::vector<Angle> longitudes_of_ascending_nodes;
   for (auto node = ascending_nodes.Begin(); node != ascending_nodes.End(); ++node) {
@@ -245,19 +239,18 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
       Ω += std::nearbyint((longitudes_of_ascending_nodes.back() - Ω) /
                           (2 * π * Radian)) *
            2 * π * Radian;
-      times_between_ascending_nodes.push_back(node.time() - J2000 -
+      times_between_ascending_nodes.push_back(node.time() -
                                               times_of_ascending_nodes.back());
     }
-    times_of_ascending_nodes.push_back(node.time() - J2000);
+    times_of_ascending_nodes.push_back(node.time());
     longitudes_of_ascending_nodes.push_back(Ω);
   }
   nodal_precession_ =
-      Slope(times_of_ascending_nodes, longitudes_of_ascending_nodes);
-  nodal_period_ = Mean(times_between_ascending_nodes);
-  LOG(ERROR) << u8"Ω′ = " << nodal_precession_;
-  LOG(ERROR) << u8"T☊ = " << nodal_period_;
-  auto Tn = AverageOfCorrelated(times_between_ascending_nodes);
-  LOG(ERROR) << u8"T☊ = " << Tn / Second << " s";
+      LinearRegression(times_of_ascending_nodes,
+                       longitudes_of_ascending_nodes).slope;
+  nodal_period_ = AverageOfCorrelated(times_between_ascending_nodes);
+  LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / Day) << u8"° / d";;
+  LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
 
   // By computing the "nodes" with respect to the xz plane, i.e., the crossings
   // of the xz plane, we compute the points at which the projection of the orbit
@@ -278,16 +271,12 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
        previous_time = ascension.time(), ++ascension) {
     times_between_xz_ascensions.push_back(ascension.time() - previous_time);
   }
-  sidereal_period_ = Mean(times_between_xz_ascensions);
-  LOG(ERROR) << u8"T* = " << sidereal_period_;
+  sidereal_period_ = AverageOfCorrelated(times_between_xz_ascensions);
+  LOG(ERROR) << u8"T* = " << sidereal_period_ / Second << " s";
   Time const sidereal_rotation_period =
       2 * π * Radian / primary_->angular_frequency();
   LOG(ERROR) << u8"T* / T🜨 = " << sidereal_period_ / sidereal_rotation_period;
   LOG(ERROR) << u8"T🜨 / T* = " << sidereal_rotation_period / sidereal_period_;
-  auto Ts = AverageOfCorrelated(times_between_xz_ascensions);
-  LOG(ERROR) << u8"T*   = " << Ts / Second << " s";
-  LOG(ERROR) << u8"T*   = " << Ts / sidereal_rotation_period << u8" T🜨";
-  LOG(ERROR) << u8"1/T* = " << (1 / Ts) * sidereal_rotation_period << u8"/T🜨";
 }
 
 }  // namespace internal_orbit_analyser

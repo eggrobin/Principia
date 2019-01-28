@@ -4,20 +4,21 @@
 
 namespace principia {
 namespace quantities {
+namespace internal_uncertainty {
 
 std::ostream& operator<<(std::ostream& out,
                          MeasurementResult<double> measurement) {
   int const value_decimal_exponent =
       std::floor(std::log10(measurement.measured_value));
   int const uncertainty_decimal_exponent =
-      std::floor(std::log10(measurement.standard_measurement_uncertainty));
+      std::floor(std::log10(measurement.standard_uncertainty));
   int const significant_digits =
       value_decimal_exponent - uncertainty_decimal_exponent;
   std::string value_digits = std::to_string(static_cast<int>(std::nearbyint(
       std::abs(measurement.measured_value) *
       std::pow(10, (significant_digits + 2) - value_decimal_exponent - 1))));
   std::string uncertainty_digits = std::to_string(static_cast<int>(
-      std::nearbyint(std::abs(measurement.standard_measurement_uncertainty) *
+      std::nearbyint(std::abs(measurement.standard_uncertainty) *
                      std::pow(10, 2 - uncertainty_decimal_exponent - 1))));
   if (value_decimal_exponent >= 0 &&
       significant_digits >= value_decimal_exponent) {
@@ -62,16 +63,17 @@ MeasurementResult<Quotient<T, U>> operator/(T const& left,
 
 template<typename T>
 T Average(std::vector<T> const& samples) {
-  T total{};
+  // TODO(egg): we should have a version of Barycentre without coefficients.
+  Difference<T> total{};
   for (T const& sample : samples) {
     total += sample - T{};
   }
-  return total / samples.size();
+  return total / samples.size() + T{};
 }
 
 template<typename T>
 MeasurementResult<T> AverageOfIndependent(std::vector<T> const& measured_values) {
-  // See GUM 4.2.
+  // We use the notation from GUM 4.2.
   int const n = time_series.size();
   auto const& q = measured_values;
   T const q̄ = Average(q);
@@ -137,8 +139,57 @@ template<typename Argument, typename Value>
 LinearModel<Argument, Value> LinearRegression(
     std::vector<Argument> const& arguments,
     std::vector<Value> const& values) {
-  return LinearModel<Argument, Value>();
+  CHECK_EQ(arguments.size(), values.size());
+  int const n = arguments.size();
+  // We follow the notation from Foster (1996).
+  auto const& t = arguments;
+  auto const& x = values;
+  // ⟨𝟏|t⟩.
+  auto const t̄ = Average(t);
+  // ⟨𝟏|x⟩ = ⟨𝟏|x⟩ / ⟨𝟏|𝟏⟩, the projection onto the constant trial function.
+  auto const x̄ = Average(x);
+
+  // The variation Vt of t is the inner product of
+  // |t⟩ - ⟨𝟏|t⟩|𝟏⟩ = |t⟩ - t̄|𝟏⟩ ≕ |l⟩ with itself.
+  // If |Argument| is a vector space rather than an affine space,
+  // this simplifies to ⟨t|t⟩ - ⟨𝟏|t⟩², see equation 2.11.  Note that this is
+  // not quite the estimated variance of t, which is n Vt / (n-1), see
+  // equation 2.12.
+  Square<Difference<Argument>> variation_t{};
+  for (int α = 0; α < n; ++α) {
+    variation_t += Pow<2>(t[α] - t̄);
+  }
+  variation_t /= n;
+  // ⟨l|x⟩.
+  Product<Difference<Value>, Difference<Argument>> inner_product{};
+  for (int α = 0; α < n; ++α) {
+    inner_product += (t[α] - t̄) *  (x[α] - x̄);
+  }
+  inner_product /= n;
+  // ⟨l|x⟩ / ⟨l|l⟩, the projection of |x⟩ onto the linear trial function
+  // |l⟩, i.e., the slope.
+  Derivative<Value, Argument> const y = inner_product / variation_t;
+
+  LinearModel<Argument, Value> result;
+  result.mean_value.measured_value = x̄;
+  result.slope.measured_value = y;
+
+  // Now we evaluate the uncertainties.
+
+  // s² under the strong signal hypothesis, from equation 6.4.  This corresponds
+  // to GUM H.13f.
+  Square<Difference<Value>> s²{};
+  for (int α = 0; α < n; ++α) {
+    Difference<Value> const residual = x[α] - (y * (t[α] - t̄) + x̄);
+    s² += Pow<2>(residual);
+  }
+  s² /= n - 2;
+
+  result.mean_value.standard_uncertainty = Sqrt(s² / n);
+  result.slope.standard_uncertainty = Sqrt(s² / (n * variation_t));
+  return result;
 }
 
+}  // namespace internal_uncertainty
 }  // namespace quantities
 }  // namespace principia

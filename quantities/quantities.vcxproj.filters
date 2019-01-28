@@ -92,6 +92,12 @@
     <ClInclude Include="tuples_body.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="uncertainty.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uncertainty_body.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="quantities_test.cpp">

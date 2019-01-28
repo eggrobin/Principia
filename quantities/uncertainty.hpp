@@ -6,6 +6,7 @@
 
 namespace principia {
 namespace quantities {
+namespace internal_uncertainty {
 
 // In this file:
 // — GUM refers to:
@@ -78,16 +79,27 @@ MeasurementResult<T> AverageOfCorrelated(std::vector<T> const& time_series);
 // because the basis is orthogonal; see also GUM H.3.5).
 template<typename Argument, typename Value>
 struct LinearModel {
-  // The coefficient of |𝟏⟩.
+  // The coefficient x̄ of |𝟏⟩.
   MeasurementResult<Value> mean_value;
-  // The coefficient of |t - ⟨𝟏|t⟩|𝟏⟩⟩.
+  // The coefficient y of |t⟩ - ⟨𝟏|t⟩|𝟏⟩.
   MeasurementResult<Derivative<Value, Argument>> slope;
+  // the value t̄ = ⟨𝟏|t⟩; this is necessary to evaluate the model:
+  // The value at t is y(t - t̄) + x̄.
+  MeasurementResult<Value> mean_argument;
 };
 
 template<typename Argument, typename Value>
 LinearModel<Argument, Value> LinearRegression(
     std::vector<Argument> const& arguments,
     std::vector<Value> const& values);
+
+}  // namespace internal_uncertainty
+
+using internal_uncertainty::AverageOfCorrelated;
+using internal_uncertainty::AverageOfIndependent;
+using internal_uncertainty::MeasurementResult;
+using internal_uncertainty::LinearModel;
+using internal_uncertainty::LinearRegression;
 
 }  // namespace quantities
 }  // namespace principia

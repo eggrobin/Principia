@@ -2,6 +2,7 @@
 
 #include "base/not_null.hpp"
 #include "physics/ephemeris.hpp"
+#include "quantities/uncertainty.hpp"
 
 namespace principia {
 namespace astronomy {
@@ -14,6 +15,7 @@ using physics::DiscreteTrajectory;
 using physics::Ephemeris;
 using physics::RotatingBody;
 using quantities::AngularFrequency;
+using quantities::MeasurementResult;
 using quantities::Time;
 
 template<typename Frame>
@@ -33,11 +35,11 @@ class OrbitAnalyser {
   not_null<RotatingBody<Frame> const*> primary_;
   DiscreteTrajectory<Frame> trajectory_;
 
-  Time nodal_period_;
-  Time anomalistic_period_;
-  Time sidereal_period_;
-  AngularFrequency nodal_precession_;
-  AngularFrequency apsidal_precession_;
+  MeasurementResult<Time> nodal_period_;
+  MeasurementResult<Time> anomalistic_period_;
+  MeasurementResult<Time> sidereal_period_;
+  MeasurementResult<AngularFrequency> nodal_precession_;
+  MeasurementResult<AngularFrequency> apsidal_precession_;
 };
 
 }  // namespace internal_orbit_analyser
