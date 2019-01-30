@@ -38,27 +38,27 @@ template<typename T, typename U>
 MeasurementResult<Product<T, U>> operator*(MeasurementResult<T> const& left,
                                            U const& right) {
   return {left.measured_value * right,
-          left.standard_uncertainty * right};
+          left.standard_uncertainty * Abs(right)};
 }
 
 template<typename T, typename U>
 MeasurementResult<Product<T, U>> operator*(T const& left,
                                            MeasurementResult<U> const& right) {
   return {left * right.measured_value,
-          left * right.standard_uncertainty};
+          Abs(left) * right.standard_uncertainty};
 }
 
 template<typename T, typename U>
 MeasurementResult<Quotient<T, U>> operator/(MeasurementResult<T> const&left, U const&right) {
   return {left.measured_value / right,
-          left.standard_uncertainty / right};
+          left.standard_uncertainty / Abs(right)};
 }
 
 template<typename T, typename U>
 MeasurementResult<Quotient<T, U>> operator/(T const& left,
                                             MeasurementResult<U> const& right) {
   return {left / right.measured_value,
-          left * right.standard_uncertainty / Pow<2>(right.measured_value)};
+          Abs(left) * right.standard_uncertainty / Pow<2>(right.measured_value)};
 }
 
 template<typename T>
