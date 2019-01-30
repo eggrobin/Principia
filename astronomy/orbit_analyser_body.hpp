@@ -1,13 +1,14 @@
 ﻿#pragma once
 
 #include "astronomy/orbit_analyser.hpp"
+#include "base/file.hpp"
 #include "integrators/embedded_explicit_generalized_runge_kutta_nyström_integrator.hpp"
 #include "integrators/methods.hpp"
+#include "mathematica/mathematica.hpp"
 #include "physics/apsides.hpp"
 #include "physics/body_centred_non_rotating_dynamic_frame.hpp"
 #include "physics/kepler_orbit.hpp"
-#include "base/file.hpp"
-#include "mathematica/mathematica.hpp"
+#include "quantities/astronomy.hpp"
 
 namespace principia {
 namespace astronomy {
@@ -37,6 +38,7 @@ using quantities::Length;
 using quantities::LinearRegression;
 using quantities::Speed;
 using quantities::Time;
+using quantities::astronomy::JulianYear;
 using quantities::si::Day;
 using quantities::si::Degree;
 using quantities::si::Radian;
@@ -198,7 +200,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   apsidal_precession_ =
       LinearRegression(times_of_periapsides, arguments_of_periapsides).slope;
   anomalistic_period_ = AverageOfCorrelated(times_between_periapsides);
-  LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / Day) << u8"° / d";
+  LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / JulianYear)
+             << u8"°/a";
   LOG(ERROR) << u8"T = " << anomalistic_period_ / Second << " s";
 
   enum class PrimaryTag { normal, sideways };
@@ -275,7 +278,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
       LinearRegression(times_of_ascending_nodes,
                        longitudes_of_ascending_nodes).slope;
   nodal_period_ = AverageOfCorrelated(times_between_ascending_nodes);
-  LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / Day) << u8"° / d";;
+  LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / JulianYear)
+             << u8"°/a";
   LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
 
   // By computing the "nodes" with respect to the xz plane, i.e., the crossings
@@ -293,6 +297,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   std::vector<Time> times_between_xz_ascensions;
   auto ascension = xz_ascensions.Begin();
   Instant previous_time = ascension.time();
+  ++ascension;
   for (; ascension != xz_ascensions.End();
        previous_time = ascension.time(), ++ascension) {
     times_between_xz_ascensions.push_back(ascension.time() - previous_time);
