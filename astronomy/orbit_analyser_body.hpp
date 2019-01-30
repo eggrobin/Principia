@@ -287,11 +287,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   // onto the reference plane xy passes the fixed reference direction x.
   // While these points themselves are largely meaningless, the time between
   // them is the sidereal period.
-  DiscreteTrajectory<PrimaryCentred> xz_ascensions;
-  DiscreteTrajectory<PrimaryCentred> xz_descents;
-  ComputeNodes(primary_centred_trajectory.Begin(),
-               primary_centred_trajectory.End(),
-               z * x,
+  DiscreteTrajectory<PrimaryCentredSideways> xz_ascensions;
+  DiscreteTrajectory<PrimaryCentredSideways> xz_descents;
+  ComputeNodes(sideways_primary_centred_trajectory.Begin(),
+               sideways_primary_centred_trajectory.End(),
+               tip.orthogonal_map()(z * x),
                xz_ascensions,
                xz_descents);
   std::vector<Time> times_between_xz_ascensions;
