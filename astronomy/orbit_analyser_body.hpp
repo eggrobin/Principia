@@ -6,6 +6,8 @@
 #include "physics/apsides.hpp"
 #include "physics/body_centred_non_rotating_dynamic_frame.hpp"
 #include "physics/kepler_orbit.hpp"
+#include "base/file.hpp"
+#include "mathematica/mathematica.hpp"
 
 namespace principia {
 namespace astronomy {
@@ -86,6 +88,7 @@ void OrbitAnalyser<Frame>::Analyse() {
       length_tolerance,
       speed_tolerance);
 
+LOG(ERROR) << 10;
   ephemeris_->FlowWithAdaptiveStep(
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
@@ -95,24 +98,27 @@ void OrbitAnalyser<Frame>::Analyse() {
       /*last_point_only=*/false);
   RecomputeProperties();
 
+LOG(ERROR) << 100;
   ephemeris_->FlowWithAdaptiveStep(
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
-      t0 + 100 * initial_osculating_period,
+      t0 + 100 * anomalistic_period_.measured_value,
       parameters,
       /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
       /*last_point_only=*/false);
   RecomputeProperties();
 
+LOG(ERROR) << 1000;
   ephemeris_->FlowWithAdaptiveStep(
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
-      t0 + 1000 * initial_osculating_period,
+      t0 + 1000 * anomalistic_period_.measured_value,
       parameters,
       /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
       /*last_point_only=*/false);
   RecomputeProperties();
 
+LOG(ERROR) << "1 nodal precession cycle";
   ephemeris_->FlowWithAdaptiveStep(
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
@@ -122,10 +128,31 @@ void OrbitAnalyser<Frame>::Analyse() {
       /*last_point_only=*/false);
   RecomputeProperties();
 
+
+LOG(ERROR) << "10'000";
   ephemeris_->FlowWithAdaptiveStep(
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
-      t0 + Abs(2 * π * Radian / apsidal_precession_.measured_value),
+      t0 + 10'000 * anomalistic_period_.measured_value,
+      parameters,
+      /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
+      /*last_point_only=*/false);
+  RecomputeProperties();
+
+LOG(ERROR) << "20'000";
+  ephemeris_->FlowWithAdaptiveStep(
+      &trajectory_,
+      Ephemeris<Frame>::NoIntrinsicAcceleration,
+      t0 + 20'000 * anomalistic_period_.measured_value,
+      parameters,
+      /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
+      /*last_point_only=*/false);
+
+LOG(ERROR) << "30'000";
+  ephemeris_->FlowWithAdaptiveStep(
+      &trajectory_,
+      Ephemeris<Frame>::NoIntrinsicAcceleration,
+      t0 + 30'000 * anomalistic_period_.measured_value,
       parameters,
       /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
       /*last_point_only=*/false);
@@ -173,7 +200,6 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   anomalistic_period_ = AverageOfCorrelated(times_between_periapsides);
   LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / Day) << u8"° / d";
   LOG(ERROR) << u8"T = " << anomalistic_period_ / Second << " s";
-  LOG(ERROR) << "n = " << times_between_periapsides.size();
 
   enum class PrimaryTag { normal, sideways };
   // The origin of the reference frame is the centre of mass of |*primary_|.
@@ -271,6 +297,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
        previous_time = ascension.time(), ++ascension) {
     times_between_xz_ascensions.push_back(ascension.time() - previous_time);
   }
+  base::OFStream f(SOLUTION_DIR / "sidereal_period_fine");
+  f << mathematica::Assign("t", times_between_xz_ascensions);
   sidereal_period_ = AverageOfCorrelated(times_between_xz_ascensions);
   LOG(ERROR) << u8"T* = " << sidereal_period_ / Second << " s";
   Time const sidereal_rotation_period =
