@@ -149,6 +149,7 @@ LOG(ERROR) << "20'000";
       parameters,
       /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
       /*last_point_only=*/false);
+  RecomputeProperties();
 
 LOG(ERROR) << "30'000";
   ephemeris_->FlowWithAdaptiveStep(
@@ -256,6 +257,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   std::vector<Instant> times_of_ascending_nodes;
   std::vector<Time> times_between_ascending_nodes;
   std::vector<Angle> longitudes_of_ascending_nodes;
+  std::vector<Angle> terrestrial_longitude_of_every_other_ascending_node;
   for (auto node = ascending_nodes.Begin(); node != ascending_nodes.End(); ++node) {
     // We do not construct |KeplerianElements|: we only need the longitude of
     // the ascending node, and we are at the ascending node so the computation
@@ -273,6 +275,16 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     }
     times_of_ascending_nodes.push_back(node.time());
     longitudes_of_ascending_nodes.push_back(Ω);
+    if (longitudes_of_ascending_nodes.size() % 2 == 1) {
+      auto const& Ω0 = quantities::Mod(
+          longitudes_of_ascending_nodes.front() -
+              primary_->AngleAt(times_of_ascending_nodes.front()),
+          2 * π * Radian);
+      Angle const offset = Ω0 - π * Radian;
+      terrestrial_longitude_of_every_other_ascending_node.push_back(
+          quantities::Mod(Ω - primary_->AngleAt(node.time()) - offset, 2 * π * Radian) +
+          offset);
+    }
   }
   nodal_precession_ =
       LinearRegression(times_of_ascending_nodes,
@@ -281,6 +293,16 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / JulianYear)
              << u8"°/a";
   LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
+  auto const λ0 = AverageOfCorrelated(terrestrial_longitude_of_every_other_ascending_node);
+  auto const λmax = *std::max_element(terrestrial_longitude_of_every_other_ascending_node.begin(),
+  terrestrial_longitude_of_every_other_ascending_node.end());
+  auto const λmin = *std::min_element(terrestrial_longitude_of_every_other_ascending_node.begin(),
+  terrestrial_longitude_of_every_other_ascending_node.end());
+  LOG(ERROR) << u8"λ0 =" << λ0 / Degree << u8"°";
+  LOG(ERROR) << u8"λ- =" << λmin / Degree << u8"°";
+  LOG(ERROR) << u8"λ+ =" << λmax / Degree << u8"°";
+  base::OFStream tf(SOLUTION_DIR / "longitudes");
+  tf << mathematica::Assign("longitudes", terrestrial_longitude_of_every_other_ascending_node);
 
   // By computing the "nodes" with respect to the xz plane, i.e., the crossings
   // of the xz plane, we compute the points at which the projection of the orbit
