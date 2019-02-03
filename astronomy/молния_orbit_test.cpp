@@ -111,7 +111,7 @@ TEST_F(МолнияOrbitTest, Satellite) {
   initial_elements.mean_motion = 2.0 * π * Radian / (sidereal_day / 2.0);
   initial_elements.inclination = ArcSin(2.0 / Sqrt(5.0));
   initial_elements.argument_of_periapsis = -π / 2.0 * Radian;
-  initial_elements.longitude_of_ascending_node = 1 * Radian;
+  initial_elements.longitude_of_ascending_node = 1 * Radian + 60 * quantities::si::Degree;
   initial_elements.mean_anomaly = 2 * Radian;
 
   MasslessBody const satellite{};
@@ -125,6 +125,7 @@ TEST_F(МолнияOrbitTest, Satellite) {
       J2000,
       earth_degrees_of_freedom + satellite_state_vectors);
   analyser.Analyse();
+  return;  // REMOVE BEFORE FLIGHT
 
   DiscreteTrajectory<ICRS> trajectory;
   trajectory.Append(J2000, earth_degrees_of_freedom + satellite_state_vectors);
