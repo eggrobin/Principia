@@ -218,5 +218,8 @@
     <ClCompile Include="lunar_orbit_test.cpp">
       <Filter>Test Files</Filter>
     </ClCompile>
+    <ClCompile Include="orbit_analyzer_test.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
