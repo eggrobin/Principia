@@ -8,6 +8,7 @@ namespace internal_uncertainty {
 
 std::ostream& operator<<(std::ostream& out,
                          MeasurementResult<double> measurement) {
+  // REMOVE BEFORE FLIGHT: This needs to not summon UB on infinities or NaNs.
   int const value_decimal_exponent =
       std::floor(std::log10(std::abs(measurement.measured_value)));
   int const uncertainty_decimal_exponent =

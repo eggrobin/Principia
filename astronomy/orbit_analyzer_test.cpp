@@ -48,6 +48,7 @@ using quantities::si::Metre;
 using quantities::si::Milli;
 using quantities::si::Minute;
 using quantities::si::Radian;
+using quantities::si::Degree;
 using quantities::si::Second;
 
 namespace astronomy {
@@ -91,10 +92,10 @@ TEST_F(OrbitAnalyzerTest, Молния) {
   // eccentricity is from the "External links" section.
   KeplerianElements<ICRS> initial_elements;
   initial_elements.eccentricity = 0.74105;
-  initial_elements.mean_motion = 2.0 * π * Radian / (sidereal_day / 2.0);
+  initial_elements.mean_motion = 2 * π * Radian / (sidereal_day / (2 - 0.004));
   initial_elements.inclination = ArcSin(2.0 / Sqrt(5.0));
   initial_elements.argument_of_periapsis = -π / 2.0 * Radian;
-  initial_elements.longitude_of_ascending_node = 1 * Radian + 60 * quantities::si::Degree;
+  initial_elements.longitude_of_ascending_node = 1 * Radian + 60 * Degree;
   initial_elements.mean_anomaly = 2 * Radian;
 
   MasslessBody const satellite{};

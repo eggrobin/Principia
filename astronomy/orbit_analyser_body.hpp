@@ -44,6 +44,22 @@ using quantities::si::Degree;
 using quantities::si::Radian;
 using quantities::si::Second;
 
+// |angles| should be sampled from a slowly-varying continuous function
+// f: ℝ →  𝑆¹ = ℝ / 2π ℝ (specifically, consecutive angles should  differ by
+// less than π).  Returns the corresponding sampling of the continuous g: ℝ → ℝ
+// such that f = g mod 2π and f(0) = g(0).
+std::vector<Angle> Unwind(std::vector<Angle> const& angles) {
+  std::vector<Angle> unwound_angles;
+  unwound_angles.push_back(angles.front());
+  for (int i = 1; i < angles.size(); ++i) {
+    unwound_angles.push_back(
+        angles[i] +
+        std::nearbyint((unwound_angles.back() - angles[i]) / (2 * π * Radian)) *
+            2 * π * Radian);
+  }
+  return unwound_angles;
+}
+
 template<typename Frame>
 OrbitAnalyser<Frame>::OrbitAnalyser(
     not_null<Ephemeris<Frame>*> const ephemeris,
@@ -188,10 +204,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                       periapsis.time()) -
                       periapsis.degrees_of_freedom(),
                   periapsis.time()).elements_at_epoch().argument_of_periapsis;
-    if (!arguments_of_periapsides.empty()) {
-      ω += std::nearbyint((arguments_of_periapsides.back() - ω) /
-                          (2 * π * Radian)) *
-           2 * π * Radian;
+    if (!times_of_periapsides.empty()) {
       times_between_periapsides.push_back(periapsis.time() -
                                           times_of_periapsides.back());
     }
@@ -199,7 +212,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     arguments_of_periapsides.push_back(ω);
   }
   apsidal_precession_ =
-      LinearRegression(times_of_periapsides, arguments_of_periapsides).slope;
+      LinearRegression(times_of_periapsides,
+                       Unwind(arguments_of_periapsides)).slope;
   anomalistic_period_ = AverageOfCorrelated(times_between_periapsides);
   LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / JulianYear)
              << u8"°/a";
@@ -266,41 +280,37 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     // cycles as appropriate as the angle varies.
     Angle Ω = OrientedAngleBetween(
         x, node.degrees_of_freedom().position() - PrimaryCentred::origin, z);
-    if (!longitudes_of_ascending_nodes.empty()) {
-      Ω += std::nearbyint((longitudes_of_ascending_nodes.back() - Ω) /
-                          (2 * π * Radian)) *
-           2 * π * Radian;
+    if (!times_of_ascending_nodes.empty()) {
       times_between_ascending_nodes.push_back(node.time() -
                                               times_of_ascending_nodes.back());
     }
     times_of_ascending_nodes.push_back(node.time());
     longitudes_of_ascending_nodes.push_back(Ω);
     if (longitudes_of_ascending_nodes.size() % 2 == 1) {
-      auto const& Ω0 = quantities::Mod(
-          longitudes_of_ascending_nodes.front() -
-              primary_->AngleAt(times_of_ascending_nodes.front()),
-          2 * π * Radian);
-      Angle const offset = Ω0 - π * Radian;
+      // TODO(egg): this assumes earthlike sign for the longitude.
       terrestrial_longitude_of_every_other_ascending_node.push_back(
-          quantities::Mod(Ω - primary_->AngleAt(node.time()) - offset, 2 * π * Radian) +
-          offset);
+          quantities::Mod(
+              Ω - (primary_->AngleAt(node.time()) + π / 2 * Radian) +
+                  π * Radian,
+              2 * π * Radian) -
+          π * Radian);
     }
   }
   nodal_precession_ =
       LinearRegression(times_of_ascending_nodes,
-                       longitudes_of_ascending_nodes).slope;
+                       Unwind(longitudes_of_ascending_nodes)).slope;
   nodal_period_ = AverageOfCorrelated(times_between_ascending_nodes);
   LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / JulianYear)
              << u8"°/a";
   LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
-  auto const λ0 = AverageOfCorrelated(terrestrial_longitude_of_every_other_ascending_node);
-  auto const λmax = *std::max_element(terrestrial_longitude_of_every_other_ascending_node.begin(),
-  terrestrial_longitude_of_every_other_ascending_node.end());
-  auto const λmin = *std::min_element(terrestrial_longitude_of_every_other_ascending_node.begin(),
-  terrestrial_longitude_of_every_other_ascending_node.end());
+  std::vector<Angle> const λ = Unwind(terrestrial_longitude_of_every_other_ascending_node);
+  auto const λ0 = AverageOfCorrelated(λ);
+  auto const λmax = *std::max_element(λ.begin(), λ.end());
+  auto const λmin = *std::min_element(λ.begin(), λ.end());
   LOG(ERROR) << u8"λ0 =" << λ0 / Degree << u8"°";
   LOG(ERROR) << u8"λ- =" << λmin / Degree << u8"°";
   LOG(ERROR) << u8"λ+ =" << λmax / Degree << u8"°";
+  LOG(ERROR) << u8"Δλ =" << (λmax - λmin) / Degree << u8"°";
   base::OFStream tf(SOLUTION_DIR / "longitudes");
   tf << mathematica::Assign("longitudes", terrestrial_longitude_of_every_other_ascending_node);
 
