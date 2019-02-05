@@ -28,8 +28,8 @@ using integrators::methods::Quinlan1999Order8A;
 using integrators::methods::QuinlanTremaine1990Order12;
 using physics::DiscreteTrajectory;
 using physics::Ephemeris;
-using physics::KeplerOrbit;
 using physics::KeplerianElements;
+using physics::KeplerOrbit;
 using physics::MasslessBody;
 using physics::OblateBody;
 using physics::RelativeDegreesOfFreedom;
@@ -44,11 +44,12 @@ using quantities::Sqrt;
 using quantities::Time;
 using quantities::astronomy::JulianYear;
 using quantities::si::Day;
+using quantities::si::Degree;
+using quantities::si::Kilo;
 using quantities::si::Metre;
 using quantities::si::Milli;
 using quantities::si::Minute;
 using quantities::si::Radian;
-using quantities::si::Degree;
 using quantities::si::Second;
 
 namespace astronomy {
@@ -84,18 +85,46 @@ TEST_F(OrbitAnalyzerTest, Молния) {
   auto const earth_degrees_of_freedom =
       solar_system_2000_.degrees_of_freedom("Earth");
 
-  Time const integration_duration = 1.0 * JulianYear;
-  Time const integration_step = 10 * Second;
   Time const sidereal_day = Day * 365.2425 / 366.2425;
 
   // These data are from https://en.wikipedia.org/wiki/Molniya_orbit.  The
   // eccentricity is from the "External links" section.
   KeplerianElements<ICRS> initial_elements;
   initial_elements.eccentricity = 0.74105;
-  initial_elements.mean_motion = 2 * π * Radian / (sidereal_day / (2 - 0.004));
+  initial_elements.mean_motion = 2 * π * Radian / (sidereal_day / 2);
   initial_elements.inclination = ArcSin(2.0 / Sqrt(5.0));
   initial_elements.argument_of_periapsis = -π / 2.0 * Radian;
   initial_elements.longitude_of_ascending_node = 1 * Radian + 60 * Degree;
+  initial_elements.mean_anomaly = 2 * Radian;
+
+  MasslessBody const satellite{};
+  KeplerOrbit<ICRS> initial_orbit(
+      *earth_body, satellite, initial_elements, J2000);
+  auto const satellite_state_vectors = initial_orbit.StateVectors(J2000);
+
+  OrbitAnalyser<ICRS> analyser(
+      ephemeris_.get(),
+      earth_body,
+      J2000,
+      earth_degrees_of_freedom + satellite_state_vectors);
+  analyser.Analyse();
+}
+
+TEST_F(OrbitAnalyzerTest, あけぼの) {
+  auto const earth_body = dynamic_cast_not_null<OblateBody<ICRS> const*>(
+      solar_system_2000_.massive_body(*ephemeris_, "Earth"));
+  auto const earth_degrees_of_freedom =
+      solar_system_2000_.degrees_of_freedom("Earth");
+
+  // These data are from Michel Capderou (2011), Satellites : de Kepler au GPS,
+  // Fig. 9.6 (p.332).
+  KeplerianElements<ICRS> initial_elements;
+  initial_elements.eccentricity = 0.269151;
+  initial_elements.semimajor_axis =  9088.656 * Kilo(Metre);
+  initial_elements.inclination = 75.07 * Degree;
+  initial_elements.argument_of_periapsis = 149.24 * Degree;
+    // TODO(egg): the LAN is probably wrong.
+  initial_elements.longitude_of_ascending_node = 98.26 * Degree;
   initial_elements.mean_anomaly = 2 * Radian;
 
   MasslessBody const satellite{};
