@@ -21,8 +21,10 @@ using astronomy::ICRS;
 using astronomy::J2000;
 using base::dynamic_cast_not_null;
 using base::OFStream;
+using geometry::Displacement;
 using geometry::Instant;
 using geometry::Position;
+using geometry::Velocity;
 using integrators::SymmetricLinearMultistepIntegrator;
 using integrators::methods::Quinlan1999Order8A;
 using integrators::methods::QuinlanTremaine1990Order12;
@@ -37,11 +39,13 @@ using physics::SolarSystem;
 using quantities::Angle;
 using quantities::AngularFrequency;
 using quantities::ArcSin;
+using quantities::Cbrt;
 using quantities::Cos;
 using quantities::Length;
 using quantities::Pow;
 using quantities::Sqrt;
 using quantities::Time;
+using quantities::astronomy::AstronomicalUnit;
 using quantities::astronomy::JulianYear;
 using quantities::si::Day;
 using quantities::si::Degree;
@@ -79,7 +83,7 @@ std::unique_ptr<Ephemeris<ICRS>> OrbitAnalyzerTest::ephemeris_;
 
 #if !defined(_DEBUG)
 
-TEST_F(OrbitAnalyzerTest, Молния) {
+TEST_F(OrbitAnalyzerTest, DISABLED_Молния) {
   auto const earth_body = dynamic_cast_not_null<OblateBody<ICRS> const*>(
       solar_system_2000_.massive_body(*ephemeris_, "Earth"));
   auto const earth_degrees_of_freedom =
@@ -110,7 +114,48 @@ TEST_F(OrbitAnalyzerTest, Молния) {
   analyser.Analyse();
 }
 
-TEST_F(OrbitAnalyzerTest, あけぼの) {
+TEST_F(OrbitAnalyzerTest, 福爾摩沙衛星二號) {
+  auto const earth_body = dynamic_cast_not_null<OblateBody<ICRS> const*>(
+      solar_system_2000_.massive_body(*ephemeris_, "Earth"));
+#if 0
+  // Decomissioned, the orbit is no longer synchronized.
+  // 1 28254U 04018A   19018.27309439 -.00000041  00000-0  70762-6 0  9994
+  // 2 28254  98.7740  68.5835 0002379 335.2377  67.0903 14.00625903749807
+  auto const epoch = "2019-01-18T06:33:15"_UTC;
+  RelativeDegreesOfFreedom<ICRS> const satellite_state_vectors = {
+      Displacement<ICRS>({1.79580546e-05 * AstronomicalUnit,
+                          3.15589340e-05 * AstronomicalUnit,
+                          3.22551115e-05 * AstronomicalUnit}),
+      Velocity<ICRS>({-0.00060951 * AstronomicalUnit / Day,
+                      -0.00285516 * AstronomicalUnit / Day,
+                      0.00312683 * AstronomicalUnit / Day})};
+#else
+  // Still operational.
+  // 1 28254U 04018A   16183.13910299  .00000106  00000-0  10000-3 0  9998
+  // 2 28254  98.9332 246.1213 0002410  82.2354 330.6801 14.00730683619455
+  auto const epoch = "2016-07-01T03:20:18"_UTC;
+  RelativeDegreesOfFreedom<ICRS> const satellite_state_vectors = {
+      Displacement<ICRS>({-1.73980671e-05 * AstronomicalUnit,
+                          -2.43219608e-05 * AstronomicalUnit,
+                          3.82473828e-05 * AstronomicalUnit}),
+      Velocity<ICRS>({0.00103147 * AstronomicalUnit / Day,
+                      0.00327939 * AstronomicalUnit / Day,
+                      0.00254849 * AstronomicalUnit / Day})};
+  
+#endif
+  ephemeris_->Prolong(epoch);
+  auto const earth_degrees_of_freedom =
+      ephemeris_->trajectory(earth_body)->EvaluateDegreesOfFreedom(epoch);
+
+  OrbitAnalyser<ICRS> analyser(
+      ephemeris_.get(),
+      earth_body,
+      epoch,
+      earth_degrees_of_freedom + satellite_state_vectors);
+  analyser.Analyse();
+}
+
+TEST_F(OrbitAnalyzerTest, DISABLED_あけぼの) {
   auto const earth_body = dynamic_cast_not_null<OblateBody<ICRS> const*>(
       solar_system_2000_.massive_body(*ephemeris_, "Earth"));
   auto const earth_degrees_of_freedom =

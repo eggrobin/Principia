@@ -94,7 +94,7 @@ void OrbitAnalyser<Frame>::Analyse() {
   // overly small tolerances when the uncertainty is large anyway.
   // TODO(egg): consider using a fixed-step method.
   Length const length_tolerance =
-      *initial_osculating_elements.semimajor_axis * 1e-6;
+      *initial_osculating_elements.semimajor_axis * 1e-7;
   Speed const speed_tolerance =
       2 * π * length_tolerance / initial_osculating_period;
 
@@ -260,60 +260,6 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
         it.time(), tip(primary_centred_trajectory.last().degrees_of_freedom()));
   }
 
-  DiscreteTrajectory<PrimaryCentred> ascending_nodes;
-  DiscreteTrajectory<PrimaryCentred> descending_nodes;
-  ComputeNodes(primary_centred_trajectory.Begin(),
-               primary_centred_trajectory.End(),
-               Vector<double, PrimaryCentred>({0, 0, 1}),
-               ascending_nodes,
-               descending_nodes);
-
-  std::vector<Instant> times_of_ascending_nodes;
-  std::vector<Time> times_between_ascending_nodes;
-  std::vector<Angle> longitudes_of_ascending_nodes;
-  std::vector<Angle> terrestrial_longitude_of_every_other_ascending_node;
-  for (auto node = ascending_nodes.Begin(); node != ascending_nodes.End(); ++node) {
-    // We do not construct |KeplerianElements|: we only need the longitude of
-    // the ascending node, and we are at the ascending node so the computation
-    // is trivial.
-    // In order to compute a linear fit, we have to add or subtract
-    // cycles as appropriate as the angle varies.
-    Angle Ω = OrientedAngleBetween(
-        x, node.degrees_of_freedom().position() - PrimaryCentred::origin, z);
-    if (!times_of_ascending_nodes.empty()) {
-      times_between_ascending_nodes.push_back(node.time() -
-                                              times_of_ascending_nodes.back());
-    }
-    times_of_ascending_nodes.push_back(node.time());
-    longitudes_of_ascending_nodes.push_back(Ω);
-    if (longitudes_of_ascending_nodes.size() % 2 == 1) {
-      // TODO(egg): this assumes earthlike sign for the longitude.
-      terrestrial_longitude_of_every_other_ascending_node.push_back(
-          quantities::Mod(
-              Ω - (primary_->AngleAt(node.time()) + π / 2 * Radian) +
-                  π * Radian,
-              2 * π * Radian) -
-          π * Radian);
-    }
-  }
-  nodal_precession_ =
-      LinearRegression(times_of_ascending_nodes,
-                       Unwind(longitudes_of_ascending_nodes)).slope;
-  nodal_period_ = AverageOfCorrelated(times_between_ascending_nodes);
-  LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / JulianYear)
-             << u8"°/a";
-  LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
-  std::vector<Angle> const λ = Unwind(terrestrial_longitude_of_every_other_ascending_node);
-  auto const λ0 = AverageOfCorrelated(λ);
-  auto const λmax = *std::max_element(λ.begin(), λ.end());
-  auto const λmin = *std::min_element(λ.begin(), λ.end());
-  LOG(ERROR) << u8"λ0 =" << λ0 / Degree << u8"°";
-  LOG(ERROR) << u8"λ- =" << λmin / Degree << u8"°";
-  LOG(ERROR) << u8"λ+ =" << λmax / Degree << u8"°";
-  LOG(ERROR) << u8"Δλ =" << (λmax - λmin) / Degree << u8"°";
-  base::OFStream tf(SOLUTION_DIR / "longitudes");
-  tf << mathematica::Assign("longitudes", terrestrial_longitude_of_every_other_ascending_node);
-
   // By computing the "nodes" with respect to the xz plane, i.e., the crossings
   // of the xz plane, we compute the points at which the projection of the orbit
   // onto the reference plane xy passes the fixed reference direction x.
@@ -342,6 +288,64 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
       2 * π * Radian / primary_->angular_frequency();
   LOG(ERROR) << u8"T* / T🜨 = " << sidereal_period_ / sidereal_rotation_period;
   LOG(ERROR) << u8"T🜨 / T* = " << sidereal_rotation_period / sidereal_period_;
+
+  int const orbits_per_day = std::nearbyint(sidereal_rotation_period /
+                                            sidereal_period_.measured_value);
+
+  DiscreteTrajectory<PrimaryCentred> ascending_nodes;
+  DiscreteTrajectory<PrimaryCentred> descending_nodes;
+  ComputeNodes(primary_centred_trajectory.Begin(),
+               primary_centred_trajectory.End(),
+               Vector<double, PrimaryCentred>({0, 0, 1}),
+               ascending_nodes,
+               descending_nodes);
+
+  std::vector<Instant> times_of_ascending_nodes;
+  std::vector<Time> times_between_ascending_nodes;
+  std::vector<Angle> longitudes_of_ascending_nodes;
+  std::vector<Angle> terrestrial_longitude_of_every_nth_ascending_node;
+  for (auto node = ascending_nodes.Begin(); node != ascending_nodes.End(); ++node) {
+    // We do not construct |KeplerianElements|: we only need the longitude of
+    // the ascending node, and we are at the ascending node so the computation
+    // is trivial.
+    // In order to compute a linear fit, we have to add or subtract
+    // cycles as appropriate as the angle varies.
+    Angle Ω = OrientedAngleBetween(
+        x, node.degrees_of_freedom().position() - PrimaryCentred::origin, z);
+    if (!times_of_ascending_nodes.empty()) {
+      times_between_ascending_nodes.push_back(node.time() -
+                                              times_of_ascending_nodes.back());
+    }
+    times_of_ascending_nodes.push_back(node.time());
+    longitudes_of_ascending_nodes.push_back(Ω);
+    if (longitudes_of_ascending_nodes.size() % orbits_per_day == 1) {
+      // TODO(egg): this assumes earthlike sign for the longitude.
+      terrestrial_longitude_of_every_nth_ascending_node.push_back(
+          quantities::Mod(
+              Ω - (primary_->AngleAt(node.time()) + π / 2 * Radian) +
+                  π * Radian,
+              2 * π * Radian) -
+          π * Radian);
+    }
+  }
+  nodal_precession_ =
+      LinearRegression(times_of_ascending_nodes,
+                       Unwind(longitudes_of_ascending_nodes)).slope;
+  nodal_period_ = AverageOfCorrelated(times_between_ascending_nodes);
+  LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / JulianYear)
+             << u8"°/a";
+  LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
+  std::vector<Angle> const λ = Unwind(terrestrial_longitude_of_every_nth_ascending_node);
+  auto const λ0 = AverageOfCorrelated(λ);
+  auto const λmax = *std::max_element(λ.begin(), λ.end());
+  auto const λmin = *std::min_element(λ.begin(), λ.end());
+  LOG(ERROR) << u8"λ0 =" << λ0 / Degree << u8"°";
+  LOG(ERROR) << u8"λ- =" << λmin / Degree << u8"°";
+  LOG(ERROR) << u8"λ+ =" << λmax / Degree << u8"°";
+  LOG(ERROR) << u8"Δλ =" << (λmax - λmin) / Degree << u8"°";
+  base::OFStream tf(SOLUTION_DIR / "longitudes");
+  tf << mathematica::Assign("longitudes", terrestrial_longitude_of_every_nth_ascending_node);
+  tf << mathematica::Assign("t", times_between_xz_ascensions);
 }
 
 }  // namespace internal_orbit_analyser
