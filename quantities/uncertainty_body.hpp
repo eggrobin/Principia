@@ -36,6 +36,30 @@ std::ostream& operator<<(std::ostream& out,
 }
 
 template<typename T, typename U>
+MeasurementResult<Sum<T, U>> operator+(MeasurementResult<T> const& left,
+                                       U const& right) {
+  return {left.measured_value + right, left.standard_uncertainty};
+}
+template<typename T, typename U>
+MeasurementResult<Sum<T, U>> operator+(T const& left,
+                                       MeasurementResult<U> const& right) {
+  return {left + right.measured_value, right.standard_uncertainty};
+}
+
+template<typename T, typename U>
+MeasurementResult<Difference<T, U>> operator-(MeasurementResult<T> const& left,
+                                              U const& right) {
+  return {left.measured_value - right, left.standard_uncertainty};
+}
+
+template<typename T, typename U>
+MeasurementResult<Difference<T, U>> operator-(
+    T const& left,
+    MeasurementResult<U> const& right) {
+  return {left - right.measured_value, right.standard_uncertainty};
+}
+
+template<typename T, typename U>
 MeasurementResult<Product<T, U>> operator*(MeasurementResult<T> const& left,
                                            U const& right) {
   return {left.measured_value * right,
@@ -62,6 +86,16 @@ MeasurementResult<Quotient<T, U>> operator/(T const& left,
   return {
       left / right.measured_value,
       Abs(left) * right.standard_uncertainty / Pow<2>(right.measured_value)};
+}
+
+template<typename T, typename U>
+MeasurementResult<Quotient<T, U>> operator/(MeasurementResult<T> const& left,
+                                            MeasurementResult<U> const& right) {
+  return {
+      left.measured_value / right.measured_value,
+      Sqrt(Pow<2>(left.standard_uncertainty) / Pow<2>(right.measured_value) +
+           Pow<2>(right.standard_uncertainty) * Pow<2>(left.measured_value) /
+               Pow<4>(left.measured_value))};
 }
 
 template<typename T>

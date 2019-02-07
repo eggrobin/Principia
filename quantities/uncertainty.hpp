@@ -29,6 +29,21 @@ struct MeasurementResult {
 std::ostream& operator<<(std::ostream& out,
                          MeasurementResult<double> measurement);
 
+// Sum or difference of a measurement result and an exact value.
+template<typename T, typename U>
+MeasurementResult<Sum<T, U>> operator+(MeasurementResult<T> const& left,
+                                       U const& right);
+template<typename T, typename U>
+MeasurementResult<Sum<T, U>> operator+(T const& left,
+                                       MeasurementResult<U> const& right);
+template<typename T, typename U>
+MeasurementResult<Difference<T, U>> operator-(MeasurementResult<T> const& left,
+                                              U const& right);
+template<typename T, typename U>
+MeasurementResult<Difference<T, U>> operator-(
+    T const& left,
+    MeasurementResult<U> const& right);
+
 // Multiplication or division of a measurement result by a an exact value.
 template<typename T, typename U>
 MeasurementResult<Product<T, U>> operator*(MeasurementResult<T> const& left,
@@ -44,6 +59,14 @@ MeasurementResult<Quotient<T, U>> operator/(MeasurementResult<T> const& left,
 // GUM 5.1.2.
 template<typename T, typename U>
 MeasurementResult<Quotient<T, U>> operator/(T const& left,
+                                            MeasurementResult<U> const& right);
+
+// Quotient of measurement results; the uncertainty is propagated according to
+// GUM 5.1.2, assuming independence.
+// TODO(egg): We should find a way to make the assumption of independence more
+// explicit.
+template<typename T, typename U>
+MeasurementResult<Quotient<T, U>> operator/(MeasurementResult<T> const& left,
                                             MeasurementResult<U> const& right);
 
 // The following functions provide type A evaluations of standard uncertainty

@@ -49,7 +49,11 @@ using quantities::si::Second;
 // less than π).  Returns the corresponding sampling of the continuous g: ℝ → ℝ
 // such that f = g mod 2π and f(0) = g(0).
 std::vector<Angle> Unwind(std::vector<Angle> const& angles) {
+  if (angles.empty()) {
+    return angles;
+  }
   std::vector<Angle> unwound_angles;
+  unwound_angles.reserve(angles.size());
   unwound_angles.push_back(angles.front());
   for (int i = 1; i < angles.size(); ++i) {
     unwound_angles.push_back(
@@ -289,9 +293,6 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"T* / T🜨 = " << sidereal_period_ / sidereal_rotation_period;
   LOG(ERROR) << u8"T🜨 / T* = " << sidereal_rotation_period / sidereal_period_;
 
-  int const orbits_per_day = std::nearbyint(sidereal_rotation_period /
-                                            sidereal_period_.measured_value);
-
   DiscreteTrajectory<PrimaryCentred> ascending_nodes;
   DiscreteTrajectory<PrimaryCentred> descending_nodes;
   ComputeNodes(primary_centred_trajectory.Begin(),
@@ -308,9 +309,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     // We do not construct |KeplerianElements|: we only need the longitude of
     // the ascending node, and we are at the ascending node so the computation
     // is trivial.
-    // In order to compute a linear fit, we have to add or subtract
-    // cycles as appropriate as the angle varies.
-    Angle Ω = OrientedAngleBetween(
+    Angle const Ω = OrientedAngleBetween(
         x, node.degrees_of_freedom().position() - PrimaryCentred::origin, z);
     if (!times_of_ascending_nodes.empty()) {
       times_between_ascending_nodes.push_back(node.time() -
@@ -318,23 +317,56 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     }
     times_of_ascending_nodes.push_back(node.time());
     longitudes_of_ascending_nodes.push_back(Ω);
-    if (longitudes_of_ascending_nodes.size() % orbits_per_day == 1) {
-      // TODO(egg): this assumes earthlike sign for the longitude.
-      terrestrial_longitude_of_every_nth_ascending_node.push_back(
-          quantities::Mod(
-              Ω - (primary_->AngleAt(node.time()) + π / 2 * Radian) +
-                  π * Radian,
-              2 * π * Radian) -
-          π * Radian);
-    }
   }
   nodal_precession_ =
       LinearRegression(times_of_ascending_nodes,
                        Unwind(longitudes_of_ascending_nodes)).slope;
   nodal_period_ = AverageOfCorrelated(times_between_ascending_nodes);
+
   LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / JulianYear)
              << u8"°/a";
   LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
+
+  // (7.41).
+  MeasurementResult<double> const daily_recurrence_frequency =
+      (2 * π * Radian / nodal_period_) /
+      (primary_->angular_frequency() - nodal_precession_);
+  LOG(ERROR) << u8"κ = " << daily_recurrence_frequency;
+  int const ν0 = std::nearbyint(daily_recurrence_frequency.measured_value);
+  LOG(ERROR) << u8"ν0 = "
+             << std::nearbyint(daily_recurrence_frequency.measured_value);
+
+  // 11.7.2.
+  double smallest_fraction = std::numeric_limits<double>::infinity();
+  int cycle_days;
+  int cto;
+  for (int j = 1; j < 200; ++j) {
+    MeasurementResult<double> κ_j = daily_recurrence_frequency * j;
+    if (κ_j.standard_uncertainty > 0.5) {
+      LOG(ERROR) << "within uncertainty at J = " << j;
+    }
+    double const abs_κ_j = std::abs(κ_j.measured_value);
+    double const fraction = std::abs(abs_κ_j - std::nearbyint(abs_κ_j));
+    if (fraction < smallest_fraction) {
+      cycle_days = j;
+      smallest_fraction = fraction;
+      cto = std::nearbyint(abs_κ_j);
+      LOG(ERROR) << u8"frac |κJ| = " << fraction;
+      LOG(ERROR) << "for J = " << j;
+    }
+  }
+
+  for (int i = 0; i < longitudes_of_ascending_nodes.size(); i += cto) {
+    Angle const Ω = longitudes_of_ascending_nodes[i];
+    Instant const t = times_of_ascending_nodes[i];
+    // TODO(egg): this assumes earthlike sign for the longitude.
+    terrestrial_longitude_of_every_nth_ascending_node.push_back(
+        quantities::Mod(
+            Ω - (primary_->AngleAt(t) + π / 2 * Radian) + π * Radian,
+            2 * π * Radian) -
+        π * Radian);
+  }
+
   std::vector<Angle> const λ = Unwind(terrestrial_longitude_of_every_nth_ascending_node);
   auto const λ0 = AverageOfCorrelated(λ);
   auto const λmax = *std::max_element(λ.begin(), λ.end());
