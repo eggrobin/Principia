@@ -140,7 +140,7 @@ TEST_F(OrbitAnalyzerTest, 福爾摩沙衛星二號) {
                           3.82473828e-05 * AstronomicalUnit}),
       Velocity<ICRS>({0.00103147 * AstronomicalUnit / Day,
                       0.00327939 * AstronomicalUnit / Day,
-                      0.00254849 * AstronomicalUnit / Day})};
+                      0.00254849 * AstronomicalUnit / Day})*(1 - .00015)};
   
 #endif
   ephemeris_->Prolong(epoch);
