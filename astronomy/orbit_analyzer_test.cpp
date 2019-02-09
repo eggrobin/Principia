@@ -117,22 +117,25 @@ TEST_F(OrbitAnalyzerTest, DISABLED_Молния) {
 TEST_F(OrbitAnalyzerTest, 福爾摩沙衛星二號) {
   auto const earth_body = dynamic_cast_not_null<OblateBody<ICRS> const*>(
       solar_system_2000_.massive_body(*ephemeris_, "Earth"));
-#if 0
-  // Decomissioned, the orbit is no longer synchronized.
-  // 1 28254U 04018A   19018.27309439 -.00000041  00000-0  70762-6 0  9994
-  // 2 28254  98.7740  68.5835 0002379 335.2377  67.0903 14.00625903749807
-  auto const epoch = "2019-01-18T06:33:15"_UTC;
-  RelativeDegreesOfFreedom<ICRS> const satellite_state_vectors = {
-      Displacement<ICRS>({1.79580546e-05 * AstronomicalUnit,
-                          3.15589340e-05 * AstronomicalUnit,
-                          3.22551115e-05 * AstronomicalUnit}),
-      Velocity<ICRS>({-0.00060951 * AstronomicalUnit / Day,
-                      -0.00285516 * AstronomicalUnit / Day,
-                      0.00312683 * AstronomicalUnit / Day})};
-#elif 0
-  // Still operational.
   // 1 28254U 04018A   16183.13910299  .00000106  00000-0  10000-3 0  9998
   // 2 28254  98.9332 246.1213 0002410  82.2354 330.6801 14.00730683619455
+
+  // The above two-line elements converted to GCRS state vectors at their epoch
+  // with Skyfield.
+  // The satellite was operational at that epoch, so we can expect the ground
+  // track recurrence to be correctly set up.
+  // While the two-line elements can be used to directly obtain accurate periods
+  // (Ἰξίων computes κ = 13.999159 from these elements, indicating very good
+  // recurrence), their conversion to instantataneous state vectors has
+  // uncertainties on the order of a km; indeed, we end up measuring κ = 13.994
+  // using the output of Skyfield.
+  // As we have no more than 4 sig. dec. on these values, we apply a fudge
+  // factor that gets us to a good recurrence, which is the what we want to
+  // study with this test.
+  // The recurrence is not *too good* either: the fudge factor is a multiple of
+  // 1e-5, which corresponds to a precision of 74 mm/s on the velocity; this is
+  // approximately the amount of Δv needed to correct for drag over a year on
+  // this orbit.
   auto const epoch = "2016-07-01T03:20:18"_UTC;
   RelativeDegreesOfFreedom<ICRS> const satellite_state_vectors = {
       Displacement<ICRS>({-1.73980671e-05 * AstronomicalUnit,
@@ -140,19 +143,9 @@ TEST_F(OrbitAnalyzerTest, 福爾摩沙衛星二號) {
                           3.82473828e-05 * AstronomicalUnit}),
       Velocity<ICRS>({0.00103147 * AstronomicalUnit / Day,
                       0.00327939 * AstronomicalUnit / Day,
-                      0.00254849 * AstronomicalUnit / Day})*(1 - .00014)};
-#else
-  // 1 28254U 04018A   10001.06515326  .00000104  00000-0  10000-3 0  3571
-  // 2 28254  99.1103  64.2419 0002824 109.6874   2.6228 14.00732798287225
-  auto const epoch = "2010-01-01T01:33:49"_UTC;
-  RelativeDegreesOfFreedom<ICRS> const satellite_state_vectors = {
-      Displacement<ICRS>({-1.61566730e-06 * AstronomicalUnit,
-                          -1.97102559e-05 * AstronomicalUnit,
-                          4.43241251e-05 * AstronomicalUnit}),
-      Velocity<ICRS>({-0.00196118 * AstronomicalUnit / Day,
-                      -0.00344896 * AstronomicalUnit / Day,
-                      -0.00160197 * AstronomicalUnit / Day})};
-#endif
+                      0.00254849 * AstronomicalUnit / Day}) *
+          (1 - 14e-5)};
+
   ephemeris_->Prolong(epoch);
   auto const earth_degrees_of_freedom =
       ephemeris_->trajectory(earth_body)->EvaluateDegreesOfFreedom(epoch);
