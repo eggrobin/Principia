@@ -58,7 +58,7 @@ using quantities::si::Second;
 
 namespace astronomy {
 
-class OrbitAnalyzerTest : public ::testing::Test {
+class OrbitAnalyserTest : public ::testing::Test {
  protected:
   static void SetUpTestCase() {
     google::LogToStderr();
@@ -75,15 +75,15 @@ class OrbitAnalyzerTest : public ::testing::Test {
   static std::unique_ptr<Ephemeris<ICRS>> ephemeris_;
 };
 
-SolarSystem<ICRS> OrbitAnalyzerTest::solar_system_2000_(
+SolarSystem<ICRS> OrbitAnalyserTest::solar_system_2000_(
     SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
     SOLUTION_DIR / "astronomy" /
         "sol_initial_state_jd_2451545_000000000.proto.txt");
-std::unique_ptr<Ephemeris<ICRS>> OrbitAnalyzerTest::ephemeris_;
+std::unique_ptr<Ephemeris<ICRS>> OrbitAnalyserTest::ephemeris_;
 
 #if !defined(_DEBUG)
 
-TEST_F(OrbitAnalyzerTest, DISABLED_Молния) {
+TEST_F(OrbitAnalyserTest, DISABLED_Молния) {
   auto const earth_body = dynamic_cast_not_null<OblateBody<ICRS> const*>(
       solar_system_2000_.massive_body(*ephemeris_, "Earth"));
   auto const earth_degrees_of_freedom =
@@ -114,7 +114,7 @@ TEST_F(OrbitAnalyzerTest, DISABLED_Молния) {
   analyser.Analyse();
 }
 
-TEST_F(OrbitAnalyzerTest, 福爾摩沙衛星二號) {
+TEST_F(OrbitAnalyserTest, 福爾摩沙衛星二號) {
   auto const earth_body = dynamic_cast_not_null<OblateBody<ICRS> const*>(
       solar_system_2000_.massive_body(*ephemeris_, "Earth"));
   // 1 28254U 04018A   16183.13910299  .00000106  00000-0  10000-3 0  9998
@@ -158,7 +158,7 @@ TEST_F(OrbitAnalyzerTest, 福爾摩沙衛星二號) {
   analyser.Analyse();
 }
 
-TEST_F(OrbitAnalyzerTest, DISABLED_あけぼの) {
+TEST_F(OrbitAnalyserTest, DISABLED_あけぼの) {
   auto const earth_body = dynamic_cast_not_null<OblateBody<ICRS> const*>(
       solar_system_2000_.massive_body(*ephemeris_, "Earth"));
   auto const earth_degrees_of_freedom =
