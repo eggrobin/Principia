@@ -80,6 +80,15 @@ class OrbitAnalyserTest : public ::testing::Test {
             SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
                                                Position<ICRS>>(),
             /*step=*/10 * Minute));
+    for (char const* const date : {"1960-01-01T00:00:00",
+                                   "1970-01-01T00:00:00",
+                                   "1980-01-01T00:00:00",
+                                   "1980-01-01T00:00:00",
+                                   "1990-01-01T00:00:00",
+                                   "2000-01-01T00:00:00"}) {
+      LOG(INFO) << "Prolonging ephemeris to " << date << " (UTC)";
+      ephemeris_->Prolong(ParseUTC(date));
+    }
   }
 
   not_null<OblateBody<ICRS> const*> const earth_;
