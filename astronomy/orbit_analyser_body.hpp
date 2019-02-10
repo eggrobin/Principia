@@ -299,7 +299,9 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   std::vector<Time> times_between_xz_ascensions;
   auto ascension = xz_ascensions.Begin();
   Instant previous_time = ascension.time();
-  ++ascension;
+  if (ascension != xz_ascensions.End()) {
+    ++ascension;
+  }
   for (; ascension != xz_ascensions.End();
        previous_time = ascension.time(), ++ascension) {
     times_between_xz_ascensions.push_back(ascension.time() - previous_time);

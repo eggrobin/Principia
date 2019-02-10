@@ -80,14 +80,13 @@ class OrbitAnalyserTest : public ::testing::Test {
             SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
                                                Position<ICRS>>(),
             /*step=*/10 * Minute));
-    for (char const* const date : {"1960-01-01T00:00:00",
-                                   "1970-01-01T00:00:00",
-                                   "1980-01-01T00:00:00",
-                                   "1980-01-01T00:00:00",
-                                   "1990-01-01T00:00:00",
-                                   "2000-01-01T00:00:00"}) {
-      LOG(INFO) << "Prolonging ephemeris to " << date << " (UTC)";
-      ephemeris_->Prolong(ParseUTC(date));
+    for (char const* const date : {"1960-01-01T12:00:00",
+                                   "1970-01-01T12:00:00",
+                                   "1980-01-01T12:00:00",
+                                   "1990-01-01T12:00:00",
+                                   "2000-01-01T12:00:00"}) {
+      LOG(INFO) << "Prolonging ephemeris to " << date << " (TT)";
+      ephemeris_->Prolong(ParseTT(date));
     }
   }
 
@@ -137,7 +136,7 @@ TEST_F(OrbitAnalyserTest, DISABLED_Молния) {
 TEST_F(OrbitAnalyserTest, TOPEXPoséidon) {
   // Initial state from DORIS products.
   // https://ids-doris.org/ids/organization/data-centers.html.
-  // See also the definition of the SP3 format
+  // See also the definition of the SP3-c format
   // ftp://igs.org/pub/data/format/sp3c.txt.
 
   // grgtop03.b97344.e97348.D_S.sp3, header and first record, from
@@ -149,6 +148,10 @@ TEST_F(OrbitAnalyserTest, TOPEXPoséidon) {
   // (where GRG probably stands for Groupe de Recherche de Géodesie Spatiale),
   // hence the mismatch between the file name and the agency field of the SP3
   // header below.
+  // CAVEAT LECTOR: While the SP3-c format mandates dm/s as the unit for the
+  // velocities in SP3 Line Twenty six (the Velocity and Clock Rate-of-Change
+  // Record), these data use m/s; there appears to be no documentation of this
+  // oddity.
   // #cV1997 12 10 12  0  0.00000000    5046 DORIS ITR05 FIT  LCA
   // ##  935 302400.00000000    60.00000000 50792 0.5000000000000
   // +    1   L01  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
@@ -170,11 +173,12 @@ TEST_F(OrbitAnalyserTest, TOPEXPoséidon) {
       ITRS::origin + Displacement<ITRS>({-3091.510103 * Kilo(Metre),
                                           1090.750605 * Kilo(Metre),
                                          -6985.258847 * Kilo(Metre)}),
-      Velocity<ITRS>({ -414.743700 * Deci(Metre) / Second,
-                      -6885.134975 * Deci(Metre) / Second,
-                       -890.998602 * Deci(Metre) / Second})};
+      Velocity<ITRS>({ -414.743700 * Metre / Second,
+                      -6885.134975 * Metre / Second,
+                       -890.998602 * Metre / Second})};
 
   ephemeris_->Prolong(initial_time);
+
   OrbitAnalyser<ICRS> analyser(
       ephemeris_.get(),
       earth_,
