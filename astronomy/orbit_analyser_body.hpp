@@ -196,11 +196,15 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   std::vector<Instant> times_of_periapsides;
   std::vector<Time> times_between_periapsides;
   std::vector<Angle> arguments_of_periapsides;
+  std::vector<Length> periapsis_distances;
+  std::vector<Length> apoapsis_distances;
+
   for (auto periapsis = periapsides.Begin();
        periapsis != periapsides.End();
        ++periapsis) {
-    // TODO(egg): We could probably do something more efficient, because we know
-    // that we are at the periapsis, and we only need the argument of periapsis.
+    // TODO(egg): We could probably do something a lot more efficient, because
+    // we know that we are at the periapsis, and we only need the argument of
+    // periapsis.
     Angle ω = *KeplerOrbit<Frame>(
                   *primary_,
                   MasslessBody{},
@@ -214,14 +218,30 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     }
     times_of_periapsides.push_back(periapsis.time());
     arguments_of_periapsides.push_back(ω);
+    periapsis_distances.push_back(
+        (ephemeris_->trajectory(primary_)->EvaluatePosition(periapsis.time()) -
+         periapsis.degrees_of_freedom().position()).Norm());
+  }
+  for (auto apoapsis = apoapsides.Begin();
+       apoapsis != apoapsides.End();
+       ++apoapsis) {
+    apoapsis_distances.push_back(
+        (ephemeris_->trajectory(primary_)->EvaluatePosition(apoapsis.time()) -
+         apoapsis.degrees_of_freedom().position()).Norm());
   }
   apsidal_precession_ =
       LinearRegression(times_of_periapsides,
                        Unwind(arguments_of_periapsides)).slope;
   anomalistic_period_ = AverageOfCorrelated(times_between_periapsides);
+  periapsis_distance_ = AverageOfCorrelated(periapsis_distances);
+  apoapsis_distance_ = AverageOfCorrelated(apoapsis_distances);
   LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / JulianYear)
              << u8"°/a";
   LOG(ERROR) << u8"T = " << anomalistic_period_ / Second << " s";
+  LOG(ERROR) << u8"r_p = " << periapsis_distance_ / Kilo(Metre) << " km";
+  LOG(ERROR) << u8"r_a = " << apoapsis_distance_ / Kilo(Metre) << " km";
+  LOG(ERROR) << u8"h_p = " << (periapsis_distance_ - primary_->mean_radius()) / Kilo(Metre) << " km";
+  LOG(ERROR) << u8"h_a = " << (apoapsis_distance_ - primary_->mean_radius()) / Kilo(Metre) << " km";
 
   enum class PrimaryTag { normal, sideways };
   // The origin of the reference frame is the centre of mass of |*primary_|.

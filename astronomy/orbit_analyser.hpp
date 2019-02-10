@@ -15,6 +15,7 @@ using physics::DiscreteTrajectory;
 using physics::Ephemeris;
 using physics::RotatingBody;
 using quantities::AngularFrequency;
+using quantities::Length;
 using quantities::MeasurementResult;
 using quantities::Time;
 
@@ -40,6 +41,8 @@ class OrbitAnalyser {
   MeasurementResult<Time> sidereal_period_;
   MeasurementResult<AngularFrequency> nodal_precession_;
   MeasurementResult<AngularFrequency> apsidal_precession_;
+  MeasurementResult<Length> periapsis_distance_;
+  MeasurementResult<Length> apoapsis_distance_;
 };
 
 }  // namespace internal_orbit_analyser

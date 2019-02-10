@@ -127,8 +127,8 @@ TEST_F(OrbitAnalyserTest, 福爾摩沙衛星二號) {
   // While the two-line elements can be used to directly obtain accurate periods
   // (Ἰξίων computes κ = 13.999159 from these elements, indicating very good
   // recurrence), their conversion to instantataneous state vectors has
-  // uncertainties on the order of a km; indeed, we end up measuring κ = 13.994
-  // using the output of Skyfield.
+  // uncertainties on the order of a kilometre; indeed, we end up measuring
+  // κ = 13.994 using the output of Skyfield.
   // As we have no more than 4 sig. dec. on these values, we apply a fudge
   // factor that gets us to a good recurrence, which is the what we want to
   // study with this test.
