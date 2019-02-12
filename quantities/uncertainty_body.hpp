@@ -15,10 +15,12 @@ std::ostream& operator<<(std::ostream& out,
       std::floor(std::log10(measurement.standard_uncertainty));
   int const significant_digits =
       value_decimal_exponent - uncertainty_decimal_exponent;
-  std::string value_digits = std::to_string(static_cast<int>(std::nearbyint(
-      std::abs(measurement.measured_value) *
-      std::pow(10, (significant_digits + 2) - value_decimal_exponent - 1))));
-  std::string uncertainty_digits = std::to_string(static_cast<int>(
+  std::string value_digits =
+      std::to_string(static_cast<std::int64_t>(std::nearbyint(
+          std::abs(measurement.measured_value) *
+          std::pow(10,
+                   (significant_digits + 2) - value_decimal_exponent - 1))));
+  std::string uncertainty_digits = std::to_string(static_cast<std::int64_t>(
       std::nearbyint(std::abs(measurement.standard_uncertainty) *
                      std::pow(10, 2 - uncertainty_decimal_exponent - 1))));
   if (value_decimal_exponent >= 0 &&

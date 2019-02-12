@@ -323,6 +323,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                ascending_nodes,
                descending_nodes);
 
+  LOG(ERROR) << ascending_nodes.Size() << " ascending nodes";
+
   std::vector<Instant> times_of_ascending_nodes;
   std::vector<Time> times_between_ascending_nodes;
   std::vector<Angle> longitudes_of_ascending_nodes;
@@ -354,13 +356,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
       (2 * π * Radian / nodal_period_) /
       (primary_->angular_frequency() - nodal_precession_);
   LOG(ERROR) << u8"κ = " << daily_recurrence_frequency;
-  int const ν0 = std::nearbyint(daily_recurrence_frequency.measured_value);
-  LOG(ERROR) << u8"ν0 = "
-             << std::nearbyint(daily_recurrence_frequency.measured_value);
 
   // 11.7.2.
   double smallest_fraction = std::numeric_limits<double>::infinity();
   int cycle_days;
+  int nto;
   int cto;
   for (int j = 1; j < 200; ++j) {
     MeasurementResult<double> κ_j = daily_recurrence_frequency * j;
@@ -372,13 +372,27 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     if (fraction < smallest_fraction) {
       cycle_days = j;
       smallest_fraction = fraction;
-      cto = std::nearbyint(abs_κ_j);
+      nto = std::nearbyint(abs_κ_j);
+      cto = j;
       LOG(ERROR) << u8"frac |κJ| = " << fraction;
       LOG(ERROR) << "for J = " << j;
     }
   }
+  LOG(ERROR) << "N_To = " << nto;
+  LOG(ERROR) << "C_To = " << cto;
 
-  for (int i = 0; i < longitudes_of_ascending_nodes.size(); i += cto) {
+  int const ν0 = std::nearbyint(daily_recurrence_frequency.measured_value);
+  int const dto = nto - ν0 * cto;
+  LOG(ERROR) << u8"[ν0 ; DTo ; CTo] = ["
+             << ν0 << " ; " << dto << " ; " << cto << "]";
+  LOG(ERROR) << u8"𝕃 = NTo Td \t\t\t\t= " << nto * nodal_period_ / Day << " d";
+  auto const ll = 2 * π * Radian * cto /
+                    (primary_->angular_frequency() - nodal_precession_) / Day;
+  LOG(ERROR) << u8"𝕃 = 2π CTo / (Ω′T - Ω′) \t= "
+             << ll 
+             << " d";
+
+  for (int i = 0; i < longitudes_of_ascending_nodes.size(); i += nto) {
     Angle const Ω = longitudes_of_ascending_nodes[i];
     Instant const t = times_of_ascending_nodes[i];
     // TODO(egg): this assumes earthlike sign for the longitude.
