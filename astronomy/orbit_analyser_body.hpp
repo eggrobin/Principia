@@ -2,6 +2,7 @@
 
 #include "astronomy/orbit_analyser.hpp"
 #include "base/file.hpp"
+#include "base/mod.hpp"
 #include "integrators/embedded_explicit_generalized_runge_kutta_nyström_integrator.hpp"
 #include "integrators/methods.hpp"
 #include "mathematica/mathematica.hpp"
@@ -14,6 +15,7 @@ namespace principia {
 namespace astronomy {
 namespace internal_orbit_analyser {
 
+using base::mod;
 using geometry::AngularVelocity;
 using geometry::OrientedAngleBetween;
 using geometry::Position;
@@ -124,7 +126,7 @@ LOG(ERROR) << 100;
   ephemeris_->FlowWithAdaptiveStep(
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
-      t0 + 100 * anomalistic_period_.measured_value,
+      t0 + 100 * nodal_period_.measured_value,
       parameters,
       /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
       /*last_point_only=*/false);
@@ -134,7 +136,7 @@ LOG(ERROR) << 1000;
   ephemeris_->FlowWithAdaptiveStep(
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
-      t0 + 1000 * anomalistic_period_.measured_value,
+      t0 + 1000 * nodal_period_.measured_value,
       parameters,
       /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
       /*last_point_only=*/false);
@@ -155,7 +157,7 @@ LOG(ERROR) << "10'000";
   ephemeris_->FlowWithAdaptiveStep(
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
-      t0 + 10'000 * anomalistic_period_.measured_value,
+      t0 + 10'000 * nodal_period_.measured_value,
       parameters,
       /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
       /*last_point_only=*/false);
@@ -165,7 +167,7 @@ LOG(ERROR) << "20'000";
   ephemeris_->FlowWithAdaptiveStep(
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
-      t0 + 20'000 * anomalistic_period_.measured_value,
+      t0 + 20'000 * nodal_period_.measured_value,
       parameters,
       /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
       /*last_point_only=*/false);
@@ -175,7 +177,7 @@ LOG(ERROR) << "30'000";
   ephemeris_->FlowWithAdaptiveStep(
       &trajectory_,
       Ephemeris<Frame>::NoIntrinsicAcceleration,
-      t0 + 30'000 * anomalistic_period_.measured_value,
+      t0 + 30'000 * nodal_period_.measured_value,
       parameters,
       /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
       /*last_point_only=*/false);
@@ -328,7 +330,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   std::vector<Instant> times_of_ascending_nodes;
   std::vector<Time> times_between_ascending_nodes;
   std::vector<Angle> longitudes_of_ascending_nodes;
-  std::vector<Angle> terrestrial_longitude_of_every_nth_ascending_node;
+  std::vector<Angle> terrestrial_longitudes_of_ascending_nodes;
   for (auto node = ascending_nodes.Begin(); node != ascending_nodes.End(); ++node) {
     // We do not construct |KeplerianElements|: we only need the longitude of
     // the ascending node, and we are at the ascending node so the computation
@@ -362,7 +364,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   int cycle_days;
   int nto;
   int cto;
-  for (int j = 1; j < 200; ++j) {
+  for (int j = 1; j < 50; ++j) {
     MeasurementResult<double> κ_j = daily_recurrence_frequency * j;
     if (κ_j.standard_uncertainty > 0.5) {
       LOG(ERROR) << "within uncertainty at J = " << j;
@@ -392,18 +394,34 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
              << ll 
              << " d";
 
-  for (int i = 0; i < longitudes_of_ascending_nodes.size(); i += nto) {
+  Angle const ΔλE = -2 * π * Radian * cto / nto;
+  Angle const δ = 2 * π * Radian / nto;
+
+  int eto;
+  for (int j = 1; j < cto; ++j) {
+    if (mod(j * dto, cto) == 1 || mod(j * dto, -cto) == -1) {
+      eto = j;
+      break;
+    }
+  }
+
+  LOG(ERROR) << u8"ΔλE = " << ΔλE / Degree << u8"°";
+  LOG(ERROR) << u8"δ = " << δ / Degree << u8"°";
+  LOG(ERROR) << u8"ETo* = " << eto;
+
+  for (int i = 0; i < longitudes_of_ascending_nodes.size(); ++i) {
     Angle const Ω = longitudes_of_ascending_nodes[i];
     Instant const t = times_of_ascending_nodes[i];
     // TODO(egg): this assumes earthlike sign for the longitude.
-    terrestrial_longitude_of_every_nth_ascending_node.push_back(
+    Angle const λ = Ω - (primary_->AngleAt(t) + π / 2 * Radian) + π * Radian;
+    terrestrial_longitudes_of_ascending_nodes.push_back(
         quantities::Mod(
-            Ω - (primary_->AngleAt(t) + π / 2 * Radian) + π * Radian,
+            λ - i * ΔλE,
             2 * π * Radian) -
         π * Radian);
   }
 
-  std::vector<Angle> const λ = Unwind(terrestrial_longitude_of_every_nth_ascending_node);
+  std::vector<Angle> const λ = Unwind(terrestrial_longitudes_of_ascending_nodes);
   auto const λ0 = AverageOfCorrelated(λ);
   auto const λmax = *std::max_element(λ.begin(), λ.end());
   auto const λmin = *std::min_element(λ.begin(), λ.end());
@@ -412,7 +430,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"λ+ =" << λmax / Degree << u8"°";
   LOG(ERROR) << u8"Δλ =" << (λmax - λmin) / Degree << u8"°";
   base::OFStream tf(SOLUTION_DIR / "longitudes");
-  tf << mathematica::Assign("longitudes", terrestrial_longitude_of_every_nth_ascending_node);
+  tf << mathematica::Assign("longitudes", terrestrial_longitudes_of_ascending_nodes);
   tf << mathematica::Assign("t", times_between_xz_ascensions);
 }
 
