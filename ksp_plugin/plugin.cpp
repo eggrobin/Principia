@@ -54,7 +54,6 @@ namespace principia {
 namespace ksp_plugin {
 namespace internal_plugin {
 
-using astronomy::InfiniteFuture;
 using astronomy::ParseTT;
 using astronomy::KSPStockSystemFingerprint;
 using astronomy::KSPStabilizedSystemFingerprint;
@@ -376,10 +375,10 @@ void Plugin::InsertOrKeepVessel(GUID const& vessel_guid,
         vessels_.emplace(
             vessel_guid,
             make_not_null_unique<Vessel>(vessel_guid,
-                                        vessel_name,
-                                        parent,
-                                        ephemeris_.get(),
-                                        DefaultPredictionParameters()));
+                                         vessel_name,
+                                         parent,
+                                         ephemeris_.get(),
+                                         DefaultPredictionParameters()));
   } else {
     inserted = false;
   }
@@ -844,7 +843,18 @@ void Plugin::SetPredictionAdaptiveStepParameters(
 
 void Plugin::UpdatePrediction(GUID const& vessel_guid) const {
   CHECK(!initializing_);
-  FindOrDie(vessels_, vessel_guid)->FlowPrediction(InfiniteFuture);
+  Vessel& vessel = *FindOrDie(vessels_, vessel_guid);
+
+  // If there is a target vessel, ensure that the prediction of |vessel| is not
+  // longer than that of the target vessel.  This is necessary to build the
+  // targetting frame.
+  if (renderer_->HasTargetVessel()) {
+    Vessel& target_vessel = renderer_->GetTargetVessel();
+    target_vessel.RefreshPrediction();
+    vessel.RefreshPrediction(target_vessel.prediction().last().time());
+  } else {
+    vessel.RefreshPrediction();
+  }
 }
 
 void Plugin::CreateFlightPlan(GUID const& vessel_guid,
@@ -897,7 +907,7 @@ void Plugin::ComputeAndRenderClosestApproaches(
 
   DiscreteTrajectory<Barycentric> apoapsides_trajectory;
   DiscreteTrajectory<Barycentric> periapsides_trajectory;
-  ComputeApsides(renderer_->GetTargetVesselPrediction(current_time_),
+  ComputeApsides(renderer_->GetTargetVessel().prediction(),
                  begin,
                  end,
                  apoapsides_trajectory,

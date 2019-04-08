@@ -20,7 +20,7 @@ static class CelestialExtensions {
   }
 }
 
-class ReferenceFrameSelector : WindowRenderer {
+class ReferenceFrameSelector : SupervisedWindowRenderer {
   public enum FrameType {
     BARYCENTRIC_ROTATING = 6001,
     BODY_CENTRED_NON_ROTATING = 6000,
@@ -31,20 +31,31 @@ class ReferenceFrameSelector : WindowRenderer {
   public delegate void Callback(NavigationFrameParameters frame_parameters);
 
   public ReferenceFrameSelector(
-      ManagerInterface manager,
-      IntPtr plugin,
+      ISupervisor supervisor,
       Callback on_change,
-      string name) : base(manager) {
-    plugin_ = plugin;
+      string name) : base(supervisor, UnityEngine.GUILayout.MinWidth(0)) {
     on_change_ = on_change;
     name_ = name;
+
+    // TODO(phl): Bogus initialization.  Find a way to get these data from the
+    // C++ side (we do for flight planning).
     frame_type = FrameType.BODY_CENTRED_NON_ROTATING;
+    selected_celestial = FlightGlobals.GetHomeBody();
+
     expanded_ = new Dictionary<CelestialBody, bool>();
     foreach (CelestialBody celestial in FlightGlobals.Bodies) {
       if (!celestial.is_leaf() && !celestial.is_root()) {
         expanded_.Add(celestial, false);
       }
     }
+  }
+
+  public void Initialize(IntPtr plugin) {
+    plugin_ = plugin;
+  }
+
+  public void UpdateMainBody() {
+    frame_type = FrameType.BODY_CENTRED_NON_ROTATING;
     selected_celestial =
         FlightGlobals.currentMainBody ?? FlightGlobals.GetHomeBody();
     for (CelestialBody celestial = selected_celestial;
@@ -55,13 +66,24 @@ class ReferenceFrameSelector : WindowRenderer {
       }
     }
     on_change_(FrameParameters());
-    window_rectangle_.x = UnityEngine.Screen.width / 2;
-    window_rectangle_.y = UnityEngine.Screen.height / 3;
   }
 
-  public FrameType frame_type { get; private set; }
-  public CelestialBody selected_celestial { get; private set; }
-  public Vessel target_override { get; set; }
+  public void SetFrameParameters(NavigationFrameParameters parameters) {
+    frame_type = (FrameType)parameters.extension;
+    switch (frame_type) {
+      case FrameType.BODY_CENTRED_NON_ROTATING:
+      case FrameType.BODY_SURFACE:
+        selected_celestial = FlightGlobals.Bodies[parameters.centre_index];
+        break;
+      case FrameType.BARYCENTRIC_ROTATING:
+        selected_celestial = FlightGlobals.Bodies[parameters.secondary_index];
+        break;
+      case FrameType.BODY_CENTRED_PARENT_DIRECTION:
+        selected_celestial = FlightGlobals.Bodies[parameters.primary_index];
+        break;
+    }
+    on_change_(FrameParameters());
+  }
 
   // Sets the |frame_type| to |type| unless this would be invalid for the
   // |selected_celestial|, in which case |frame_type| is set to
@@ -242,73 +264,35 @@ class ReferenceFrameSelector : WindowRenderer {
     }
   }
 
-  public void Reset(NavigationFrameParameters parameters) {
-    frame_type = (FrameType)parameters.extension;
-    switch (frame_type) {
-      case FrameType.BODY_CENTRED_NON_ROTATING:
-      case FrameType.BODY_SURFACE:
-        selected_celestial = FlightGlobals.Bodies[parameters.centre_index];
-        break;
-      case FrameType.BARYCENTRIC_ROTATING:
-        selected_celestial = FlightGlobals.Bodies[parameters.secondary_index];
-        break;
-      case FrameType.BODY_CENTRED_PARENT_DIRECTION:
-        selected_celestial = FlightGlobals.Bodies[parameters.primary_index];
-        break;
-    }
-  }
-
-  public void Hide() {
-    show_selector_ = false;
-  }
-
   public void RenderButton() {
-    var old_skin = UnityEngine.GUI.skin;
-    UnityEngine.GUI.skin = null;
     if (UnityEngine.GUILayout.Button(name_ + " selection (" + Name() +
                                      ")...")) {
-      show_selector_ = !show_selector_;
+      Toggle();
     }
-    UnityEngine.GUI.skin = old_skin;
   }
 
-  protected override void RenderWindow() {
-    var old_skin = UnityEngine.GUI.skin;
-    UnityEngine.GUI.skin = null;
-    if (show_selector_) {
-      window_rectangle_ = UnityEngine.GUILayout.Window(
-                              id         : this.GetHashCode(),
-                              screenRect : window_rectangle_,
-                              func       : RenderSelector,
-                              text       : name_ + " selection (" + Name() +
-                                           ")");
-      WindowUtilities.EnsureOnScreen(ref window_rectangle_);
-      window_rectangle_.InputLock(this);
-    } else {
-      WindowUtilities.ClearLock(this);
+  protected override String Title {
+    get {
+      return name_ + " selection (" + Name() + ")";
     }
-    UnityEngine.GUI.skin = old_skin;
   }
 
-  private void RenderSelector(int window_id) {
-    var old_skin = UnityEngine.GUI.skin;
-    UnityEngine.GUI.skin = null;
-
-    using (new HorizontalLayout()) {
+  protected override void RenderWindow(int window_id) {
+    using (new UnityEngine.GUILayout.HorizontalScope()) {
       // Left-hand side: tree view for celestial selection.
-      using (new VerticalLayout(UnityEngine.GUILayout.Width(200))) {
+      using (new UnityEngine.GUILayout.VerticalScope(GUILayoutWidth(8))) {
         RenderSubtree(celestial : Planetarium.fetch.Sun, depth : 0);
       }
 
       // Right-hand side: toggles for reference frame type selection.
-      using (new VerticalLayout()) {
+      using (new UnityEngine.GUILayout.VerticalScope()) {
         if (target_override) {
           UnityEngine.GUILayout.Label(
               "Using target-centred frame selected on navball speed display",
-              UnityEngine.GUILayout.Width(150));
+              GUILayoutWidth(6));
           UnityEngine.GUILayout.Label(
               Description(frame_type, selected_celestial, target_override),
-              UnityEngine.GUILayout.Width(150));
+              GUILayoutWidth(6));
         } else {
           TypeSelector(FrameType.BODY_SURFACE);
           TypeSelector(FrameType.BODY_CENTRED_NON_ROTATING);
@@ -320,24 +304,16 @@ class ReferenceFrameSelector : WindowRenderer {
         }
       }
     }
-
-    UnityEngine.GUI.DragWindow(
-        position : new UnityEngine.Rect(x      : 0f,
-                                        y      : 0f,
-                                        width  : 10000f,
-                                        height : 10000f));
-
-    UnityEngine.GUI.skin = old_skin;
+    UnityEngine.GUI.DragWindow();
   }
 
   private void RenderSubtree(CelestialBody celestial, int depth) {
     // Horizontal offset between a node and its children.
-    const int offset = 20;
-    using (new HorizontalLayout()) {
+    const int offset = 1;
+    using (new UnityEngine.GUILayout.HorizontalScope()) {
       if (!celestial.is_root()) {
-        UnityEngine.GUILayout.Label(
-            "",
-            UnityEngine.GUILayout.Width(offset * (depth - 1)));
+        UnityEngine.GUILayout.Label("",
+                                    GUILayoutWidth(offset * (depth - 1)));
         string button_text;
         if (celestial.is_leaf()) {
           button_text = "";
@@ -347,7 +323,7 @@ class ReferenceFrameSelector : WindowRenderer {
           button_text = "+";
         }
         if (UnityEngine.GUILayout.Button(button_text,
-                                         UnityEngine.GUILayout.Width(offset))) {
+                                         GUILayoutWidth(offset))) {
           Shrink();
           if (!celestial.is_leaf()) {
             expanded_[celestial] = !expanded_[celestial];
@@ -373,33 +349,31 @@ class ReferenceFrameSelector : WindowRenderer {
   }
 
   private void TypeSelector(FrameType value) {
-   bool old_wrap = UnityEngine.GUI.skin.toggle.wordWrap;
-   UnityEngine.GUI.skin.toggle.wordWrap = true;
+   var style = new UnityEngine.GUIStyle(UnityEngine.GUI.skin.toggle);
+   style.fixedHeight = 0;
+   style.wordWrap = true;
    if (UnityEngine.GUILayout.Toggle(
            frame_type == value,
            Description(value, selected_celestial, target_override),
-           UnityEngine.GUILayout.Width(150),
-           UnityEngine.GUILayout.Height(120))) {
+           style,
+           GUILayoutWidth(6),
+           GUILayoutHeight(5))) {
      if (frame_type != value) {
        frame_type = value;
        on_change_(FrameParameters());
      }
     }
-    UnityEngine.GUI.skin.toggle.wordWrap = old_wrap;
   }
 
-  private void Shrink() {
-    window_rectangle_.height = 0.0f;
-    window_rectangle_.width = 0.0f;
-  }
+  public FrameType frame_type { get; private set; }
+  public CelestialBody selected_celestial { get; private set; }
+  public Vessel target_override { get; set; }
 
-  private Callback on_change_;
-  // Not owned.
-  private IntPtr plugin_;
-  private bool show_selector_;
-  private UnityEngine.Rect window_rectangle_;
-  private Dictionary<CelestialBody, bool> expanded_;
+  private readonly Callback on_change_;
   private readonly string name_;
+  // Not owned.
+  private IntPtr plugin_ = IntPtr.Zero;
+  private Dictionary<CelestialBody, bool> expanded_;
 }
 
 }  // namespace ksp_plugin_adapter

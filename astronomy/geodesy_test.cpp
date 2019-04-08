@@ -73,7 +73,7 @@ class GeodesyTest : public ::testing::Test {
         earth_trajectory_(*ephemeris_->trajectory(earth_)),
         itrs_(ephemeris_.get(), earth_) {}
 
-  SolarSystem<ICRS> solar_system_2010_;
+  SolarSystem<ICRS> const solar_system_2010_;
   not_null<std::unique_ptr<Ephemeris<ICRS>>> const ephemeris_;
   not_null<OblateBody<ICRS> const*> const earth_;
   ContinuousTrajectory<ICRS> const& earth_trajectory_;
@@ -90,40 +90,37 @@ class GeodesyTest : public ::testing::Test {
 TEST_F(GeodesyTest, LAGEOS2) {
   MasslessBody lageos2;
 
-  // ilrsa.orb.lageos2.160319.v35.sp3, from
-  // ftp://cddis.gsfc.nasa.gov/pub/slr/products/orbits/lageos2/160319/.
-  StandardProduct3 initial_ilrsa(
-      SOLUTION_DIR / "astronomy" / "ilrsa.orb.lageos2.160319.v35.sp3",
-      StandardProduct3::Dialect::ILRSA);
-
-  // ilrsb.orb.lageos2.160319.v35.sp3, from
-  // ftp://cddis.gsfc.nasa.gov/pub/slr/products/orbits/lageos2/160319/.
-  StandardProduct3 initial_ilrsb(
-      SOLUTION_DIR / "astronomy" / "ilrsb.orb.lageos2.160319.v35.sp3",
-      StandardProduct3::Dialect::ILRSB);
-
-  // ilrsa.orb.lageos2.180804.v70.sp3, from
-  // ftp://cddis.gsfc.nasa.gov/pub/slr/products/orbits/lageos2/180804/.
-  StandardProduct3 final_ilrsa(
-      SOLUTION_DIR / "astronomy" / "ilrsa.orb.lageos2.180804.v70.sp3",
-      StandardProduct3::Dialect::ILRSA);
+  StandardProduct3 initial_ilrsa(SOLUTION_DIR / "astronomy" /
+                                     "standard_product_3" /
+                                     "ilrsa.orb.lageos2.160319.v35.sp3",
+                                 StandardProduct3::Dialect::ILRSA);
+  StandardProduct3 initial_ilrsb(SOLUTION_DIR / "astronomy" /
+                                     "standard_product_3" /
+                                     "ilrsb.orb.lageos2.160319.v35.sp3",
+                                 StandardProduct3::Dialect::ILRSB);
+  StandardProduct3 final_ilrsa(SOLUTION_DIR / "astronomy" /
+                                   "standard_product_3" /
+                                   "ilrsa.orb.lageos2.180804.v70.sp3",
+                               StandardProduct3::Dialect::ILRSA);
 
   StandardProduct3::SatelliteIdentifier const lageos2_id{
       StandardProduct3::SatelliteGroup::General, 52};
 
-  CHECK_EQ(initial_ilrsa.orbit(lageos2_id).Begin().time(),
-           initial_ilrsb.orbit(lageos2_id).Begin().time());
+  CHECK_EQ(initial_ilrsa.orbit(lageos2_id).front()->Begin().time(),
+           initial_ilrsb.orbit(lageos2_id).front()->Begin().time());
 
-  Instant const initial_time = initial_ilrsa.orbit(lageos2_id).Begin().time();
+  Instant const initial_time =
+      initial_ilrsa.orbit(lageos2_id).front()->Begin().time();
   DegreesOfFreedom<ITRS> const initial_dof_ilrsa =
-      initial_ilrsa.orbit(lageos2_id).Begin().degrees_of_freedom();
+      initial_ilrsa.orbit(lageos2_id).front()->Begin().degrees_of_freedom();
 
   DegreesOfFreedom<ITRS> const initial_dof_ilrsb =
-      initial_ilrsb.orbit(lageos2_id).Begin().degrees_of_freedom();
+      initial_ilrsb.orbit(lageos2_id).front()->Begin().degrees_of_freedom();
 
-  Instant const final_time = final_ilrsa.orbit(lageos2_id).Begin().time();
+  Instant const final_time =
+      final_ilrsa.orbit(lageos2_id).front()->Begin().time();
   DegreesOfFreedom<ITRS> const expected_final_dof =
-      final_ilrsa.orbit(lageos2_id).Begin().degrees_of_freedom();
+      final_ilrsa.orbit(lageos2_id).front()->Begin().degrees_of_freedom();
 
   ephemeris_->Prolong(final_time);
 
