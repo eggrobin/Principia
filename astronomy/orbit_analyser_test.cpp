@@ -2,8 +2,9 @@
 
 #include "astronomy/epoch.hpp"
 #include "astronomy/frames.hpp"
-#include "gtest/gtest.h"
+#include "astronomy/standard_product_3.hpp"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "physics/kepler_orbit.hpp"
 #include "physics/massless_body.hpp"
 #include "physics/oblate_body.hpp"
@@ -13,7 +14,6 @@
 #include "quantities/numbers.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
-
 
 namespace principia {
 
@@ -60,6 +60,7 @@ using quantities::si::Milli;
 using quantities::si::Minute;
 using quantities::si::Radian;
 using quantities::si::Second;
+using ::testing::Eq;
 
 namespace astronomy {
 
@@ -134,48 +135,17 @@ TEST_F(OrbitAnalyserTest, DISABLED_Молния) {
 }
 
 TEST_F(OrbitAnalyserTest, TOPEXPoséidon) {
-  // Initial state from DORIS products.
-  // https://ids-doris.org/ids/organization/data-centers.html.
-  // See also the definition of the SP3-c format
-  // ftp://igs.org/pub/data/format/sp3c.txt.
+  StandardProduct3 sp3(SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                           "grgtop03.b97344.e97348.D_S.sp3",
+                       StandardProduct3::Dialect::GRGS);
+  StandardProduct3::SatelliteIdentifier topex_poséidon{
+      StandardProduct3::SatelliteGroup::General, 1};
 
-  // grgtop03.b97344.e97348.D_S.sp3, header and first record, from
-  // ftp://doris.ign.fr/pub/doris/products/orbits/grg/top/.
-  // Note: LCA stands for LEGOS/CLS AC, where LEGOS is Laboratoire d’Études en
-  // Géophysique et Océanographie Spatiales, CLS is Collecte Localisation
-  // Satellites, and AC is Analysis Centre.
-  // However, CNES/CLS transitioned their AC acronym from LCA to GRG in 2014
-  // (where GRG probably stands for Groupe de Recherche de Géodesie Spatiale),
-  // hence the mismatch between the file name and the agency field of the SP3
-  // header below.
-  // CAVEAT LECTOR: While the SP3-c format mandates dm/s as the unit for the
-  // velocities in SP3 Line Twenty six (the Velocity and Clock Rate-of-Change
-  // Record), these data use m/s; there appears to be no documentation of this
-  // oddity.
-  // #cV1997 12 10 12  0  0.00000000    5046 DORIS ITR05 FIT  LCA
-  // ##  935 302400.00000000    60.00000000 50792 0.5000000000000
-  // +    1   L01  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
-  // [... Lines 4 through 12 omitted                         ...]
-  // %c L  cc TAI ccc cccc cccc cccc cccc ccccc ccccc ccccc ccccc
-  // %c cc cc ccc ccc cccc cccc cccc cccc ccccc ccccc ccccc ccccc
-  // %f  0.0000000  0.000000000  0.00000000000  0.000000000000000
-  // [... Lines 15 through 18 omitted                        ...]
-  // /* CNES/CLS - TOULOUSE, FRANCE ccccc ccccc ccccc ccccc ccccc
-  // /* CCCCCCCCCCCCCC Contact : Laurent SOUDARIN CCCCCCCCCCCCCCC
-  // /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-  // /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-  // *  1997 12 10 12  0  0.00000000
-  // PL01  -3091.510103   1090.750605  -6985.258847 999999.999999
-  // VL01   -414.743700  -6885.134975   -890.998602 999999.999999
+  Instant const initial_time =
+      sp3.orbit(topex_poséidon).front()->Begin().time();
 
-  constexpr Instant initial_time = "1997-12-10T12:00:00,000"_TAI;
-  DegreesOfFreedom<ITRS> const initial_dof = {
-      ITRS::origin + Displacement<ITRS>({-3091.510103 * Kilo(Metre),
-                                          1090.750605 * Kilo(Metre),
-                                         -6985.258847 * Kilo(Metre)}),
-      Velocity<ITRS>({ -414.743700 * Metre / Second,
-                      -6885.134975 * Metre / Second,
-                       -890.998602 * Metre / Second})};
+  EXPECT_THAT(initial_time, Eq("1997-12-10T12:00:00,000"_TAI));
+
 
   ephemeris_->Prolong(initial_time);
 
@@ -183,7 +153,8 @@ TEST_F(OrbitAnalyserTest, TOPEXPoséidon) {
       ephemeris_.get(),
       earth_,
       initial_time,
-      itrs_.FromThisFrameAtTime(initial_time)(initial_dof));
+      itrs_.FromThisFrameAtTime(initial_time)(
+          sp3.orbit(topex_poséidon).front()->Begin().degrees_of_freedom()));
   analyser.Analyse();
 }
 

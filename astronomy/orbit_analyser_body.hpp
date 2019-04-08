@@ -186,6 +186,11 @@ LOG(ERROR) << "30'000";
 
 template<typename Frame>
 void OrbitAnalyser<Frame>::RecomputeProperties() {
+  LOG(ERROR) << (trajectory_.last().time() - trajectory_.Begin().time()) / Day
+             << " d";
+  LOG(ERROR) << (trajectory_.last().time() - trajectory_.Begin().time()) /
+                    JulianYear
+             << " a";
 
   DiscreteTrajectory<Frame> periapsides;
   DiscreteTrajectory<Frame> apoapsides;
@@ -429,6 +434,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"λ- =" << λmin / Degree << u8"°";
   LOG(ERROR) << u8"λ+ =" << λmax / Degree << u8"°";
   LOG(ERROR) << u8"Δλ =" << (λmax - λmin) / Degree << u8"°";
+  LOG(ERROR) << mathematica::ToMathematica(λ);
   base::OFStream tf(SOLUTION_DIR / "longitudes");
   tf << mathematica::Assign("longitudes", terrestrial_longitudes_of_ascending_nodes);
   tf << mathematica::Assign("t", times_between_xz_ascensions);
