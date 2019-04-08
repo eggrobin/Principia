@@ -265,6 +265,7 @@
     </ClCompile>
     <ClCompile Include="orbit_analyser_test.cpp">
       <Filter>Test Files</Filter>
+    </ClCompile>
     <ClCompile Include="standard_product_3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
