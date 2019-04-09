@@ -64,32 +64,33 @@ using ::testing::Eq;
 
 namespace astronomy {
 
-class OrbitAnalyserTest : public ::testing::Test {
+class OrbitAnalyserTest
+    : public ::testing::TestWithParam<StandardProduct3::SatelliteIdentifier> {
+ public:
+  static void SetUpTestCase() {
+    google::LogToStderr();
+    if (ephemeris_ == nullptr) {
+      ephemeris_ = solar_system_.MakeEphemeris(
+          /*accuracy_parameters=*/{/*fitting_tolerance=*/5 * Milli(Metre),
+                                   /*geopotential_tolerance=*/0x1p-24},
+          Ephemeris<ICRS>::FixedStepParameters(
+              SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
+                                                 Position<ICRS>>(),
+              /*step=*/10 * Minute));
+      for (char const* const date :
+           {"2014-06-01T12:00:00", "2019-01-01T12:00:00"}) {
+        LOG(INFO) << "Prolonging ephemeris to " << date << " (TT)";
+        ephemeris_->Prolong(ParseTT(date));
+      }
+    }
+  }
+
  protected:
   OrbitAnalyserTest()
       : earth_(dynamic_cast_not_null<OblateBody<ICRS> const*>(
             solar_system_.massive_body(*ephemeris_, "Earth"))),
         earth_trajectory_(*ephemeris_->trajectory(earth_)),
         itrs_(ephemeris_.get(), earth_) {}
-
-  static void SetUpTestCase() {
-    google::LogToStderr();
-    ephemeris_ = solar_system_.MakeEphemeris(
-        /*accuracy_parameters=*/{/*fitting_tolerance=*/5 * Milli(Metre),
-                                 /*geopotential_tolerance=*/0x1p-24},
-        Ephemeris<ICRS>::FixedStepParameters(
-            SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
-                                               Position<ICRS>>(),
-            /*step=*/10 * Minute));
-    for (char const* const date : {"1960-01-01T12:00:00",
-                                   "1970-01-01T12:00:00",
-                                   "1980-01-01T12:00:00",
-                                   "1990-01-01T12:00:00",
-                                   "2000-01-01T12:00:00"}) {
-      LOG(INFO) << "Prolonging ephemeris to " << date << " (TT)";
-      ephemeris_->Prolong(ParseTT(date));
-    }
-  }
 
   not_null<OblateBody<ICRS> const*> const earth_;
   ContinuousTrajectory<ICRS> const& earth_trajectory_;
@@ -102,7 +103,7 @@ class OrbitAnalyserTest : public ::testing::Test {
 SolarSystem<ICRS> OrbitAnalyserTest::solar_system_(
     SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
     SOLUTION_DIR / "astronomy" /
-        "sol_initial_state_jd_2436145_604166667.proto.txt");
+        "sol_initial_state_jd_2455200_500000000.proto.txt");
 std::unique_ptr<Ephemeris<ICRS>> OrbitAnalyserTest::ephemeris_;
 
 #if !defined(_DEBUG)
@@ -131,6 +132,58 @@ TEST_F(OrbitAnalyserTest, DISABLED_Молния) {
       J2000,
       earth_trajectory_.EvaluateDegreesOfFreedom(J2000) +
           satellite_state_vectors);
+  analyser.Analyse();
+}
+
+INSTANTIATE_TEST_CASE_P(GPS,
+                        OrbitAnalyserTest,
+                        ::testing::Values(StandardProduct3::SatelliteIdentifier{
+                            StandardProduct3::SatelliteGroup::GPS,
+                            1}));
+INSTANTIATE_TEST_CASE_P(Galileo,
+                        OrbitAnalyserTest,
+                        ::testing::Values(StandardProduct3::SatelliteIdentifier{
+                            StandardProduct3::SatelliteGroup::Galileo,
+                            1}));
+INSTANTIATE_TEST_CASE_P(ГЛОНАСС,
+                        OrbitAnalyserTest,
+                        ::testing::Values(StandardProduct3::SatelliteIdentifier{
+                            StandardProduct3::SatelliteGroup::ГЛОНАСС,
+                            1}));
+INSTANTIATE_TEST_CASE_P(北斗InclinedGeosynchronous,
+                        OrbitAnalyserTest,
+                        ::testing::Values(StandardProduct3::SatelliteIdentifier{
+                            StandardProduct3::SatelliteGroup::北斗,
+                            6}));
+INSTANTIATE_TEST_CASE_P(北斗MediumEarthOrbit,
+                        OrbitAnalyserTest,
+                        ::testing::Values(StandardProduct3::SatelliteIdentifier{
+                            StandardProduct3::SatelliteGroup::北斗,
+                            11}));
+INSTANTIATE_TEST_CASE_P(QZSS,
+                        OrbitAnalyserTest,
+                        ::testing::Values(StandardProduct3::SatelliteIdentifier{
+                            StandardProduct3::SatelliteGroup::準天頂衛星,
+                            1}));
+
+TEST_P(OrbitAnalyserTest, GNSS) {
+  StandardProduct3 sp3(SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                           "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                       StandardProduct3::Dialect::Standard);
+  StandardProduct3::SatelliteIdentifier satellite = GetParam();
+
+  Instant const initial_time =
+      sp3.orbit(satellite).front()->Begin().time();
+
+
+  ephemeris_->Prolong(initial_time);
+
+  OrbitAnalyser<ICRS> analyser(
+      ephemeris_.get(),
+      earth_,
+      initial_time,
+      itrs_.FromThisFrameAtTime(initial_time)(
+          sp3.orbit(satellite).front()->Begin().degrees_of_freedom()));
   analyser.Analyse();
 }
 
