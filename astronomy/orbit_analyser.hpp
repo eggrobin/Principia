@@ -25,7 +25,8 @@ class OrbitAnalyser {
   OrbitAnalyser(not_null<Ephemeris<Frame>*> ephemeris,
                 not_null<RotatingBody<Frame> const*> primary,
                 Instant initial_time,
-                DegreesOfFreedom<Frame> initial_state);
+                DegreesOfFreedom<Frame> initial_state,
+                std::string name);
 
   void Analyse();
 
@@ -35,6 +36,7 @@ class OrbitAnalyser {
   not_null<Ephemeris<Frame>*> ephemeris_;
   not_null<RotatingBody<Frame> const*> primary_;
   DiscreteTrajectory<Frame> trajectory_;
+  std::string name_;
 
   MeasurementResult<Time> nodal_period_;
   MeasurementResult<Time> anomalistic_period_;

@@ -71,8 +71,9 @@ OrbitAnalyser<Frame>::OrbitAnalyser(
     not_null<Ephemeris<Frame>*> const ephemeris,
     not_null<RotatingBody<Frame> const*> const primary,
     Instant const initial_time,
-    DegreesOfFreedom<Frame> const initial_state)
-    : ephemeris_(ephemeris), primary_(primary) {
+    DegreesOfFreedom<Frame> const initial_state,
+    std::string name)
+    : ephemeris_(ephemeris), primary_(primary), name_(std::move(name)) {
   trajectory_.Append(initial_time, initial_state);
 }
 
@@ -382,8 +383,9 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"λ+ =" << λmax / Degree << u8"°";
   LOG(ERROR) << u8"Δλ =" << (λmax - λmin) / Degree << u8"°";
   base::OFStream tf(SOLUTION_DIR / "longitudes");
-  tf << mathematica::Assign("longitudes", terrestrial_longitudes_of_ascending_nodes);
-  tf << mathematica::Assign("t", times_between_xz_ascensions);
+  tf << mathematica::Assign("longitudes" + name_,
+                            terrestrial_longitudes_of_ascending_nodes);
+  tf << mathematica::Assign("t" + name_, times_of_ascending_nodes);
 }
 
 }  // namespace internal_orbit_analyser

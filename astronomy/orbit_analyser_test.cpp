@@ -64,8 +64,12 @@ using ::testing::Eq;
 
 namespace astronomy {
 
-class OrbitAnalyserTest
-    : public ::testing::TestWithParam<StandardProduct3::SatelliteIdentifier> {
+struct SP3Orbit {
+  std::filesystem::path filename;
+  StandardProduct3::SatelliteIdentifier satellite;
+};
+
+class OrbitAnalyserTest : public ::testing::TestWithParam<SP3Orbit> {
  public:
   static void SetUpTestCase() {
     google::LogToStderr();
@@ -131,50 +135,80 @@ TEST_F(OrbitAnalyserTest, DISABLED_Молния) {
       earth_,
       J2000,
       earth_trajectory_.EvaluateDegreesOfFreedom(J2000) +
-          satellite_state_vectors);
+          satellite_state_vectors,
+      u8"Молния");
   analyser.Analyse();
 }
 
 INSTANTIATE_TEST_CASE_P(GPS,
                         OrbitAnalyserTest,
-                        ::testing::Values(StandardProduct3::SatelliteIdentifier{
-                            StandardProduct3::SatelliteGroup::GPS,
-                            1}));
+                        ::testing::Values(SP3Orbit{
+                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::GPS, 1}}));
 INSTANTIATE_TEST_CASE_P(Galileo,
                         OrbitAnalyserTest,
-                        ::testing::Values(StandardProduct3::SatelliteIdentifier{
-                            StandardProduct3::SatelliteGroup::Galileo,
-                            1}));
+                        ::testing::Values(SP3Orbit{
+                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::Galileo, 1}}));
 INSTANTIATE_TEST_CASE_P(ГЛОНАСС,
                         OrbitAnalyserTest,
-                        ::testing::Values(StandardProduct3::SatelliteIdentifier{
-                            StandardProduct3::SatelliteGroup::ГЛОНАСС,
-                            1}));
+                        ::testing::Values(SP3Orbit{
+                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::ГЛОНАСС, 1}}));
+// Whereas the AIUB, GFZ, GRGS, SHAO, TUM, and WHU MGEX analysis centres all
+// provide orbits for 北斗 satellites, only GFZ, SHAO, TUM, and WHU provide orbits
+// for the geostationary satellites C01 ‥ C05.  Of those, only WHU provides
+// final analysis products; GFZ, SHAO, and TUM provide rapid analysis products.
+INSTANTIATE_TEST_CASE_P(北斗Geostationary80,
+                        OrbitAnalyserTest,
+                        ::testing::Values(SP3Orbit{
+                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                                "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::北斗, 2}}));
+INSTANTIATE_TEST_CASE_P(北斗Geostationary160,
+                        OrbitAnalyserTest,
+                        ::testing::Values(SP3Orbit{
+                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                                "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::北斗, 4}}));
 INSTANTIATE_TEST_CASE_P(北斗InclinedGeosynchronous,
                         OrbitAnalyserTest,
-                        ::testing::Values(StandardProduct3::SatelliteIdentifier{
-                            StandardProduct3::SatelliteGroup::北斗,
-                            6}));
+                        ::testing::Values(SP3Orbit{
+                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::北斗, 6}}));
 INSTANTIATE_TEST_CASE_P(北斗MediumEarthOrbit,
                         OrbitAnalyserTest,
-                        ::testing::Values(StandardProduct3::SatelliteIdentifier{
-                            StandardProduct3::SatelliteGroup::北斗,
-                            11}));
+                        ::testing::Values(SP3Orbit{
+                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::北斗, 11}}));
 INSTANTIATE_TEST_CASE_P(QZSS,
                         OrbitAnalyserTest,
-                        ::testing::Values(StandardProduct3::SatelliteIdentifier{
-                            StandardProduct3::SatelliteGroup::準天頂衛星,
-                            1}));
+                        ::testing::Values(SP3Orbit{
+                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::準天頂衛星, 1}}));
+// Whereas JAXA and the AIUB, GFZ, TUM, and WHU MGEX analysis centres all
+// provide orbits for QZSS satellites, only GFZ and WHU provide orbits for the
+// geostationary satellite J07.  Of those, only WHU provides final analysis
+// products; GFZ provides rapid analysis products.
+INSTANTIATE_TEST_CASE_P(QZSSGeostationary,
+                        OrbitAnalyserTest,
+                        ::testing::Values(SP3Orbit{
+                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                                "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::準天頂衛星, 7}}));
 
 TEST_P(OrbitAnalyserTest, GNSS) {
-  StandardProduct3 sp3(SOLUTION_DIR / "astronomy" / "standard_product_3" /
-                           "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+  StandardProduct3 sp3(GetParam().filename,
                        StandardProduct3::Dialect::Standard);
-  StandardProduct3::SatelliteIdentifier satellite = GetParam();
+  StandardProduct3::SatelliteIdentifier const& satellite = GetParam().satellite;
 
-  Instant const initial_time =
-      sp3.orbit(satellite).front()->Begin().time();
-
+  Instant const initial_time = sp3.orbit(satellite).front()->Begin().time();
 
   ephemeris_->Prolong(initial_time);
 
@@ -183,7 +217,8 @@ TEST_P(OrbitAnalyserTest, GNSS) {
       earth_,
       initial_time,
       itrs_.FromThisFrameAtTime(initial_time)(
-          sp3.orbit(satellite).front()->Begin().degrees_of_freedom()));
+          sp3.orbit(satellite).front()->Begin().degrees_of_freedom()),
+      (std::stringstream() << satellite).str());
   analyser.Analyse();
 }
 
@@ -207,7 +242,8 @@ TEST_F(OrbitAnalyserTest, TOPEXPoséidon) {
       earth_,
       initial_time,
       itrs_.FromThisFrameAtTime(initial_time)(
-          sp3.orbit(topex_poséidon).front()->Begin().degrees_of_freedom()));
+          sp3.orbit(topex_poséidon).front()->Begin().degrees_of_freedom()),
+      "TOPEX/Poseidon");
   analyser.Analyse();
 }
 
@@ -248,7 +284,8 @@ TEST_F(OrbitAnalyserTest, 福爾摩沙衛星二號) {
       earth_,
       epoch,
       earth_trajectory_.EvaluateDegreesOfFreedom(epoch) +
-          satellite_state_vectors);
+          satellite_state_vectors,
+      "FormoSat-2");
   analyser.Analyse();
 }
 
