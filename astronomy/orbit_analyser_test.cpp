@@ -94,10 +94,13 @@ class OrbitAnalyserTest : public ::testing::TestWithParam<SP3Orbit> {
   OrbitAnalyserTest()
       : earth_(dynamic_cast_not_null<OblateBody<ICRS> const*>(
             solar_system_.massive_body(*ephemeris_, "Earth"))),
+        sun_(dynamic_cast_not_null<OblateBody<ICRS> const*>(
+            solar_system_.massive_body(*ephemeris_, "Sun"))),
         earth_trajectory_(*ephemeris_->trajectory(earth_)),
         itrs_(ephemeris_.get(), earth_) {}
 
   not_null<OblateBody<ICRS> const*> const earth_;
+  not_null<OblateBody<ICRS> const*> const sun_;
   ContinuousTrajectory<ICRS> const& earth_trajectory_;
   BodySurfaceDynamicFrame<ICRS, ITRS> itrs_;
 
@@ -141,6 +144,12 @@ TEST_F(OrbitAnalyserTest, DISABLED_Молния) {
   analyser.Analyse();
 }
 
+INSTANTIATE_TEST_CASE_P(LAGEOS2,
+                        OrbitAnalyserTest,
+                        ::testing::Values(SP3Orbit{
+                                "ilrsa.orb.lageos2.160319.v35.sp3",
+                            {StandardProduct3::SatelliteGroup::General, 52},
+                            StandardProduct3::Dialect::ILRSA}));
 INSTANTIATE_TEST_CASE_P(GPS,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
@@ -197,6 +206,76 @@ INSTANTIATE_TEST_CASE_P(QZSSGeostationary,
                                 "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
                             {StandardProduct3::SatelliteGroup::みちびき, 7},
                             StandardProduct3::Dialect::ChineseMGEX}));
+
+TEST_P(OrbitAnalyserTest, Residuals) {
+  StandardProduct3 sp3(
+      SOLUTION_DIR / "astronomy" / "standard_product_3" / GetParam().filename,
+      GetParam().dialect);
+  StandardProduct3::SatelliteIdentifier const& satellite = GetParam().satellite;
+  std::string name = (std::stringstream() << satellite).str();
+
+  std::vector<Velocity<ICRS>> residuals;
+  std::vector<Angle> residuals_from_sun;
+  std::vector<double> times;
+
+  for (auto const& arc : sp3.orbit(satellite)) {
+    for (auto it = arc->Begin();;) {
+      ephemeris_->Prolong(it.time());
+
+      DiscreteTrajectory<ICRS> trajectory;
+      trajectory.Append(
+          it.time(),
+          itrs_.FromThisFrameAtTime(it.time())(it.degrees_of_freedom()));
+      if (++it == arc->End()) {
+        break;
+      }
+
+      Ephemeris<ICRS>::AdaptiveStepParameters parameters(
+          integrators::EmbeddedExplicitRungeKuttaNyströmIntegrator<
+             integrators::methods::DormandالمكاوىPrince1986RKN434FM,
+              Position<ICRS>>(),
+          /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
+          1 * Milli(Metre),
+          1 * Milli(Metre) / Second);
+      ephemeris_->FlowWithAdaptiveStep(
+          &trajectory,
+          Ephemeris<ICRS>::NoIntrinsicAcceleration,
+          it.time(),
+          parameters,
+          /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
+          /*last_point_only=*/true);
+
+      times.push_back((trajectory.Begin().time() - J2000)/ Day);
+      residuals.push_back(
+          trajectory.last().degrees_of_freedom().velocity() -
+          itrs_.FromThisFrameAtTime(it.time())(it.degrees_of_freedom())
+              .velocity());
+      residuals_from_sun.push_back(geometry::AngleBetween(
+          ephemeris_->trajectory(earth_)->EvaluatePosition(it.time()) -
+              ephemeris_->trajectory(sun_)->EvaluatePosition(it.time()),
+          residuals.back()));
+    }
+    base::OFStream f(SOLUTION_DIR / ("residuals_" + name));
+    f << mathematica::Assign(
+        mathematica::Apply("residuals", {mathematica::Escape(name)}),
+        mathematica::Apply(
+            "Transpose",
+            {mathematica::Apply(
+                "List",
+                {mathematica::ToMathematica(times),
+                 mathematica::ToMathematica(mathematica::ExpressIn(
+                     Milli(Metre) / Second, residuals))})}));
+    f << mathematica::Assign(
+        mathematica::Apply("residualsFromSun", {mathematica::Escape(name)}),
+        mathematica::Apply(
+            "Transpose",
+            {mathematica::Apply(
+                "List",
+                {mathematica::ToMathematica(times),
+                 mathematica::ToMathematica(
+                     mathematica::ExpressIn(Radian, residuals_from_sun))})}));
+  }
+}
 
 TEST_P(OrbitAnalyserTest, GNSS) {
   StandardProduct3 sp3(
