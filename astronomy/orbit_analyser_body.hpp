@@ -382,7 +382,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"λ- =" << λmin / Degree << u8"°";
   LOG(ERROR) << u8"λ+ =" << λmax / Degree << u8"°";
   LOG(ERROR) << u8"Δλ =" << (λmax - λmin) / Degree << u8"°";
-  base::OFStream tf(SOLUTION_DIR / "longitudes");
+  base::OFStream tf(SOLUTION_DIR / ("longitudes" + name_));
   tf << mathematica::Assign("longitudes" + name_,
                             terrestrial_longitudes_of_ascending_nodes);
   tf << mathematica::Assign("t" + name_, times_of_ascending_nodes);

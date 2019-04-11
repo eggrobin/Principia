@@ -65,8 +65,9 @@ using ::testing::Eq;
 namespace astronomy {
 
 struct SP3Orbit {
-  std::filesystem::path filename;
+  std::string_view filename;
   StandardProduct3::SatelliteIdentifier satellite;
+  StandardProduct3::Dialect dialect = StandardProduct3::Dialect::Standard;
 };
 
 class OrbitAnalyserTest : public ::testing::TestWithParam<SP3Orbit> {
@@ -143,19 +144,16 @@ TEST_F(OrbitAnalyserTest, DISABLED_Молния) {
 INSTANTIATE_TEST_CASE_P(GPS,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
-                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
                                 "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
                             {StandardProduct3::SatelliteGroup::GPS, 1}}));
 INSTANTIATE_TEST_CASE_P(Galileo,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
-                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
                                 "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
                             {StandardProduct3::SatelliteGroup::Galileo, 1}}));
 INSTANTIATE_TEST_CASE_P(ГЛОНАСС,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
-                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
                                 "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
                             {StandardProduct3::SatelliteGroup::ГЛОНАСС, 1}}));
 // Whereas the AIUB, GFZ, GRGS, SHAO, TUM, and WHU MGEX analysis centres all
@@ -165,33 +163,30 @@ INSTANTIATE_TEST_CASE_P(ГЛОНАСС,
 INSTANTIATE_TEST_CASE_P(北斗Geostationary80,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
-                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
                                 "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::北斗, 2}}));
+                            {StandardProduct3::SatelliteGroup::北斗, 2},
+                            StandardProduct3::Dialect::ChineseMGEX}));
 INSTANTIATE_TEST_CASE_P(北斗Geostationary160,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
-                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
                                 "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::北斗, 4}}));
+                            {StandardProduct3::SatelliteGroup::北斗, 4},
+                            StandardProduct3::Dialect::ChineseMGEX}));
 INSTANTIATE_TEST_CASE_P(北斗InclinedGeosynchronous,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
-                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
                                 "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
                             {StandardProduct3::SatelliteGroup::北斗, 6}}));
 INSTANTIATE_TEST_CASE_P(北斗MediumEarthOrbit,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
-                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
                                 "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
                             {StandardProduct3::SatelliteGroup::北斗, 11}}));
 INSTANTIATE_TEST_CASE_P(QZSS,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
-                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
                                 "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::準天頂衛星, 1}}));
+                            {StandardProduct3::SatelliteGroup::みちびき, 1}}));
 // Whereas JAXA and the AIUB, GFZ, TUM, and WHU MGEX analysis centres all
 // provide orbits for QZSS satellites, only GFZ and WHU provide orbits for the
 // geostationary satellite J07.  Of those, only WHU provides final analysis
@@ -199,13 +194,14 @@ INSTANTIATE_TEST_CASE_P(QZSS,
 INSTANTIATE_TEST_CASE_P(QZSSGeostationary,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
-                            SOLUTION_DIR / "astronomy" / "standard_product_3" /
                                 "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::準天頂衛星, 7}}));
+                            {StandardProduct3::SatelliteGroup::みちびき, 7},
+                            StandardProduct3::Dialect::ChineseMGEX}));
 
 TEST_P(OrbitAnalyserTest, GNSS) {
-  StandardProduct3 sp3(GetParam().filename,
-                       StandardProduct3::Dialect::Standard);
+  StandardProduct3 sp3(
+      SOLUTION_DIR / "astronomy" / "standard_product_3" / GetParam().filename,
+      GetParam().dialect);
   StandardProduct3::SatelliteIdentifier const& satellite = GetParam().satellite;
 
   Instant const initial_time = sp3.orbit(satellite).front()->Begin().time();
