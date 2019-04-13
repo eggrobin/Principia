@@ -84,7 +84,7 @@ class OrbitAnalyserTest : public ::testing::TestWithParam<SP3Orbit> {
           Ephemeris<ICRS>::FixedStepParameters(
               SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
                                                  Position<ICRS>>(),
-              /*step=*/1 * Minute));
+              /*step=*/5 * Minute));
       for (char const* const date :
            {"2014-06-01T12:00:00", "2019-01-01T12:00:00"}) {
         LOG(INFO) << "Prolonging ephemeris to " << date << " (TT)";
@@ -294,7 +294,7 @@ TEST_P(OrbitAnalyserTest, Residuals) {
             ArcSin(earth_->mean_radius() / re.Norm())) {
           // Egglipse.
           return Vector<Acceleration, ICRS>{};
-        }
+        }          return Vector<Acceleration, ICRS>{};
         Acceleration const a =
             (satellite.group == StandardProduct3::SatelliteGroup::GPS ? 1e-7 :
              satellite.group == StandardProduct3::SatelliteGroup::Galileo ? 1.15e-7 :
