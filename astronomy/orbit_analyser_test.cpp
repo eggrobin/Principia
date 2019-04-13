@@ -57,6 +57,7 @@ using quantities::si::Degree;
 using quantities::si::Kilo;
 using quantities::si::Metre;
 using quantities::si::Milli;
+using quantities::si::Micro;
 using quantities::si::Minute;
 using quantities::si::Radian;
 using quantities::si::Second;
@@ -76,12 +77,12 @@ class OrbitAnalyserTest : public ::testing::TestWithParam<SP3Orbit> {
     google::LogToStderr();
     if (ephemeris_ == nullptr) {
       ephemeris_ = solar_system_.MakeEphemeris(
-          /*accuracy_parameters=*/{/*fitting_tolerance=*/5 * Milli(Metre),
+          /*accuracy_parameters=*/{/*fitting_tolerance=*/1 * Micro(Metre),
                                    /*geopotential_tolerance=*/0x1p-24},
           Ephemeris<ICRS>::FixedStepParameters(
               SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
                                                  Position<ICRS>>(),
-              /*step=*/10 * Minute));
+              /*step=*/1 * Minute));
       for (char const* const date :
            {"2014-06-01T12:00:00", "2019-01-01T12:00:00"}) {
         LOG(INFO) << "Prolonging ephemeris to " << date << " (TT)";
@@ -153,7 +154,7 @@ INSTANTIATE_TEST_CASE_P(LAGEOS2,
 INSTANTIATE_TEST_CASE_P(GPS,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
-                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                                "nga20342.eph",
                             {StandardProduct3::SatelliteGroup::GPS, 1}}));
 INSTANTIATE_TEST_CASE_P(Galileo,
                         OrbitAnalyserTest,
@@ -214,18 +215,21 @@ TEST_P(OrbitAnalyserTest, Residuals) {
   StandardProduct3::SatelliteIdentifier const& satellite = GetParam().satellite;
   std::string name = (std::stringstream() << satellite).str();
 
-  std::vector<Velocity<ICRS>> residuals;
-  std::vector<Angle> residuals_from_sun;
+  std::vector<Displacement<ICRS>> icrs_residuals;
+  std::vector<Displacement<ITRS>> itrs_residuals;
+  std::vector<Angle> sun_earth_satellite_angle;
   std::vector<double> times;
+  DiscreteTrajectory<ICRS> trajectory;
+  auto const start_of_first_arc = sp3.orbit(satellite).front()->Begin();
+  ephemeris_->Prolong(start_of_first_arc.time());
+  trajectory.Append(start_of_first_arc.time(),
+                    itrs_.FromThisFrameAtTime(start_of_first_arc.time())(
+                        start_of_first_arc.degrees_of_freedom()));
 
   for (auto const& arc : sp3.orbit(satellite)) {
     for (auto it = arc->Begin();;) {
       ephemeris_->Prolong(it.time());
 
-      DiscreteTrajectory<ICRS> trajectory;
-      trajectory.Append(
-          it.time(),
-          itrs_.FromThisFrameAtTime(it.time())(it.degrees_of_freedom()));
       if (++it == arc->End()) {
         break;
       }
@@ -235,8 +239,8 @@ TEST_P(OrbitAnalyserTest, Residuals) {
              integrators::methods::DormandالمكاوىPrince1986RKN434FM,
               Position<ICRS>>(),
           /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
-          1 * Milli(Metre),
-          1 * Milli(Metre) / Second);
+          1 * Micro(Metre),
+          1 * Micro(Metre) / Second);
       ephemeris_->FlowWithAdaptiveStep(
           &trajectory,
           Ephemeris<ICRS>::NoIntrinsicAcceleration,
@@ -245,35 +249,51 @@ TEST_P(OrbitAnalyserTest, Residuals) {
           /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
           /*last_point_only=*/true);
 
-      times.push_back((trajectory.Begin().time() - J2000)/ Day);
-      residuals.push_back(
-          trajectory.last().degrees_of_freedom().velocity() -
+      times.push_back((it.time() - J2000) / Day);
+      icrs_residuals.push_back(
+          trajectory.last().degrees_of_freedom().position() -
           itrs_.FromThisFrameAtTime(it.time())(it.degrees_of_freedom())
-              .velocity());
-      residuals_from_sun.push_back(geometry::AngleBetween(
-          ephemeris_->trajectory(earth_)->EvaluatePosition(it.time()) -
-              ephemeris_->trajectory(sun_)->EvaluatePosition(it.time()),
-          residuals.back()));
+              .position());
+      itrs_residuals.push_back(itrs_
+                                   .ToThisFrameAtTime(it.time())(
+                                       trajectory.last().degrees_of_freedom())
+                                   .position() -
+                               it.degrees_of_freedom().position());
+      sun_earth_satellite_angle.push_back(geometry::AngleBetween(
+          itrs_.FromThisFrameAtTime(it.time())(it.degrees_of_freedom())
+                  .position() -
+              ephemeris_->trajectory(earth_)->EvaluatePosition(it.time()),
+          ephemeris_->trajectory(sun_)->EvaluatePosition(it.time()) -
+              ephemeris_->trajectory(earth_)->EvaluatePosition(it.time())));
     }
     base::OFStream f(SOLUTION_DIR / ("residuals_" + name));
     f << mathematica::Assign(
-        mathematica::Apply("residuals", {mathematica::Escape(name)}),
-        mathematica::Apply(
-            "Transpose",
-            {mathematica::Apply(
-                "List",
-                {mathematica::ToMathematica(times),
-                 mathematica::ToMathematica(mathematica::ExpressIn(
-                     Milli(Metre) / Second, residuals))})}));
-    f << mathematica::Assign(
-        mathematica::Apply("residualsFromSun", {mathematica::Escape(name)}),
+        mathematica::Apply("residualsICRS", {mathematica::Escape(name)}),
         mathematica::Apply(
             "Transpose",
             {mathematica::Apply(
                 "List",
                 {mathematica::ToMathematica(times),
                  mathematica::ToMathematica(
-                     mathematica::ExpressIn(Radian, residuals_from_sun))})}));
+                     mathematica::ExpressIn(Metre, icrs_residuals))})}));
+    f << mathematica::Assign(
+        mathematica::Apply("residualsITRS", {mathematica::Escape(name)}),
+        mathematica::Apply(
+            "Transpose",
+            {mathematica::Apply(
+                "List",
+                {mathematica::ToMathematica(times),
+                 mathematica::ToMathematica(
+                     mathematica::ExpressIn(Metre, itrs_residuals))})}));
+    f << mathematica::Assign(
+        mathematica::Apply("sunEarthSatAngles", {mathematica::Escape(name)}),
+        mathematica::Apply(
+            "Transpose",
+            {mathematica::Apply(
+                "List",
+                {mathematica::ToMathematica(times),
+                 mathematica::ToMathematica(
+                     mathematica::ExpressIn(Radian, sun_earth_satellite_angle))})}));
   }
 }
 
@@ -283,16 +303,17 @@ TEST_P(OrbitAnalyserTest, GNSS) {
       GetParam().dialect);
   StandardProduct3::SatelliteIdentifier const& satellite = GetParam().satellite;
 
-  Instant const initial_time = sp3.orbit(satellite).front()->Begin().time();
+  auto it = sp3.orbit(satellite).front()->Begin();
+  for (int i = 0; i < 10; ++i) {
+    ++it;
+  }
 
-  ephemeris_->Prolong(initial_time);
-
+  ephemeris_->Prolong(it.time());
   OrbitAnalyser<ICRS> analyser(
       ephemeris_.get(),
       earth_,
-      initial_time,
-      itrs_.FromThisFrameAtTime(initial_time)(
-          sp3.orbit(satellite).front()->Begin().degrees_of_freedom()),
+      it.time(),
+      itrs_.FromThisFrameAtTime(it.time())(it.degrees_of_freedom()),
       (std::stringstream() << satellite).str());
   analyser.Analyse();
 }
