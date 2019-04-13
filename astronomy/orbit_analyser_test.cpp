@@ -25,6 +25,7 @@ using base::OFStream;
 using geometry::Displacement;
 using geometry::Instant;
 using geometry::Position;
+using geometry::Vector;
 using geometry::Velocity;
 using integrators::SymmetricLinearMultistepIntegrator;
 using integrators::methods::Quinlan1999Order8A;
@@ -40,6 +41,7 @@ using physics::MasslessBody;
 using physics::OblateBody;
 using physics::RelativeDegreesOfFreedom;
 using physics::SolarSystem;
+using quantities::Acceleration;
 using quantities::Angle;
 using quantities::AngularFrequency;
 using quantities::ArcSin;
@@ -56,8 +58,8 @@ using quantities::si::Deci;
 using quantities::si::Degree;
 using quantities::si::Kilo;
 using quantities::si::Metre;
-using quantities::si::Milli;
 using quantities::si::Micro;
+using quantities::si::Milli;
 using quantities::si::Minute;
 using quantities::si::Radian;
 using quantities::si::Second;
@@ -156,16 +158,41 @@ INSTANTIATE_TEST_CASE_P(GPS,
                         ::testing::Values(SP3Orbit{
                                 "nga20342.eph",
                             {StandardProduct3::SatelliteGroup::GPS, 1}}));
+INSTANTIATE_TEST_CASE_P(GPS2,
+                        OrbitAnalyserTest,
+                        ::testing::Values(SP3Orbit{
+                                "nga20342.eph",
+                            {StandardProduct3::SatelliteGroup::GPS, 2}}));
+INSTANTIATE_TEST_CASE_P(GPS3,
+                        OrbitAnalyserTest,
+                        ::testing::Values(SP3Orbit{
+                                "nga20342.eph",
+                            {StandardProduct3::SatelliteGroup::GPS, 3}}));
 INSTANTIATE_TEST_CASE_P(Galileo,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
                                 "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
                             {StandardProduct3::SatelliteGroup::Galileo, 1}}));
+INSTANTIATE_TEST_CASE_P(Galileo2,
+                        OrbitAnalyserTest,
+                        ::testing::Values(SP3Orbit{
+                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::Galileo, 2}}));
+INSTANTIATE_TEST_CASE_P(Galileo3,
+                        OrbitAnalyserTest,
+                        ::testing::Values(SP3Orbit{
+                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::Galileo, 3}}));
 INSTANTIATE_TEST_CASE_P(ГЛОНАСС,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
                                 "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
                             {StandardProduct3::SatelliteGroup::ГЛОНАСС, 1}}));
+INSTANTIATE_TEST_CASE_P(ГЛОНАСС2,
+                        OrbitAnalyserTest,
+                        ::testing::Values(SP3Orbit{
+                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::ГЛОНАСС, 2}}));
 // Whereas the AIUB, GFZ, GRGS, SHAO, TUM, and WHU MGEX analysis centres all
 // provide orbits for 北斗 satellites, only GFZ, SHAO, TUM, and WHU provide orbits
 // for the geostationary satellites C01 ‥ C05.  Of those, only WHU provides
@@ -192,6 +219,16 @@ INSTANTIATE_TEST_CASE_P(北斗MediumEarthOrbit,
                         ::testing::Values(SP3Orbit{
                                 "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
                             {StandardProduct3::SatelliteGroup::北斗, 11}}));
+INSTANTIATE_TEST_CASE_P(北斗MediumEarthOrbit2,
+                        OrbitAnalyserTest,
+                        ::testing::Values(SP3Orbit{
+                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::北斗, 12}}));
+INSTANTIATE_TEST_CASE_P(北斗MediumEarthOrbit3,
+                        OrbitAnalyserTest,
+                        ::testing::Values(SP3Orbit{
+                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
+                            {StandardProduct3::SatelliteGroup::北斗, 14}}));
 INSTANTIATE_TEST_CASE_P(QZSS,
                         OrbitAnalyserTest,
                         ::testing::Values(SP3Orbit{
@@ -220,12 +257,13 @@ TEST_P(OrbitAnalyserTest, Residuals) {
   std::vector<Length> altitudes;
   std::vector<Angle> sun_earth_satellite_angle;
   std::vector<double> times;
+  auto initial_state_it = sp3.orbit(satellite).front()->Begin();
+  for (int i = 0; i < 12; ++i, ++initial_state_it) {
   DiscreteTrajectory<ICRS> trajectory;
-  auto const start_of_first_arc = sp3.orbit(satellite).front()->Begin();
-  ephemeris_->Prolong(start_of_first_arc.time());
-  trajectory.Append(start_of_first_arc.time(),
-                    itrs_.FromThisFrameAtTime(start_of_first_arc.time())(
-                        start_of_first_arc.degrees_of_freedom()));
+  ephemeris_->Prolong(initial_state_it.time());
+  trajectory.Append(initial_state_it.time(),
+                    itrs_.FromThisFrameAtTime(initial_state_it.time())(
+                        initial_state_it.degrees_of_freedom()));
 
   for (auto const& arc : sp3.orbit(satellite)) {
     for (auto it = arc->Begin();;) {
@@ -234,17 +272,41 @@ TEST_P(OrbitAnalyserTest, Residuals) {
       if (++it == arc->End()) {
         break;
       }
+      if (it.time() < trajectory.t_min()) {
+        continue;
+      }
 
-      Ephemeris<ICRS>::AdaptiveStepParameters parameters(
-          integrators::EmbeddedExplicitRungeKuttaNyströmIntegrator<
-             integrators::methods::DormandالمكاوىPrince1986RKN434FM,
+      Ephemeris<ICRS>::GeneralizedAdaptiveStepParameters parameters(
+          integrators::EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
+              integrators::methods::Fine1987RKNG34,
               Position<ICRS>>(),
           /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
           1 * Micro(Metre),
           1 * Micro(Metre) / Second);
+      auto const radiation_pressure =
+          [this, satellite](Instant t,
+                 DegreesOfFreedom<ICRS> dof) -> Vector<Acceleration, ICRS> {
+        auto const r =
+            dof.position() - ephemeris_->trajectory(sun_)->EvaluatePosition(t);
+        auto const re = dof.position() -
+                        ephemeris_->trajectory(earth_)->EvaluatePosition(t);
+        if (geometry::AngleBetween(re, r) <
+            ArcSin(earth_->mean_radius() / re.Norm())) {
+          // Egglipse.
+          return Vector<Acceleration, ICRS>{};
+        }
+        Acceleration const a =
+            (satellite.group == StandardProduct3::SatelliteGroup::GPS ? 1e-7 :
+             satellite.group == StandardProduct3::SatelliteGroup::Galileo ? 1.15e-7 :
+             satellite.group == StandardProduct3::SatelliteGroup::北斗 ? 1.25e-7 :
+             satellite.group == StandardProduct3::SatelliteGroup::ГЛОНАСС ? 1.5e-7 :
+             satellite.group == StandardProduct3::SatelliteGroup::General ? 3.5e-9 :
+             1e-7) * Metre / Pow<2>(Second);
+        return a * r / r.Norm();
+      };
       ephemeris_->FlowWithAdaptiveStep(
           &trajectory,
-          Ephemeris<ICRS>::NoIntrinsicAcceleration,
+          radiation_pressure,
           it.time(),
           parameters,
           /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
@@ -273,44 +335,41 @@ TEST_P(OrbitAnalyserTest, Residuals) {
               .Norm() -
           earth_->mean_radius());
     }
-    base::OFStream f(SOLUTION_DIR / ("residuals_" + name));
-    f << mathematica::Assign(
-        mathematica::Apply("residualsICRS", {mathematica::Escape(name)}),
-        mathematica::Apply(
-            "Transpose",
-            {mathematica::Apply(
-                "List",
-                {mathematica::ToMathematica(times),
-                 mathematica::ToMathematica(
-                     mathematica::ExpressIn(Metre, icrs_residuals))})}));
-    f << mathematica::Assign(
-        mathematica::Apply("residualsITRS", {mathematica::Escape(name)}),
-        mathematica::Apply(
-            "Transpose",
-            {mathematica::Apply(
-                "List",
-                {mathematica::ToMathematica(times),
-                 mathematica::ToMathematica(
-                     mathematica::ExpressIn(Metre, itrs_residuals))})}));
-    f << mathematica::Assign(
-        mathematica::Apply("sunEarthSatAngles", {mathematica::Escape(name)}),
-        mathematica::Apply(
-            "Transpose",
-            {mathematica::Apply(
-                "List",
-                {mathematica::ToMathematica(times),
-                 mathematica::ToMathematica(
-                     mathematica::ExpressIn(Radian, sun_earth_satellite_angle))})}));
-    f << mathematica::Assign(
-        mathematica::Apply("altitudes", {mathematica::Escape(name)}),
-        mathematica::Apply(
-            "Transpose",
-            {mathematica::Apply(
-                "List",
-                {mathematica::ToMathematica(times),
-                 mathematica::ToMathematica(
-                     mathematica::ExpressIn(Kilo(Metre), altitudes))})}));
   }
+  }
+  base::OFStream f(SOLUTION_DIR / ("residuals_" + name));
+  f << mathematica::Assign(
+      mathematica::Apply("residualsICRS", {mathematica::Escape(name)}),
+      mathematica::Apply("Transpose",
+                         {mathematica::Apply(
+                             "List",
+                             {mathematica::ToMathematica(times),
+                              mathematica::ToMathematica(mathematica::ExpressIn(
+                                  Metre, icrs_residuals))})}));
+  f << mathematica::Assign(
+      mathematica::Apply("residualsITRS", {mathematica::Escape(name)}),
+      mathematica::Apply("Transpose",
+                         {mathematica::Apply(
+                             "List",
+                             {mathematica::ToMathematica(times),
+                              mathematica::ToMathematica(mathematica::ExpressIn(
+                                  Metre, itrs_residuals))})}));
+  f << mathematica::Assign(
+      mathematica::Apply("sunEarthSatAngles", {mathematica::Escape(name)}),
+      mathematica::Apply("Transpose",
+                         {mathematica::Apply(
+                             "List",
+                             {mathematica::ToMathematica(times),
+                              mathematica::ToMathematica(mathematica::ExpressIn(
+                                  Radian, sun_earth_satellite_angle))})}));
+  f << mathematica::Assign(
+      mathematica::Apply("altitudes", {mathematica::Escape(name)}),
+      mathematica::Apply("Transpose",
+                         {mathematica::Apply(
+                             "List",
+                             {mathematica::ToMathematica(times),
+                              mathematica::ToMathematica(mathematica::ExpressIn(
+                                  Kilo(Metre), altitudes))})}));
 }
 
 TEST_P(OrbitAnalyserTest, GNSS) {
