@@ -217,6 +217,7 @@ TEST_P(OrbitAnalyserTest, Residuals) {
 
   std::vector<Displacement<ICRS>> icrs_residuals;
   std::vector<Displacement<ITRS>> itrs_residuals;
+  std::vector<Length> altitudes;
   std::vector<Angle> sun_earth_satellite_angle;
   std::vector<double> times;
   DiscreteTrajectory<ICRS> trajectory;
@@ -265,6 +266,12 @@ TEST_P(OrbitAnalyserTest, Residuals) {
               ephemeris_->trajectory(earth_)->EvaluatePosition(it.time()),
           ephemeris_->trajectory(sun_)->EvaluatePosition(it.time()) -
               ephemeris_->trajectory(earth_)->EvaluatePosition(it.time())));
+      altitudes.push_back(
+          (itrs_.FromThisFrameAtTime(it.time())(it.degrees_of_freedom())
+               .position() -
+           ephemeris_->trajectory(earth_)->EvaluatePosition(it.time()))
+              .Norm() -
+          earth_->mean_radius());
     }
     base::OFStream f(SOLUTION_DIR / ("residuals_" + name));
     f << mathematica::Assign(
@@ -294,6 +301,15 @@ TEST_P(OrbitAnalyserTest, Residuals) {
                 {mathematica::ToMathematica(times),
                  mathematica::ToMathematica(
                      mathematica::ExpressIn(Radian, sun_earth_satellite_angle))})}));
+    f << mathematica::Assign(
+        mathematica::Apply("altitudes", {mathematica::Escape(name)}),
+        mathematica::Apply(
+            "Transpose",
+            {mathematica::Apply(
+                "List",
+                {mathematica::ToMathematica(times),
+                 mathematica::ToMathematica(
+                     mathematica::ExpressIn(Kilo(Metre), altitudes))})}));
   }
 }
 
