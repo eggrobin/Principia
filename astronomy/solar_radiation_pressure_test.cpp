@@ -115,12 +115,14 @@ class SolarRadiationPressureTest : public TestWithParam<StandardProduct3Args> {
             parameters,
             /*max_ephemeris_steps=*/std::numeric_limits<int64_t>::max(),
             /*last_point_only=*/true);
-        residual += (itrs_.ToThisFrameAtTime(it.time())(
-                         integrated.last().degrees_of_freedom()).position() -
-                     it.degrees_of_freedom().position()).Norm²();
+        residual = std::max(
+            residual,
+            (itrs_.ToThisFrameAtTime(it.time())(
+                  integrated.last().degrees_of_freedom()).position() -
+             it.degrees_of_freedom().position()).Norm²());
       }
     }
-    return Sqrt(residual) / n;
+    return Sqrt(residual);
   }
 
  private:
@@ -156,8 +158,7 @@ INSTANTIATE_TEST_CASE_P(WHUCODE,
 // Optimize a constant radial force.
 TEST_P(SolarRadiationPressureTest, RadialForce) {
   for (auto const& satellite : sp3_.satellites()) {
-    Acceleration radial_acceleration = 1e-7 * Metre / Pow<2>(Second);
-    Acceleration candidate_radial_acceleration = radial_acceleration;
+    Acceleration candidate_radial_acceleration;
     std::mt19937_64 engine(1729);
     double temperature = 1;
     auto solar_radiation_pressure =
@@ -173,21 +174,28 @@ TEST_P(SolarRadiationPressureTest, RadialForce) {
       Displacement<ICRS> d = sun_position - earth_position;
       return candidate_radial_acceleration * d / d.Norm();
     };
+    LOG(INFO) << satellite << " no radial acceleration: "
+              << Residual(satellite, solar_radiation_pressure);
+    Acceleration radial_acceleration = -1e-7 * Metre / Pow<2>(Second);
+    candidate_radial_acceleration = radial_acceleration;
     Length last_residual = Residual(satellite, solar_radiation_pressure);
 
     for (;;) {
-      candidate_radial_acceleration +=
-          std::normal_distribution()(engine) * (1e-6 * Metre / Pow<2>(Second));
+      candidate_radial_acceleration = radial_acceleration +
+          std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second));
       Length const candidate_residual =
           Residual(satellite, solar_radiation_pressure);
       if (candidate_residual < last_residual ||
           std::uniform_real_distribution()(engine) < temperature) {
-        LOG(INFO) << candidate_residual << " " << candidate_radial_acceleration
-                  << " T = " << temperature;
+        LOG(INFO) << satellite << " " << candidate_residual << " "
+                  << candidate_radial_acceleration << " T = " << temperature;
         last_residual = candidate_residual;
         radial_acceleration = candidate_radial_acceleration;
       }
-      temperature /= 1.125;
+      temperature /= 1 + temperature / 2;
+      if (temperature < 0.01) {
+        break;
+      }
     }
   }
 }
