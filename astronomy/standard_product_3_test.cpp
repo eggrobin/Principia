@@ -233,6 +233,8 @@ TEST_F(StandardProduct3Test, Dialects) {
 
 #if !defined(_DEBUG)
 
+namespace {
+
 struct StandardProduct3Args {
   std::filesystem::path filename;
   StandardProduct3::Dialect dialect;
@@ -245,6 +247,8 @@ std::ostream& operator<<(std::ostream& out, StandardProduct3Args const& args) {
              << " (expected to have version " << args.version << " and to "
              << (args.file_has_velocities ? "" : "not") << " have velocities)";
 }
+
+}  // namespace
 
 class StandardProduct3DynamicsTest
     : public ::testing::TestWithParam<StandardProduct3Args> {
