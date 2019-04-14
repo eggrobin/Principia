@@ -19,9 +19,11 @@ using geometry::Bivector;
 using geometry::Displacement;
 using geometry::Instant;
 using geometry::Normalize;
+using geometry::OrientedAngleBetween;
 using geometry::Position;
 using geometry::Rotation;
 using geometry::Vector;
+using geometry::Velocity;
 using geometry::Wedge;
 using integrators::EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator;
 using integrators::SymmetricLinearMultistepIntegrator;
@@ -35,9 +37,12 @@ using physics::Ephemeris;
 using physics::RotatingBody;
 using physics::SolarSystem;
 using quantities::Acceleration;
+using quantities::Angle;
 using quantities::ArcSin;
+using quantities::Cos;
 using quantities::Length;
 using quantities::Pow;
+using quantities::Sin;
 using quantities::Sqrt;
 using quantities::Square;
 using quantities::si::Metre;
@@ -161,65 +166,89 @@ INSTANTIATE_TEST_CASE_P(WHUCODE,
                              "COD0MGXFIN_20181260000_01D_05M_ORB.SP3"},
                         }));
 
-// Optimize a constant radial force.
-TEST_P(SolarRadiationPressureTest, RadialForce) {
+TEST_P(SolarRadiationPressureTest, ReducedECOM) {
   for (auto const& satellite : sp3_.satellites()) {
     struct DYB;
-    Vector<Acceleration, DYB> candidate_radial_acceleration;
+    struct ReducedECOMParameters {
+      Vector<Acceleration, DYB> order_0_acceleration;
+      Acceleration Bc;
+      Acceleration Bs;
+    };
+    ReducedECOMParameters candidate;
     std::mt19937_64 engine(1729);
     double temperature = 1;
     auto solar_radiation_pressure =
-        [this, &candidate_radial_acceleration](
-            Instant const& t, DegreesOfFreedom<ICRS> const& satellite_dof)
+        [this, &candidate](Instant const& t,
+                           DegreesOfFreedom<ICRS> const& satellite_dof)
         -> Vector<Acceleration, ICRS> {
-      Position<ICRS> const earth_position = earth_trajectory_.EvaluatePosition(t);
+      DegreesOfFreedom<ICRS> const earth_dof =
+          earth_trajectory_.EvaluateDegreesOfFreedom(t);
       Position<ICRS> const sun_position = sun_trajectory_.EvaluatePosition(t);
       Displacement<ICRS> const satellite_to_sun =
           sun_position - satellite_dof.position();
       // Notation from Arnold et al. (2015), CODE’s new solar radiation pressure
       // model for GNSS orbit determination.
-      Displacement<ICRS> const r = satellite_dof.position() - earth_position;
+      Displacement<ICRS> const r = satellite_dof.position() - earth_dof.position();
       Vector<double, ICRS> const eD = Normalize(satellite_to_sun);
       Vector<double, ICRS> const er = Normalize(r);
       Bivector<double, ICRS> const eY = -Normalize(Wedge(er, eD));
       Vector<double, ICRS> const eB = eD * eY;
-      Rotation<DYB, ICRS> to_icrs(eD, eY, eB);
+      Rotation<DYB, ICRS> const to_icrs(eD, eY, eB);
+
+      Velocity<ICRS> const v = satellite_dof.velocity() - earth_dof.velocity();
+      Bivector<double, ICRS> const orbit_normal = Normalize(Wedge(r, v));
+      Vector<double, ICRS> const north({0, 0, 1});
+      Vector<double, ICRS> const ascending_node = north * orbit_normal;
+
+      Angle const u = OrientedAngleBetween(ascending_node, r, orbit_normal);
       // Shadow of a point sun; alternatively, we could rigorously compute the
       // umbra and penumbra.
       if (AngleBetween(satellite_to_sun, -r) <
           ArcSin(earth_->mean_radius() / r.Norm())) {
         return Vector<Acceleration, ICRS>();
       }
-      return to_icrs(candidate_radial_acceleration);
+      return to_icrs(candidate.order_0_acceleration +
+                     Vector<Acceleration, DYB>(
+                         {0 * Metre / Pow<2>(Second),
+                          0 * Metre / Pow<2>(Second),
+                          candidate.Bc * Cos(u) + candidate.Bs * Sin(u)}));
     };
-    LOG(INFO) << satellite << " no radial acceleration: "
-              << Residual(satellite, solar_radiation_pressure);
-    Vector<Acceleration, DYB> radial_acceleration(
-        {-1e-7 * Metre / Pow<2>(Second),
-         0 * Metre / Pow<2>(Second),
-         0 * Metre / Pow<2>(Second)});
-    candidate_radial_acceleration = radial_acceleration;
+    LOG(INFO) << satellite
+              << " no SRP: " << Residual(satellite, solar_radiation_pressure);
+    ReducedECOMParameters parameters = {
+        Vector<Acceleration, DYB>({1e-7 * Metre / Pow<2>(Second),
+                                   0 * Metre / Pow<2>(Second),
+                                   0 * Metre / Pow<2>(Second)}),
+        0 * Metre / Pow<2>(Second),
+        0 * Metre / Pow<2>(Second)};
+    candidate = parameters;
     Length last_residual = Residual(satellite, solar_radiation_pressure);
 
     for (;;) {
-      candidate_radial_acceleration =
-          radial_acceleration +
-          Vector<Acceleration, DYB>({std::normal_distribution()(engine) *
-                                         (5e-9 * Metre / Pow<2>(Second)),
-                                     std::normal_distribution()(engine) *
-                                         (1e-9 * Metre / Pow<2>(Second)),
-                                     std::normal_distribution()(engine) *
-                                         (1e-9 * Metre / Pow<2>(Second))});
+      candidate = {
+          parameters.order_0_acceleration +
+              Vector<Acceleration, DYB>({std::normal_distribution()(engine) *
+                                             (1e-9 * Metre / Pow<2>(Second)),
+                                         std::normal_distribution()(engine) *
+                                             (1e-10 * Metre / Pow<2>(Second)),
+                                         std::normal_distribution()(engine) *
+                                             (1e-10 * Metre / Pow<2>(Second))}),
+          parameters.Bc + std::normal_distribution()(engine) *
+                              (1e-10 * Metre / Pow<2>(Second)),
+          parameters.Bs + std::normal_distribution()(engine) *
+                              (1e-10 * Metre / Pow<2>(Second)),
+      };
       Length const candidate_residual =
           Residual(satellite, solar_radiation_pressure);
       if (candidate_residual < last_residual ||
           std::uniform_real_distribution()(engine) < temperature) {
         LOG(INFO) << satellite << " " << candidate_residual << " "
-                  << candidate_radial_acceleration << " T = " << temperature;
+                  << candidate.order_0_acceleration << ", (" << candidate.Bc
+                  << ", " << candidate.Bs << "); T = " << temperature;
         last_residual = candidate_residual;
-        radial_acceleration = candidate_radial_acceleration;
+        parameters = candidate;
       }
-      temperature /= 1 + temperature / 10;
+      temperature /= 1 + temperature / 100;
       if (temperature < 0.01) {
         break;
       }
