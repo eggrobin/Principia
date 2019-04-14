@@ -14,10 +14,15 @@ namespace principia {
 namespace astronomy {
 
 using base::not_null;
+using geometry::AngleBetween;
+using geometry::Bivector;
 using geometry::Displacement;
 using geometry::Instant;
+using geometry::Normalize;
 using geometry::Position;
+using geometry::Rotation;
 using geometry::Vector;
+using geometry::Wedge;
 using integrators::EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator;
 using integrators::SymmetricLinearMultistepIntegrator;
 using integrators::methods::Fine1987RKNG34;
@@ -30,6 +35,7 @@ using physics::Ephemeris;
 using physics::RotatingBody;
 using physics::SolarSystem;
 using quantities::Acceleration;
+using quantities::ArcSin;
 using quantities::Length;
 using quantities::Pow;
 using quantities::Sqrt;
@@ -158,31 +164,52 @@ INSTANTIATE_TEST_CASE_P(WHUCODE,
 // Optimize a constant radial force.
 TEST_P(SolarRadiationPressureTest, RadialForce) {
   for (auto const& satellite : sp3_.satellites()) {
-    Acceleration candidate_radial_acceleration;
+    struct DYB;
+    Vector<Acceleration, DYB> candidate_radial_acceleration;
     std::mt19937_64 engine(1729);
     double temperature = 1;
     auto solar_radiation_pressure =
         [this, &candidate_radial_acceleration](
             Instant const& t, DegreesOfFreedom<ICRS> const& satellite_dof)
         -> Vector<Acceleration, ICRS> {
-      Position<ICRS> earth_position = earth_trajectory_.EvaluatePosition(t);
-      Position<ICRS> sun_position = sun_trajectory_.EvaluatePosition(t);
+      Position<ICRS> const earth_position = earth_trajectory_.EvaluatePosition(t);
+      Position<ICRS> const sun_position = sun_trajectory_.EvaluatePosition(t);
+      Displacement<ICRS> const satellite_to_sun =
+          sun_position - satellite_dof.position();
       // Notation from Arnold et al. (2015), CODE’s new solar radiation pressure
       // model for GNSS orbit determination.
-      Displacement<ICRS> r = satellite_dof.position() - earth_position;
-      Displacement<ICRS> rₛ = sun_position - earth_position;
-      Displacement<ICRS> d = sun_position - earth_position;
-      return candidate_radial_acceleration * d / d.Norm();
+      Displacement<ICRS> const r = satellite_dof.position() - earth_position;
+      Vector<double, ICRS> const eD = Normalize(satellite_to_sun);
+      Vector<double, ICRS> const er = Normalize(r);
+      Bivector<double, ICRS> const eY = -Normalize(Wedge(er, eD));
+      Vector<double, ICRS> const eB = eD * eY;
+      Rotation<DYB, ICRS> to_icrs(eD, eY, eB);
+      // Shadow of a point sun; alternatively, we could rigorously compute the
+      // umbra and penumbra.
+      if (AngleBetween(satellite_to_sun, -r) <
+          ArcSin(earth_->mean_radius() / r.Norm())) {
+        return Vector<Acceleration, ICRS>();
+      }
+      return to_icrs(candidate_radial_acceleration);
     };
     LOG(INFO) << satellite << " no radial acceleration: "
               << Residual(satellite, solar_radiation_pressure);
-    Acceleration radial_acceleration = -1e-7 * Metre / Pow<2>(Second);
+    Vector<Acceleration, DYB> radial_acceleration(
+        {-1e-7 * Metre / Pow<2>(Second),
+         0 * Metre / Pow<2>(Second),
+         0 * Metre / Pow<2>(Second)});
     candidate_radial_acceleration = radial_acceleration;
     Length last_residual = Residual(satellite, solar_radiation_pressure);
 
     for (;;) {
-      candidate_radial_acceleration = radial_acceleration +
-          std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second));
+      candidate_radial_acceleration =
+          radial_acceleration +
+          Vector<Acceleration, DYB>({std::normal_distribution()(engine) *
+                                         (5e-9 * Metre / Pow<2>(Second)),
+                                     std::normal_distribution()(engine) *
+                                         (1e-9 * Metre / Pow<2>(Second)),
+                                     std::normal_distribution()(engine) *
+                                         (1e-9 * Metre / Pow<2>(Second))});
       Length const candidate_residual =
           Residual(satellite, solar_radiation_pressure);
       if (candidate_residual < last_residual ||
@@ -192,7 +219,7 @@ TEST_P(SolarRadiationPressureTest, RadialForce) {
         last_residual = candidate_residual;
         radial_acceleration = candidate_radial_acceleration;
       }
-      temperature /= 1 + temperature / 2;
+      temperature /= 1 + temperature / 10;
       if (temperature < 0.01) {
         break;
       }
