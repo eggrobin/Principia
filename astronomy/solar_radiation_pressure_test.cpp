@@ -4,6 +4,7 @@
 
 #include "absl/strings/str_cat.h"
 #include "astronomy/standard_product_3.hpp"
+#include "base/bundle.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "physics/body_surface_dynamic_frame.hpp"
@@ -13,7 +14,9 @@
 namespace principia {
 namespace astronomy {
 
+using base::Bundle;
 using base::not_null;
+using base::Status;
 using geometry::AngleBetween;
 using geometry::Bivector;
 using geometry::Displacement;
@@ -51,6 +54,8 @@ using quantities::si::Milli;
 using quantities::si::Minute;
 using quantities::si::Second;
 
+using ::std::placeholders::_1;
+using ::std::placeholders::_2;
 using ::testing::TestWithParam;
 using ::testing::ValuesIn;
 
@@ -64,6 +69,123 @@ struct StandardProduct3Args {
 std::ostream& operator<<(std::ostream& out, StandardProduct3Args const& args) {
   return out << args.filename << " interpreted as " << args.dialect;
 }
+
+namespace deмcmc {
+
+// TODO(egg): We should factor the two implementations here and in the
+// TRAPPIST-1 optimization, and move that to a dedicated file.
+
+template<typename Parameters>
+std::vector<Length> EvaluatePopulation(
+    std::vector<Parameters> const& population,
+    std::function<Length(Parameters)> const& compute_residual) {
+  std::vector<Length> residuals(population.size());
+  Bundle bundle;
+  for (int i = 0; i < population.size(); ++i) {
+    auto const& parameters = population[i];
+    bundle.Add([&compute_residual, i, &residuals, &parameters]() {
+      residuals[i] = compute_residual(parameters);
+      return Status::OK;
+    });
+  }
+  bundle.Join();
+  return residuals;
+}
+
+template<typename Parameters>
+std::vector<Parameters> GenerateTrialStates(
+    std::vector<Parameters> const& population,
+    double const γ,
+    double const ε,
+    std::mt19937_64& engine) {
+  std::vector<Parameters> trial(population.size());
+  std::uniform_int_distribution<> j_distribution(0, population.size() - 2);
+  std::uniform_int_distribution<> k_distribution(0, population.size() - 3);
+  std::normal_distribution<> perturbation_distribution;
+  for (int i = 0; i < population.size(); ++i) {
+    // Choose head (k) and tail (j) for perturbation vector.
+    int j = j_distribution(engine);
+    if (j >= i) {
+      ++j;
+    }
+    int k = k_distribution(engine);
+    if (k >= i) {
+      ++k;
+    }
+    if (k >= j) {
+      ++k;
+    }
+
+    // Choose scale factor.
+    double const scale = (1.0 + ε * perturbation_distribution(engine)) * γ;
+
+    trial[i] = population[i] + scale * (population[k] - population[j]);
+  }
+  return trial;
+}
+
+template<typename Parameters>
+Parameters Run(std::vector<Parameters>& population,
+               int const number_of_generations,
+               int const number_of_generations_between_kicks,
+               int const number_of_burn_in_generations,
+               double const ε,
+               std::function<Length(Parameters)> const& compute_residual) {
+  CHECK_LE(1, number_of_generations);
+  std::mt19937_64 engine;
+  std::uniform_real_distribution<> distribution(0.0, 1.0);
+
+  Length best_residual = std::numeric_limits<double>::infinity() * Metre;
+  Parameters best_parameters;
+
+  auto residual = EvaluatePopulation(population, compute_residual);
+
+  // Loop over generations.
+  for (int generation = 0; generation < number_of_generations; ++generation) {
+    int accepted = 0;
+
+    // Every 10th generation try full-size steps.
+    double const γ = generation < number_of_burn_in_generations
+                         ? 0.01
+                         : generation % number_of_generations_between_kicks == 0
+                               ? 1.0
+                               : 2.38 / Sqrt(2 * 5);
+
+    // Evaluate model for each set of trial parameters.
+    auto const trial = GenerateTrialStates(population, γ, ε, engine);
+    auto const residual_trial = EvaluatePopulation(trial, compute_residual);
+
+    // For each member of population.
+    for (int i = 0; i < population.size(); ++i) {
+      double const residual_ratio = residual_trial[i] / residual[i];
+      if (residual_ratio < 1.0 || residual_ratio < distribution(engine)) {
+        population[i] = trial[i];
+        residual[i] = residual_trial[i];
+        ++accepted;
+      }
+    }
+
+    // Traces.
+    int const min_index =
+        std::max_element(residual.begin(), residual.end()) - residual.begin();
+    if (best_residual > residual[min_index]) {
+      best_parameters = population[min_index];
+      best_residual = residual[min_index];
+    }
+
+    std::cout << "Generation " << generation << "; Acceptance: " << accepted
+              << " / " << population.size() << "\n";
+    std::cout << "Min  : " << residual[min_index] << ": "
+              << population[min_index] << "\n";
+    if (best_residual != residual[min_index]) {
+      std::cout << "Best : " << best_residual << ": " << best_parameters
+                << "\n";
+    }
+  }
+  return best_parameters;
+}
+
+}  // namespace deмcmc
 
 }  // namespace
 
@@ -166,20 +288,45 @@ INSTANTIATE_TEST_CASE_P(WHUCODE,
                              "COD0MGXFIN_20181260000_01D_05M_ORB.SP3"},
                         }));
 
+struct DYB;
+struct ReducedECOMParameters {
+  Vector<Acceleration, DYB> order_0_acceleration;
+  Acceleration Bc;
+  Acceleration Bs;
+};
+
+std::ostream& operator<<(std::ostream& out, ReducedECOMParameters const& parameters) {
+  return out << parameters.order_0_acceleration << ", (" << parameters.Bc
+             << ", " << parameters.Bs << ")";
+}
+
+ReducedECOMParameters operator+(ReducedECOMParameters const& left,
+                                ReducedECOMParameters const& right) {
+  return {left.order_0_acceleration + right.order_0_acceleration,
+          left.Bc + right.Bc,
+          left.Bs + right.Bs};
+}
+
+ReducedECOMParameters operator-(ReducedECOMParameters const& left,
+                                ReducedECOMParameters const& right) {
+  return {left.order_0_acceleration - right.order_0_acceleration,
+          left.Bc - right.Bc,
+          left.Bs - right.Bs};
+}
+
+ReducedECOMParameters operator*(double const left,
+                                ReducedECOMParameters const& right) {
+  return {left * right.order_0_acceleration, left * right.Bc, left * right.Bs};
+}
+
 TEST_P(SolarRadiationPressureTest, ReducedECOM) {
   for (auto const& satellite : sp3_.satellites()) {
-    struct DYB;
-    struct ReducedECOMParameters {
-      Vector<Acceleration, DYB> order_0_acceleration;
-      Acceleration Bc;
-      Acceleration Bs;
-    };
     ReducedECOMParameters candidate;
     std::mt19937_64 engine(1729);
-    double temperature = 1;
     auto solar_radiation_pressure =
-        [this, &candidate](Instant const& t,
-                           DegreesOfFreedom<ICRS> const& satellite_dof)
+        [this](ReducedECOMParameters const parameters,
+               Instant const& t,
+               DegreesOfFreedom<ICRS> const& satellite_dof)
         -> Vector<Acceleration, ICRS> {
       DegreesOfFreedom<ICRS> const earth_dof =
           earth_trajectory_.EvaluateDegreesOfFreedom(t);
@@ -207,52 +354,48 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {
           ArcSin(earth_->mean_radius() / r.Norm())) {
         return Vector<Acceleration, ICRS>();
       }
-      return to_icrs(candidate.order_0_acceleration +
+      return to_icrs(parameters.order_0_acceleration +
                      Vector<Acceleration, DYB>(
                          {0 * Metre / Pow<2>(Second),
                           0 * Metre / Pow<2>(Second),
-                          candidate.Bc * Cos(u) + candidate.Bs * Sin(u)}));
+                          parameters.Bc * Cos(u) + parameters.Bs * Sin(u)}));
     };
-    LOG(INFO) << satellite
-              << " no SRP: " << Residual(satellite, solar_radiation_pressure);
-    ReducedECOMParameters parameters = {
-        Vector<Acceleration, DYB>({1e-7 * Metre / Pow<2>(Second),
-                                   0 * Metre / Pow<2>(Second),
-                                   0 * Metre / Pow<2>(Second)}),
-        0 * Metre / Pow<2>(Second),
-        0 * Metre / Pow<2>(Second)};
-    candidate = parameters;
-    Length last_residual = Residual(satellite, solar_radiation_pressure);
-
-    for (;;) {
-      candidate = {
-          parameters.order_0_acceleration +
-              Vector<Acceleration, DYB>({std::normal_distribution()(engine) *
-                                             (1e-9 * Metre / Pow<2>(Second)),
-                                         std::normal_distribution()(engine) *
-                                             (1e-10 * Metre / Pow<2>(Second)),
-                                         std::normal_distribution()(engine) *
-                                             (1e-10 * Metre / Pow<2>(Second))}),
-          parameters.Bc + std::normal_distribution()(engine) *
-                              (1e-10 * Metre / Pow<2>(Second)),
-          parameters.Bs + std::normal_distribution()(engine) *
-                              (1e-10 * Metre / Pow<2>(Second)),
-      };
-      Length const candidate_residual =
-          Residual(satellite, solar_radiation_pressure);
-      if (candidate_residual < last_residual ||
-          std::uniform_real_distribution()(engine) < temperature) {
-        LOG(INFO) << satellite << " " << candidate_residual << " "
-                  << candidate.order_0_acceleration << ", (" << candidate.Bc
-                  << ", " << candidate.Bs << "); T = " << temperature;
-        last_residual = candidate_residual;
-        parameters = candidate;
-      }
-      temperature /= 1 + temperature / 100;
-      if (temperature < 0.01) {
-        break;
-      }
+    std::cout << satellite << " no SRP: "
+              << Residual(satellite,
+                          std::bind(solar_radiation_pressure,
+                                    ReducedECOMParameters{},
+                                    _1, _2)) << "\n";
+    std::vector<ReducedECOMParameters> population(
+        10,
+        ReducedECOMParameters{
+            Vector<Acceleration, DYB>({1e-7 * Metre / Pow<2>(Second),
+                                       0 * Metre / Pow<2>(Second),
+                                       0 * Metre / Pow<2>(Second)}),
+            0 * Metre / Pow<2>(Second),
+            0 * Metre / Pow<2>(Second)});
+    for (auto& parameters : population) {
+      parameters.order_0_acceleration += Vector<Acceleration, DYB>(
+          {std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second)),
+           std::normal_distribution()(engine) * (1e-9 * Metre / Pow<2>(Second)),
+           std::normal_distribution()(engine) *
+               (1e-9 * Metre / Pow<2>(Second))});
+      parameters.Bc +=
+          std::normal_distribution()(engine) * (1e-9 * Metre / Pow<2>(Second));
+      parameters.Bs +=
+          std::normal_distribution()(engine) * (1e-9 * Metre / Pow<2>(Second));
     }
+    deмcmc::Run<ReducedECOMParameters>(
+        population,
+        10'000,
+        30,
+        10,
+        0.05,
+        [this, satellite, &solar_radiation_pressure](
+            ReducedECOMParameters const parameters) {
+          return Residual(
+              satellite,
+              std::bind(solar_radiation_pressure, parameters, _1, _2));
+        });
   }
 }
 
