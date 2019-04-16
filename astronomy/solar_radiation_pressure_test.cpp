@@ -230,10 +230,7 @@ class SolarRadiationPressureTest : public TestWithParam<StandardProduct3Args> {
                    Ephemeris<ICRS>::GeneralizedIntrinsicAcceleration const&
                        solar_radiation_pressure,
                    std::string& info) const {
-    auto initial_it = sp3_.orbit(satellite).front()->Begin();
-    for (int i = 0; i < 4; ++i) {
-      ++initial_it;
-    }
+    auto const initial_it = sp3_.orbit(satellite).front()->Begin();
     DiscreteTrajectory<ICRS> integrated;
     integrated.Append(initial_it.time(),
                       itrs_.FromThisFrameAtTime(initial_it.time())(
@@ -294,11 +291,11 @@ SolarSystem<ICRS> const SolarRadiationPressureTest::solar_system_2010_(
         "sol_initial_state_jd_2455200_500000000.proto.txt");
 std::unique_ptr<Ephemeris<ICRS>> SolarRadiationPressureTest::static_ephemeris_;
 
-INSTANTIATE_TEST_CASE_P(WHUCODE,
+INSTANTIATE_TEST_CASE_P(NGA,
                         SolarRadiationPressureTest,
                         ValuesIn(std::vector<StandardProduct3Args>{
                             {SOLUTION_DIR / "astronomy" / "standard_product_3" /
-                                 "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
+                                 "nga20342.eph",
                              StandardProduct3::Dialect::ChineseMGEX},
                             {SOLUTION_DIR / "astronomy" / "standard_product_3" /
                              "COD0MGXFIN_20181260000_01D_05M_ORB.SP3"},
@@ -392,14 +389,14 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {
             0 * Metre / Pow<2>(Second)});
     for (auto& parameters : population) {
       parameters.order_0_acceleration += Vector<Acceleration, DYB>(
-          {std::normal_distribution()(engine) * (1e-7 * Metre / Pow<2>(Second)),
-           std::normal_distribution()(engine) * (1e-7 * Metre / Pow<2>(Second)),
+          {std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second)),
+           std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second)),
            std::normal_distribution()(engine) *
-               (1e-7 * Metre / Pow<2>(Second))});
+               (1e-8 * Metre / Pow<2>(Second))});
       parameters.Bc +=
-          std::normal_distribution()(engine) * (1e-7 * Metre / Pow<2>(Second));
+          std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second));
       parameters.Bs +=
-          std::normal_distribution()(engine) * (1e-7 * Metre / Pow<2>(Second));
+          std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second));
     }
     deмcmc::Run<ReducedECOMParameters>(
         population,
