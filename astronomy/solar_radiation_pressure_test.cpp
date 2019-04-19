@@ -154,7 +154,7 @@ Parameters Run(std::vector<Parameters>& population,
                          ? 0.01
                          : generation % number_of_generations_between_kicks == 0
                                ? 1.0
-                               : 2.38 / Sqrt(2 * 5);
+                               : 2.38 / Sqrt(2 * 11);
 
     // Evaluate model for each set of trial parameters.
     auto const trial = GenerateTrialStates(population, γ, ε, engine);
@@ -227,6 +227,7 @@ class SolarRadiationPressureTest : public TestWithParam<StandardProduct3Args> {
         itrs_(&ephemeris_, earth_) {}
 
   double Computeχ²(StandardProduct3::SatelliteIdentifier const& satellite,
+                   physics::RelativeDegreesOfFreedom<ITRS> const& initial_velocity,
                    Ephemeris<ICRS>::GeneralizedIntrinsicAcceleration const&
                        solar_radiation_pressure,
                    std::string& info) const {
@@ -234,7 +235,7 @@ class SolarRadiationPressureTest : public TestWithParam<StandardProduct3Args> {
     DiscreteTrajectory<ICRS> integrated;
     integrated.Append(initial_it.time(),
                       itrs_.FromThisFrameAtTime(initial_it.time())(
-                          initial_it.degrees_of_freedom()));
+                          initial_it.degrees_of_freedom() + initial_velocity));
     double χ² = 0;
     Square<Length> max_residual;
     int n = 0;
@@ -263,11 +264,13 @@ class SolarRadiationPressureTest : public TestWithParam<StandardProduct3Args> {
                  integrated.last().degrees_of_freedom()).position() -
              it.degrees_of_freedom().position()).Norm²();
         // TODO(egg): use an actual uncertainty here.
-        χ² += residual / Pow<2>(Metre);
+        χ² += residual / Pow<2>(Pow<5>(1.25) * Milli(Metre));
         max_residual = std::max(max_residual, residual);
       }
     }
-    info = DebugString(Sqrt(max_residual));
+    info = (std::stringstream() << u8"χ² = " << χ²  << u8" χ²/ν = " <<
+            χ² / (3 * (integrated.Size() - 1) - 11) << " max error = "
+            << Sqrt(max_residual)).str();
     return χ²;
   }
 
@@ -295,7 +298,7 @@ INSTANTIATE_TEST_CASE_P(NGA,
                         SolarRadiationPressureTest,
                         ValuesIn(std::vector<StandardProduct3Args>{
                             {SOLUTION_DIR / "astronomy" / "standard_product_3" /
-                                 "nga20342.eph",
+                                 "COD0MGXFIN_20181260000_01D_05M_ORB.SP3",
                              StandardProduct3::Dialect::ChineseMGEX},
                             {SOLUTION_DIR / "astronomy" / "standard_product_3" /
                              "COD0MGXFIN_20181260000_01D_05M_ORB.SP3"},
@@ -303,6 +306,9 @@ INSTANTIATE_TEST_CASE_P(NGA,
 
 struct DYB;
 struct ReducedECOMParameters {
+  physics::RelativeDegreesOfFreedom<ITRS> initial_velocity = {
+      Displacement<ITRS>(),
+      Velocity<ITRS>()};
   Vector<Acceleration, DYB> order_0_acceleration;
   Acceleration Bc;
   Acceleration Bs;
@@ -310,26 +316,31 @@ struct ReducedECOMParameters {
 
 std::ostream& operator<<(std::ostream& out, ReducedECOMParameters const& parameters) {
   return out << parameters.order_0_acceleration << ", (" << parameters.Bc
-             << ", " << parameters.Bs << ")";
+             << ", " << parameters.Bs << "), " << parameters.initial_velocity;
 }
 
 ReducedECOMParameters operator+(ReducedECOMParameters const& left,
                                 ReducedECOMParameters const& right) {
-  return {left.order_0_acceleration + right.order_0_acceleration,
+  return {left.initial_velocity + right.initial_velocity,
+          left.order_0_acceleration + right.order_0_acceleration,
           left.Bc + right.Bc,
           left.Bs + right.Bs};
 }
 
 ReducedECOMParameters operator-(ReducedECOMParameters const& left,
                                 ReducedECOMParameters const& right) {
-  return {left.order_0_acceleration - right.order_0_acceleration,
+  return {left.initial_velocity - right.initial_velocity,
+          left.order_0_acceleration - right.order_0_acceleration,
           left.Bc - right.Bc,
           left.Bs - right.Bs};
 }
 
 ReducedECOMParameters operator*(double const left,
                                 ReducedECOMParameters const& right) {
-  return {left * right.order_0_acceleration, left * right.Bc, left * right.Bs};
+  return {left * right.initial_velocity,
+          left * right.order_0_acceleration,
+          left * right.Bc,
+          left * right.Bs};
 }
 
 TEST_P(SolarRadiationPressureTest, ReducedECOM) {
@@ -375,6 +386,7 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {
     };
     std::string info;
     Computeχ²(satellite,
+              {Displacement<ITRS>{}, Velocity<ITRS>{}},
               std::bind(solar_radiation_pressure,
                         ReducedECOMParameters{}, _1, _2),
               info);
@@ -382,12 +394,22 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {
     std::vector<ReducedECOMParameters> population(
         120,
         ReducedECOMParameters{
+            {Displacement<ITRS>{}, Velocity<ITRS>{}},
             Vector<Acceleration, DYB>({-1e-7 * Metre / Pow<2>(Second),
                                        0 * Metre / Pow<2>(Second),
                                        0 * Metre / Pow<2>(Second)}),
             0 * Metre / Pow<2>(Second),
             0 * Metre / Pow<2>(Second)});
     for (auto& parameters : population) {
+      parameters.initial_velocity +=
+          {Displacement<ITRS>(
+               {std::normal_distribution()(engine) * (1e-3 * Metre),
+                std::normal_distribution()(engine) * (1e-3 * Metre),
+                std::normal_distribution()(engine) * (1e-3 * Metre)}),
+           Velocity<ITRS>(
+               {std::normal_distribution()(engine) * (1e-4 * Metre / Second),
+                std::normal_distribution()(engine) * (1e-4 * Metre / Second),
+                std::normal_distribution()(engine) * (1e-4 * Metre / Second)})};
       parameters.order_0_acceleration += Vector<Acceleration, DYB>(
           {std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second)),
            std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second)),
@@ -410,6 +432,7 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {
           double const χ² =
               Computeχ²(
                   satellite,
+                  parameters.initial_velocity,
                   std::bind(solar_radiation_pressure, parameters, _1, _2),
                   info);
           info += (std::stringstream() << ": " << parameters).str();
