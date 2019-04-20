@@ -201,6 +201,7 @@ class SolarRadiationPressureTest : public TestWithParam<StandardProduct3Args> {
   static void SetUpTestCase() {
     google::LogToStderr();
     if (static_ephemeris_ == nullptr) {
+      solar_system_2010_.LimitOblatenessToDegree("Earth", 2);
       static_ephemeris_ = solar_system_2010_.MakeEphemeris(
           /*accuracy_parameters=*/{/*fitting_tolerance=*/5 * Milli(Metre),
                                    /*geopotential_tolerance=*/0x1p-24},
@@ -275,7 +276,7 @@ class SolarRadiationPressureTest : public TestWithParam<StandardProduct3Args> {
   }
 
  private:
-  static SolarSystem<ICRS> const solar_system_2010_;
+  static SolarSystem<ICRS> solar_system_2010_;
   static std::unique_ptr<Ephemeris<ICRS>> static_ephemeris_;
 
  protected:
@@ -288,7 +289,7 @@ class SolarRadiationPressureTest : public TestWithParam<StandardProduct3Args> {
   BodySurfaceDynamicFrame<ICRS, ITRS> const itrs_;
 };
 
-SolarSystem<ICRS> const SolarRadiationPressureTest::solar_system_2010_(
+SolarSystem<ICRS> SolarRadiationPressureTest::solar_system_2010_(
     SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
     SOLUTION_DIR / "astronomy" /
         "sol_initial_state_jd_2455200_500000000.proto.txt");
@@ -343,7 +344,28 @@ ReducedECOMParameters operator*(double const left,
           left * right.Bs};
 }
 
-TEST_P(SolarRadiationPressureTest, ReducedECOM) {
+TEST_P(SolarRadiationPressureTest, ReducedECOM) {/*
+  LOG(ERROR) << "===============================================";
+  Instant const t = "2010-06-01T12:00:00"_TT;
+  LOG(ERROR) << sun_trajectory_.EvaluateDegreesOfFreedom(t);
+  LOG(ERROR) << sun_trajectory_.EvaluateDegreesOfFreedom(t) -
+                    earth_trajectory_.EvaluateDegreesOfFreedom(t);
+  LOG(ERROR) << itrs_.ToThisFrameAtTime(t)(
+      sun_trajectory_.EvaluateDegreesOfFreedom(t));
+  LOG(ERROR) << (itrs_
+                     .ToThisFrameAtTime(t)(
+                         sun_trajectory_.EvaluateDegreesOfFreedom(t))
+                     .position() -
+                 ITRS::origin)
+                    .coordinates()
+                    .ToSpherical();
+  LOG(ERROR) << itrs_
+                    .ToThisFrameAtTime(t)(
+                        sun_trajectory_.EvaluateDegreesOfFreedom(t))
+                    .velocity()
+                    .coordinates()
+                    .ToSpherical();
+  LOG(FATAL) << "===============================================";*/
   for (auto const& satellite : sp3_.satellites()) {
     ReducedECOMParameters candidate;
     std::mt19937_64 engine(1729);
@@ -422,7 +444,7 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {
     }
     deмcmc::Run<ReducedECOMParameters>(
         population,
-        10'000,
+        1'147,
         30,
         10,
         0.05,
@@ -438,6 +460,7 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {
           info += (std::stringstream() << ": " << parameters).str();
           return -χ² / 2;
         });
+        return;
   }
 }
 

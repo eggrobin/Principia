@@ -332,6 +332,40 @@ TEST_P(LunarOrbitTest, NearCircularRepeatGroundTrackOrbit) {
       Velocity<LunarSurface>({u0, v0, w0})};
 
   ephemeris_->Prolong(J2000);
+
+  LOG(FATAL) << "\n"
+             << lunar_frame_.FromThisFrameAtTime(J2000)
+                    .rigid_transformation()
+                    .linear_map()(Vector<double, LunarSurface>({0, 0, 1}))
+             << "\n"
+             << AngleBetween(
+                    lunar_frame_.FromThisFrameAtTime(J2000)
+                        .rigid_transformation()
+                        .linear_map()(Vector<double, LunarSurface>({1, 0, 0})),
+                    ephemeris_
+                            ->trajectory(solar_system_2000_.massive_body(
+                                *ephemeris_, "Earth"))
+                            ->EvaluatePosition(J2000) -
+                        ephemeris_
+                            ->trajectory(solar_system_2000_.massive_body(
+                                *ephemeris_, "Moon"))
+                            ->EvaluatePosition(J2000)) /
+                    Degree
+             << "\n"
+             << AngleBetween(
+                    lunar_frame_.FromThisFrameAtTime(J2000)
+                        .rigid_transformation()
+                        .linear_map()(Vector<double, LunarSurface>({0, 1, 0})),
+                    ephemeris_
+                            ->trajectory(solar_system_2000_.massive_body(
+                                *ephemeris_, "Earth"))
+                            ->EvaluateVelocity(J2000) -
+                        ephemeris_
+                            ->trajectory(solar_system_2000_.massive_body(
+                                *ephemeris_, "Moon"))
+                            ->EvaluateVelocity(J2000)) /
+                    Degree;
+
   DegreesOfFreedom<ICRS> const initial_state =
       lunar_frame_.FromThisFrameAtTime(J2000)(lunar_initial_state);
 
