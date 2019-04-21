@@ -400,13 +400,17 @@ TEST_F(GeopotentialTest, GeostationaryLongitudinalAcceleration) {
 
   auto const J22 = Sqrt(
       5.0 / 12.0 * (Pow<2>(earth.cos()[2][2]) + Pow<2>(earth.sin()[2][2])));
+  using numerics::LegendreNormalizationFactor;
+  auto const J22p = Sqrt(
+      Pow<2>(LegendreNormalizationFactor[2][2] * earth.cos()[2][2]) +
+      Pow<2>(LegendreNormalizationFactor[2][2] * earth.sin()[2][2]));
   auto const J31 =
       Sqrt(7.0 / 6.0 * (Pow<2>(earth.cos()[3][1]) + Pow<2>(earth.sin()[3][1])));
   auto const J33 = Sqrt(
       7.0 / 360.0 * (Pow<2>(earth.cos()[3][3]) + Pow<2>(earth.sin()[3][3])));
   double const ηGS = 42'165.785 * Kilo(Metre) / R;
   auto const ΩʹT = earth.angular_frequency();
-  LOG(ERROR) << J22;
+  LOG(ERROR) << J22 << " = " << J22p;
   LOG(ERROR) << J31;
   LOG(ERROR) << J33;
   LOG(ERROR) << λ22 / Degree;
@@ -460,7 +464,8 @@ TEST_F(GeopotentialTest, GeostationaryLongitudinalAcceleration) {
         << λʺ(λ) / (Degree / Pow<2>(quantities::si::Day))
         << " " << InnerProduct(acceleration, north * Normalize(r)) *
                       Radian / r.Norm() /
-                      (Degree / Pow<2>(quantities::si::Day)) << "\n"
+                      (Degree / Pow<2>(quantities::si::Day))
+        << " " << InnerProduct(acceleration, north * Normalize(r)) << "\n"
         << λʺ22(λ) / (Degree / Pow<2>(quantities::si::Day))
         << " " << InnerProduct(acceleration_term(2, 2), north * Normalize(r)) *
                       Radian / r.Norm() /
