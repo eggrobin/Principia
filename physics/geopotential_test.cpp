@@ -348,8 +348,7 @@ TEST_F(GeopotentialTest, GeostationaryLongitudinalAcceleration) {
   auto earth_message = solar_system_2000.gravity_model_message("Earth");
 
   auto const μ = solar_system_2000.gravitational_parameter("Earth");
-  auto const earth_reference_radius =
-      ParseQuantity<Length>(earth_message.reference_radius());
+  auto const R = ParseQuantity<Length>(earth_message.reference_radius());
   MassiveBody::Parameters const massive_body_parameters(μ);
   RotatingBody<ICRS>::Parameters rotating_body_parameters(
       /*mean_radius=*/solar_system_2000.mean_radius("Earth"),
@@ -363,8 +362,38 @@ TEST_F(GeopotentialTest, GeostationaryLongitudinalAcceleration) {
       massive_body_parameters,
       rotating_body_parameters,
       OblateBody<ICRS>::Parameters::ReadFromMessage(
-          earth_message.geopotential(), earth_reference_radius));
+          earth_message.geopotential(), R));
   Geopotential<ICRS> const geopotential(&earth, /*tolerance=*/0);
+
+  auto const geopotential_term = [&earth_message,
+                                  &earth,
+                                  &massive_body_parameters,
+                                  &rotating_body_parameters,
+                                  &R](int n, int m) {
+    static std::map<std::pair<int, int>, OblateBody<ICRS> const> earths;
+    if (auto const it = earths.find({n, m}); it != earths.end()) {
+      return Geopotential<ICRS>(&it->second, /*tolerance=*/0);
+    }
+    serialization::OblateBody::Geopotential geopotential =
+        earth_message.geopotential();
+    geopotential.clear_row();
+    auto* const row = geopotential.add_row();
+    auto* const column = row->add_column();
+    row->set_degree(n);
+    column->set_order(m);
+    column->set_cos(earth.cos()[n][m]);
+    column->set_sin(earth.sin()[n][m]);
+    auto const [it, inserted] = earths.emplace(
+        std::piecewise_construct,
+        std::forward_as_tuple(n, m),
+        std::forward_as_tuple(
+            massive_body_parameters,
+            rotating_body_parameters,
+            OblateBody<ICRS>::Parameters::ReadFromMessage(geopotential, R)));
+    CHECK(inserted);
+    return Geopotential<ICRS>(&it->second, /*tolerance=*/0);
+  };
+
   auto const λ22 = ArcTan(earth.sin()[2][2], earth.cos()[2][2]) / 2;
   auto const λ31 = ArcTan(earth.sin()[3][1], earth.cos()[3][1]);
   auto const λ33 = ArcTan(earth.sin()[3][3], earth.cos()[3][3]) / 3;
@@ -375,7 +404,7 @@ TEST_F(GeopotentialTest, GeostationaryLongitudinalAcceleration) {
       Sqrt(7.0 / 6.0 * (Pow<2>(earth.cos()[3][1]) + Pow<2>(earth.sin()[3][1])));
   auto const J33 = Sqrt(
       7.0 / 360.0 * (Pow<2>(earth.cos()[3][3]) + Pow<2>(earth.sin()[3][3])));
-  double const ηGS = 42'165.785 * Kilo(Metre) / earth.reference_radius();
+  double const ηGS = 42'165.785 * Kilo(Metre) / R;
   auto const ΩʹT = earth.angular_frequency();
   LOG(ERROR) << J22;
   LOG(ERROR) << J31;
@@ -392,20 +421,58 @@ TEST_F(GeopotentialTest, GeostationaryLongitudinalAcceleration) {
         1 / ηGS * (-3.0/2.0 * J31 * Sin(λ - λ31) +
                     45 * J33 * Sin(3 * (λ - λ33))));
   };
+  auto const λʺ22 = [=](Angle const λ) {
+    return 3 * Pow<2>(ΩʹT / ηGS) / Radian * (
+        6 * J22 * Sin(2 * (λ - λ22)));
+  };
+  auto const λʺ31 = [=](Angle const λ) {
+    return 3 * Pow<2>(ΩʹT / ηGS) / Radian * (
+        1 / ηGS * (-3.0/2.0 * J31 * Sin(λ - λ31)));
+  };
+  auto const λʺ33 = [=](Angle const λ) {
+    return 3 * Pow<2>(ΩʹT / ηGS) / Radian * (
+        1 / ηGS * (45 * J33 * Sin(3 * (λ - λ33))));
+  };
   for (Angle λ = 0 * Radian; λ < 2 * π * Radian; λ += 1 * Degree) {
     Instant t;
     struct Terrestrial;
     auto const r = Displacement<Terrestrial>(geometry::RadiusLatitudeLongitude(
-        ηGS * earth.reference_radius(), 0 * Degree, λ).ToCartesian());
+        ηGS * R, 0 * Degree, λ).ToCartesian());
     auto const north = Bivector<double, Terrestrial>({0, 0, 1});
     auto const r_geocentric = earth.FromSurfaceFrame<Terrestrial>(t)(r);
+
     auto const acceleration = -μ * earth.ToSurfaceFrame<Terrestrial>(t)(
         geopotential.GeneralSphericalHarmonicsAcceleration(
             t, r_geocentric, r.Norm(), r.Norm²(), 1 / (r.Norm() * r.Norm²())));
-    LOG(ERROR) << λʺ(λ) / (Degree / Pow<2>(quantities::si::Day))
-    << " " << InnerProduct(acceleration, north * Normalize(r)) *
+    auto const acceleration_term =
+        [&geopotential_term, &earth, t, r_geocentric, r, μ](int n, int m) {
+          return -μ * earth.ToSurfaceFrame<Terrestrial>(t)(
+                          geopotential_term(n, m)
+                              .GeneralSphericalHarmonicsAcceleration(
+                                  t,
+                                  r_geocentric,
+                                  r.Norm(),
+                                  r.Norm²(),
+                                  1 / (r.Norm() * r.Norm²())));
+        };
+
+    std::cout << λ / Degree << ":\n"
+        << λʺ(λ) / (Degree / Pow<2>(quantities::si::Day))
+        << " " << InnerProduct(acceleration, north * Normalize(r)) *
                       Radian / r.Norm() /
-                      (Degree / Pow<2>(quantities::si::Day));
+                      (Degree / Pow<2>(quantities::si::Day)) << "\n"
+        << λʺ22(λ) / (Degree / Pow<2>(quantities::si::Day))
+        << " " << InnerProduct(acceleration_term(2, 2), north * Normalize(r)) *
+                      Radian / r.Norm() /
+                      (Degree / Pow<2>(quantities::si::Day)) << "\n"
+        << λʺ31(λ) / (Degree / Pow<2>(quantities::si::Day))
+        << " " << InnerProduct(acceleration_term(3, 1), north * Normalize(r)) *
+                      Radian / r.Norm() /
+                      (Degree / Pow<2>(quantities::si::Day)) << "\n"
+        << λʺ33(λ) / (Degree / Pow<2>(quantities::si::Day))
+        << " " << InnerProduct(acceleration_term(3, 3), north * Normalize(r)) *
+                      Radian / r.Norm() /
+                      (Degree / Pow<2>(quantities::si::Day)) << "\n";
   }
 }
 
