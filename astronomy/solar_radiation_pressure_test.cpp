@@ -201,7 +201,7 @@ class SolarRadiationPressureTest : public TestWithParam<StandardProduct3Args> {
   static void SetUpTestCase() {
     google::LogToStderr();
     if (static_ephemeris_ == nullptr) {
-      solar_system_2010_.LimitOblatenessToDegree("Earth", 2);
+      //solar_system_2010_.LimitOblatenessToDegree("Earth", 2);
       static_ephemeris_ = solar_system_2010_.MakeEphemeris(
           /*accuracy_parameters=*/{/*fitting_tolerance=*/5 * Milli(Metre),
                                    /*geopotential_tolerance=*/0x1p-40},
