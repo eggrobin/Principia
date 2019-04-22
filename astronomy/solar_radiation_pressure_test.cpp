@@ -299,10 +299,10 @@ INSTANTIATE_TEST_CASE_P(NGA,
                         SolarRadiationPressureTest,
                         ValuesIn(std::vector<StandardProduct3Args>{
                             {SOLUTION_DIR / "astronomy" / "standard_product_3" /
-                             "COD0MGXFIN_20181260000_01D_05M_ORB.SP3"},
-                            {SOLUTION_DIR / "astronomy" / "standard_product_3" /
-                                 "COD0MGXFIN_20181260000_01D_05M_ORB.SP3",
+                                 "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
                              StandardProduct3::Dialect::ChineseMGEX},
+                            {SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                             "COD0MGXFIN_20181260000_01D_05M_ORB.SP3"},
                         }));
 
 struct DYB;
@@ -353,28 +353,7 @@ ReducedECOMParameters operator*(double const left,
           left * right.B1s};
 }
 
-TEST_P(SolarRadiationPressureTest, ReducedECOM) {/*
-  LOG(ERROR) << "===============================================";
-  Instant const t = "2010-06-01T12:00:00"_TT;
-  LOG(ERROR) << sun_trajectory_.EvaluateDegreesOfFreedom(t);
-  LOG(ERROR) << sun_trajectory_.EvaluateDegreesOfFreedom(t) -
-                    earth_trajectory_.EvaluateDegreesOfFreedom(t);
-  LOG(ERROR) << itrs_.ToThisFrameAtTime(t)(
-      sun_trajectory_.EvaluateDegreesOfFreedom(t));
-  LOG(ERROR) << (itrs_
-                     .ToThisFrameAtTime(t)(
-                         sun_trajectory_.EvaluateDegreesOfFreedom(t))
-                     .position() -
-                 ITRS::origin)
-                    .coordinates()
-                    .ToSpherical();
-  LOG(ERROR) << itrs_
-                    .ToThisFrameAtTime(t)(
-                        sun_trajectory_.EvaluateDegreesOfFreedom(t))
-                    .velocity()
-                    .coordinates()
-                    .ToSpherical();
-  LOG(FATAL) << "===============================================";*/
+TEST_P(SolarRadiationPressureTest, ReducedECOM) {
   for (auto const& satellite : sp3_.satellites()) {
     ReducedECOMParameters candidate;
     std::mt19937_64 engine(1729);
@@ -407,7 +386,7 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {/*
       // umbra and penumbra.
       if (AngleBetween(satellite_to_sun, -r) <
           ArcSin(earth_->mean_radius() / r.Norm())) {
-        return Vector<Acceleration, ICRS>();
+        LOG(FATAL) << "Eclipse";
       }
       return to_icrs(
           parameters.order_0_acceleration +
