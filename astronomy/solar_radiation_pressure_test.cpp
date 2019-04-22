@@ -512,8 +512,15 @@ TEST_P(SolarRadiationPressureTest, GPS) {
     total_square += Pow<2>(deviation);
     ++n;
   }
-  LOG(ERROR) << "RMS: " << Sqrt(total_square / n);
-  FAIL();
+  LOG(ERROR)
+      << GetParam() << "; no SRP; geopotential "
+      << ((physics::OblateBody<ICRS> const&)*earth_).geopotential_degree()
+      << u8"×"
+      << (((physics::OblateBody<ICRS> const&)*earth_).is_zonal()
+              ? 0
+              : ((physics::OblateBody<ICRS> const&)*earth_)
+                    .geopotential_degree())
+      << "; GPS RMS: " << Sqrt(total_square / n);
 }
 
 TEST_P(SolarRadiationPressureTest, Galileo) {
@@ -526,8 +533,15 @@ TEST_P(SolarRadiationPressureTest, Galileo) {
     total_square += Pow<2>(ComputeOneDayDeviation(satellite));
     ++n;
   }
-  LOG(ERROR) << "RMS: " << Sqrt(total_square / n);
-  FAIL();
+  LOG(ERROR)
+      << GetParam() << "; no SRP; geopotential "
+      << ((physics::OblateBody<ICRS> const&)*earth_).geopotential_degree()
+      << u8"×"
+      << (((physics::OblateBody<ICRS> const&)*earth_).is_zonal()
+              ? 0
+              : ((physics::OblateBody<ICRS> const&)*earth_)
+                    .geopotential_degree())
+      << " Galileo RMS: " << Sqrt(total_square / n);
 }
 
 }  // namespace astronomy
