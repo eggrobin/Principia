@@ -154,7 +154,7 @@ Parameters Run(std::vector<Parameters>& population,
                          ? 0.01
                          : generation % number_of_generations_between_kicks == 0
                                ? 1.0
-                               : 2.38 / Sqrt(2 * 11);
+                               : 2.38 / Sqrt(2 * 13);
 
     // Evaluate model for each set of trial parameters.
     auto const trial = GenerateTrialStates(population, γ, ε, engine);
@@ -204,7 +204,7 @@ class SolarRadiationPressureTest : public TestWithParam<StandardProduct3Args> {
       solar_system_2010_.LimitOblatenessToDegree("Earth", 2);
       static_ephemeris_ = solar_system_2010_.MakeEphemeris(
           /*accuracy_parameters=*/{/*fitting_tolerance=*/5 * Milli(Metre),
-                                   /*geopotential_tolerance=*/0x1p-24},
+                                   /*geopotential_tolerance=*/0x1p-40},
           Ephemeris<ICRS>::FixedStepParameters(
               SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
                                                  Position<ICRS>>(),
@@ -299,10 +299,10 @@ INSTANTIATE_TEST_CASE_P(NGA,
                         SolarRadiationPressureTest,
                         ValuesIn(std::vector<StandardProduct3Args>{
                             {SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                             "COD0MGXFIN_20181260000_01D_05M_ORB.SP3"},
+                            {SOLUTION_DIR / "astronomy" / "standard_product_3" /
                                  "COD0MGXFIN_20181260000_01D_05M_ORB.SP3",
                              StandardProduct3::Dialect::ChineseMGEX},
-                            {SOLUTION_DIR / "astronomy" / "standard_product_3" /
-                             "COD0MGXFIN_20181260000_01D_05M_ORB.SP3"},
                         }));
 
 struct DYB;
@@ -311,37 +311,46 @@ struct ReducedECOMParameters {
       Displacement<ITRS>(),
       Velocity<ITRS>()};
   Vector<Acceleration, DYB> order_0_acceleration;
-  Acceleration Bc;
-  Acceleration Bs;
+  Acceleration D2c;
+  Acceleration D2s;
+  Acceleration B1c;
+  Acceleration B1s;
 };
 
 std::ostream& operator<<(std::ostream& out, ReducedECOMParameters const& parameters) {
-  return out << parameters.order_0_acceleration << ", (" << parameters.Bc
-             << ", " << parameters.Bs << "), " << parameters.initial_velocity;
+  return out << parameters.order_0_acceleration << ", (" << parameters.D2c
+             << ", " << parameters.D2s << "), " << ", (" << parameters.B1c
+             << ", " << parameters.B1s << "), " << parameters.initial_velocity;
 }
 
 ReducedECOMParameters operator+(ReducedECOMParameters const& left,
                                 ReducedECOMParameters const& right) {
   return {left.initial_velocity + right.initial_velocity,
           left.order_0_acceleration + right.order_0_acceleration,
-          left.Bc + right.Bc,
-          left.Bs + right.Bs};
+          left.D2c + right.D2c,
+          left.D2s + right.D2s,
+          left.B1c + right.B1c,
+          left.B1s + right.B1s};
 }
 
 ReducedECOMParameters operator-(ReducedECOMParameters const& left,
                                 ReducedECOMParameters const& right) {
   return {left.initial_velocity - right.initial_velocity,
           left.order_0_acceleration - right.order_0_acceleration,
-          left.Bc - right.Bc,
-          left.Bs - right.Bs};
+          left.D2c - right.D2c,
+          left.D2s - right.D2s,
+          left.B1c - right.B1c,
+          left.B1s - right.B1s};
 }
 
 ReducedECOMParameters operator*(double const left,
                                 ReducedECOMParameters const& right) {
   return {left * right.initial_velocity,
           left * right.order_0_acceleration,
-          left * right.Bc,
-          left * right.Bs};
+          left * right.D2c,
+          left * right.D2s,
+          left * right.B1c,
+          left * right.B1s};
 }
 
 TEST_P(SolarRadiationPressureTest, ReducedECOM) {/*
@@ -400,11 +409,12 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {/*
           ArcSin(earth_->mean_radius() / r.Norm())) {
         return Vector<Acceleration, ICRS>();
       }
-      return to_icrs(parameters.order_0_acceleration +
-                     Vector<Acceleration, DYB>(
-                         {0 * Metre / Pow<2>(Second),
-                          0 * Metre / Pow<2>(Second),
-                          parameters.Bc * Cos(u) + parameters.Bs * Sin(u)}));
+      return to_icrs(
+          parameters.order_0_acceleration +
+          Vector<Acceleration, DYB>(
+              {parameters.D2c * Cos(2 * u) + parameters.D2s * Sin(2 * u),
+               0 * Metre / Pow<2>(Second),
+               parameters.B1c * Cos(u) + parameters.B1s * Sin(u)}));
     };
     std::string info;
     Computeχ²(satellite,
@@ -417,9 +427,11 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {/*
         120,
         ReducedECOMParameters{
             {Displacement<ITRS>{}, Velocity<ITRS>{}},
-            Vector<Acceleration, DYB>({-1e-7 * Metre / Pow<2>(Second),
+            Vector<Acceleration, DYB>({0 * Metre / Pow<2>(Second),
                                        0 * Metre / Pow<2>(Second),
                                        0 * Metre / Pow<2>(Second)}),
+            0 * Metre / Pow<2>(Second),
+            0 * Metre / Pow<2>(Second),
             0 * Metre / Pow<2>(Second),
             0 * Metre / Pow<2>(Second)});
     for (auto& parameters : population) {
@@ -433,21 +445,25 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {/*
                 std::normal_distribution()(engine) * (1e-4 * Metre / Second),
                 std::normal_distribution()(engine) * (1e-4 * Metre / Second)})};
       parameters.order_0_acceleration += Vector<Acceleration, DYB>(
-          {std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second)),
-           std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second)),
+          {std::normal_distribution()(engine) * (1e-7 * Metre / Pow<2>(Second)),
+           std::normal_distribution()(engine) * (1e-7 * Metre / Pow<2>(Second)),
            std::normal_distribution()(engine) *
-               (1e-8 * Metre / Pow<2>(Second))});
-      parameters.Bc +=
-          std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second));
-      parameters.Bs +=
-          std::normal_distribution()(engine) * (1e-8 * Metre / Pow<2>(Second));
+               (1e-7 * Metre / Pow<2>(Second))});
+      parameters.D2c +=
+          std::normal_distribution()(engine) * (1e-7 * Metre / Pow<2>(Second));
+      parameters.D2s +=
+          std::normal_distribution()(engine) * (1e-7 * Metre / Pow<2>(Second));
+      parameters.B1c +=
+          std::normal_distribution()(engine) * (1e-7 * Metre / Pow<2>(Second));
+      parameters.B1s +=
+          std::normal_distribution()(engine) * (1e-7 * Metre / Pow<2>(Second));
     }
     deмcmc::Run<ReducedECOMParameters>(
         population,
-        1'147,
-        30,
+        1000,
         10,
-        0.05,
+        10,
+        0.1,
         [this, satellite, &solar_radiation_pressure](
             ReducedECOMParameters const& parameters,
             std::string& info) {
@@ -460,7 +476,7 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {/*
           info += (std::stringstream() << ": " << parameters).str();
           return -χ² / 2;
         });
-        return;
+        LOG(FATAL) << "meow";
   }
 }
 
