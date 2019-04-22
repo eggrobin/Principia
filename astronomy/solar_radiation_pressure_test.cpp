@@ -7,6 +7,7 @@
 #include "base/bundle.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "mathematica/mathematica.hpp"
 #include "physics/body_surface_dynamic_frame.hpp"
 #include "physics/ephemeris.hpp"
 #include "physics/solar_system.hpp"
@@ -227,6 +228,39 @@ class SolarRadiationPressureTest : public TestWithParam<StandardProduct3Args> {
         sun_trajectory_(*ephemeris_.trajectory(sun_)),
         itrs_(&ephemeris_, earth_) {}
 
+  Length ComputeOneDayDeviation(
+      StandardProduct3::SatelliteIdentifier const& satellite) const {
+    auto const initial_it = sp3_.orbit(satellite).front()->Begin();
+    DiscreteTrajectory<ICRS> integrated;
+    integrated.Append(initial_it.time(),
+                      itrs_.FromThisFrameAtTime(initial_it.time())(
+                          initial_it.degrees_of_freedom()));
+    auto const& last = sp3_.orbit(satellite).back()->last();
+    Ephemeris<ICRS>::GeneralizedAdaptiveStepParameters parameters(
+        EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
+            Fine1987RKNG34,
+            Position<ICRS>>(),
+        /*max_steps=*/std::numeric_limits<int64_t>::max(),
+        /*length_integration_tolerance=*/1 * Milli(Metre),
+        /*speed_integration_tolerance=*/1 * Micro(Metre) / Second);
+    ephemeris_.FlowWithAdaptiveStep(
+        &integrated,
+        Ephemeris<ICRS>::NoIntrinsicAcceleration,
+        last.time(),
+        parameters,
+        /*max_ephemeris_steps=*/std::numeric_limits<int64_t>::max(),
+        /*last_point_only=*/true);
+    auto const result = (itrs_
+                             .ToThisFrameAtTime(last.time())(
+                                 integrated.last().degrees_of_freedom())
+                             .position() -
+                         last.degrees_of_freedom().position())
+                            .Norm();
+    LOG(ERROR) << result << " "
+               << (last.time() - initial_it.time()) / quantities::si::Hour;
+    return result;
+  }
+
   double Computeχ²(StandardProduct3::SatelliteIdentifier const& satellite,
                    physics::RelativeDegreesOfFreedom<ITRS> const& initial_velocity,
                    Ephemeris<ICRS>::GeneralizedIntrinsicAcceleration const&
@@ -295,14 +329,18 @@ SolarSystem<ICRS> SolarRadiationPressureTest::solar_system_2010_(
         "sol_initial_state_jd_2455200_500000000.proto.txt");
 std::unique_ptr<Ephemeris<ICRS>> SolarRadiationPressureTest::static_ephemeris_;
 
-INSTANTIATE_TEST_CASE_P(NGA,
+INSTANTIATE_TEST_CASE_P(SomeFiles,
                         SolarRadiationPressureTest,
                         ValuesIn(std::vector<StandardProduct3Args>{
                             {SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                             "COD0MGXFIN_20181260000_01D_05M_ORB.SP3"},
+                            {SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                             "COD0MGXFIN_20183640000_01D_05M_ORB.SP3"},
+                            {SOLUTION_DIR / "astronomy" / "standard_product_3" /
+                             "nga20342.eph"},
+                            {SOLUTION_DIR / "astronomy" / "standard_product_3" /
                                  "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
                              StandardProduct3::Dialect::ChineseMGEX},
-                            {SOLUTION_DIR / "astronomy" / "standard_product_3" /
-                             "COD0MGXFIN_20181260000_01D_05M_ORB.SP3"},
                         }));
 
 struct DYB;
@@ -457,6 +495,39 @@ TEST_P(SolarRadiationPressureTest, ReducedECOM) {
         });
         LOG(FATAL) << "meow";
   }
+}
+
+TEST_P(SolarRadiationPressureTest, GPS) {
+  Square<Length> total_square;
+  int n = 0;
+  std::vector<std::string> satellites;
+  std::vector<Length> deviations;
+  for (auto const& satellite : sp3_.satellites()) {
+    if (satellite.group != StandardProduct3::SatelliteGroup::GPS) {
+      continue;
+    }
+    Length const deviation = ComputeOneDayDeviation(satellite);
+    satellites.push_back((std::stringstream() << satellite).str());
+    deviations.push_back(deviation);
+    total_square += Pow<2>(deviation);
+    ++n;
+  }
+  LOG(ERROR) << "RMS: " << Sqrt(total_square / n);
+  FAIL();
+}
+
+TEST_P(SolarRadiationPressureTest, Galileo) {
+  Square<Length> total_square;
+  int n = 0;
+  for (auto const& satellite : sp3_.satellites()) {
+    if (satellite.group != StandardProduct3::SatelliteGroup::Galileo) {
+      continue;
+    }
+    total_square += Pow<2>(ComputeOneDayDeviation(satellite));
+    ++n;
+  }
+  LOG(ERROR) << "RMS: " << Sqrt(total_square / n);
+  FAIL();
 }
 
 }  // namespace astronomy
