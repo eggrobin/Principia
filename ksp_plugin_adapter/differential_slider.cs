@@ -48,6 +48,12 @@ internal class DifferentialSlider : ScalingRenderer {
     text_colour_ = text_colour;
   }
 
+  public double max_value {
+    set {
+      max_value_ = value;
+    }
+  }
+
   public double value {
     get {
       return value_ ?? 0.0;
@@ -77,15 +83,13 @@ internal class DifferentialSlider : ScalingRenderer {
       }
 
       if (enabled) {
-        var style = new UnityEngine.GUIStyle(UnityEngine.GUI.skin.textField);
-        style.alignment = UnityEngine.TextAnchor.MiddleRight;
-
-        // If the text is not syntactically correct, inform the user by drawing
-        // it in colour.  We don't expect to see the "red" case as we should
-        // revert to a parseable value on exit.
-        if (!parser_(formatted_value_, out double v1)) {
-          style.focused.textColor = XKCDColors.Orange;
-          style.normal.textColor = XKCDColors.Red;
+        // If the text is not syntactically correct, or it exceeds the upper
+        // bound, inform the user by drawing it in the warning style.  Note the
+        // fudge factor to account for uncertainty in text/double conversions.
+        var style = Style.RightAligned(UnityEngine.GUI.skin.textField);
+        if (!parser_(formatted_value_, out double v1) ||
+            v1 > max_value_ + 0.1) {
+          style = Style.Warning(style);
         }
 
         // Draw the text field and give it a name to be able to detect if it has
@@ -126,11 +130,9 @@ internal class DifferentialSlider : ScalingRenderer {
           }
         }
       } else {
-        var style = new UnityEngine.GUIStyle(UnityEngine.GUI.skin.label);
-        style.alignment = UnityEngine.TextAnchor.MiddleRight;
         UnityEngine.GUILayout.Label(
             text    : formatted_value_,
-            style   : style,
+            style   : Style.RightAligned(UnityEngine.GUI.skin.label),
             options : GUILayoutWidth(5 + (unit_ == null ? 2 : 0)));
       }
       UnityEngine.GUILayout.Label(
@@ -182,7 +184,6 @@ internal class DifferentialSlider : ScalingRenderer {
   private readonly double log10_upper_rate_ = 3.5;
   private readonly double zero_value_;
   private readonly double min_value_;
-  private readonly double max_value_;
 
   private readonly ValueFormatter formatter_;
   private readonly ValueParser parser_;
@@ -190,6 +191,7 @@ internal class DifferentialSlider : ScalingRenderer {
 
   private float slider_position_ = 0.0f;
   private DateTime last_time_;
+  private double max_value_;
   // It is convenient for the value to be nullable so that we have a way to
   // ensure that an assignment to it will actually have an effect and won't be
   // optimized due to the existing value.  This happens at initialization and

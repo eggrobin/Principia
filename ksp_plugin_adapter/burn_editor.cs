@@ -8,13 +8,11 @@ namespace ksp_plugin_adapter {
 
 class BurnEditor : ScalingRenderer {
   public BurnEditor(PrincipiaPluginAdapter adapter,
-                    IntPtr plugin,
                     Vessel vessel,
                     double initial_time,
                     int index,
                     BurnEditor previous_burn) {
     adapter_ = adapter;
-    plugin_ = plugin;
     vessel_ = vessel;
     index_ = index;
     previous_burn_ = previous_burn;
@@ -23,19 +21,19 @@ class BurnEditor : ScalingRenderer {
                                unit             : "m / s",
                                log10_lower_rate : Log10ΔvLowerRate,
                                log10_upper_rate : Log10ΔvUpperRate,
-                               text_colour      : XKCDColors.NeonYellow);
+                               text_colour      : Style.Tangent);
     Δv_normal_ =
         new DifferentialSlider(label            : "Δv normal",
                                unit             : "m / s",
                                log10_lower_rate : Log10ΔvLowerRate,
                                log10_upper_rate : Log10ΔvUpperRate,
-                               text_colour      : XKCDColors.AquaBlue);
+                               text_colour      : Style.Normal);
     Δv_binormal_ =
         new DifferentialSlider(label            : "Δv binormal",
                                unit             : "m / s",
                                log10_lower_rate : Log10ΔvLowerRate,
                                log10_upper_rate : Log10ΔvUpperRate,
-                               text_colour      : XKCDColors.PurplePink);
+                               text_colour      : Style.Binormal);
     previous_coast_duration_ =
         new DifferentialSlider(
                 label            : "t initial",
@@ -46,7 +44,6 @@ class BurnEditor : ScalingRenderer {
                 // short: that will be indistinguishable.
                 zero_value       : 0.001,
                 min_value        : 0,
-                max_value        : double.PositiveInfinity,
                 formatter        : FormatPreviousCoastDuration,
                 parser           : TryParsePreviousCoastDuration);
     previous_coast_duration_.value = initial_time - time_base;
@@ -54,7 +51,6 @@ class BurnEditor : ScalingRenderer {
                                     adapter_,
                                     ReferenceFrameChanged,
                                     "Manœuvring frame");
-    reference_frame_selector_.Initialize(plugin_);
     reference_frame_selector_.SetFrameParameters(
         adapter_.plotting_frame_selector_.FrameParameters());
     ComputeEngineCharacteristics();
@@ -62,12 +58,24 @@ class BurnEditor : ScalingRenderer {
 
   // Renders the |BurnEditor|.  Returns true if and only if the settings were
   // changed.
-  public bool Render(bool enabled) {
+  public bool Render(string header,
+                     bool enabled,
+                     double? actual_final_time = null) {
     bool changed = false;
+    previous_coast_duration_.max_value =
+        (actual_final_time ?? double.PositiveInfinity) - time_base;
+    using (new UnityEngine.GUILayout.HorizontalScope()) {
+      UnityEngine.GUILayout.Label(header);
+      string frame_info = "";
+      if (!reference_frame_selector_.FrameParameters().Equals(
+              adapter_.plotting_frame_selector_.FrameParameters())) {
+        frame_info = "Manœuvre frame differs from plotting frame";
+      }
+      UnityEngine.GUILayout.Label(
+          frame_info,
+          Style.RightAligned(Style.Info(UnityEngine.GUI.skin.label)));
+    }
     using (new UnityEngine.GUILayout.VerticalScope()) {
-      var warning_style =
-          new UnityEngine.GUIStyle(UnityEngine.GUI.skin.textArea);
-      warning_style.normal.textColor = XKCDColors.Orange;
       // When we are first rendered, the |initial_mass_in_tonnes_| will just have
       // been set.  If we have fallen back to instant impulse, we should use this
       // mass to set the thrust.
@@ -93,17 +101,10 @@ class BurnEditor : ScalingRenderer {
             changed = true;
           }
         }
-        UnityEngine.GUILayout.TextArea(engine_warning_, warning_style);
         reference_frame_selector_.RenderButton();
       } else {
         reference_frame_selector_.Hide();
       }
-      string frame_warning = "";
-      if (!reference_frame_selector_.FrameParameters().Equals(
-              adapter_.plotting_frame_selector_.FrameParameters())) {
-        frame_warning = "Manœuvre frame differs from plotting frame";
-      }
-      UnityEngine.GUILayout.TextArea(frame_warning, warning_style);
       if (is_inertially_fixed_ !=
           UnityEngine.GUILayout.Toggle(is_inertially_fixed_,
                                        "Inertially fixed")) {
@@ -127,6 +128,8 @@ class BurnEditor : ScalingRenderer {
         UnityEngine.GUILayout.Label("Duration : " + duration_.ToString("0.0") +
                                     " s");
       }
+      UnityEngine.GUILayout.Label(engine_warning_,
+                                  Style.Warning(UnityEngine.GUI.skin.label));
       changed_reference_frame_ = false;
     }
     return changed && enabled;
@@ -181,7 +184,7 @@ class BurnEditor : ScalingRenderer {
     Vector3d reference_direction = vessel_.ReferenceTransform.up;
     double[] thrusts =
         (from engine in active_engines
-         select engine.maxThrust *
+         select engine.MaxThrustOutputVac(useThrustLimiter: true) *
              (from transform in engine.thrustTransforms
               select Math.Max(0,
                               Vector3d.Dot(reference_direction,
@@ -271,11 +274,13 @@ class BurnEditor : ScalingRenderer {
   }
 
   private double time_base => previous_burn_?.final_time ??
-                              plugin_.FlightPlanGetInitialTime(
+                              plugin.FlightPlanGetInitialTime(
                                   vessel_.id.ToString());
 
   private double final_time =>
       time_base + previous_coast_duration_.value + duration_;
+
+  private IntPtr plugin => adapter_.Plugin();
 
   private bool is_inertially_fixed_;
   private DifferentialSlider Δv_tangent_;
@@ -296,7 +301,6 @@ class BurnEditor : ScalingRenderer {
   private const double Log10TimeUpperRate = 7.0;
 
   // Not owned.
-  private readonly IntPtr plugin_;
   private readonly Vessel vessel_;
   private readonly int index_;
   private readonly BurnEditor previous_burn_;
