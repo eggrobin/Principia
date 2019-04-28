@@ -187,12 +187,12 @@ std::vector<SP3Orbit> const& GNSSOrbits() {
   static const std::vector<SP3Orbit> orbits{{
       {{StandardProduct3::SatelliteGroup::北斗, 1}, files},     // GEO 140° E.
       {{StandardProduct3::SatelliteGroup::北斗, 6}, files},     // IGSO 118° E.
-      {{StandardProduct3::SatelliteGroup::北斗, 11}, files},    // A07.
-      {{StandardProduct3::SatelliteGroup::Galileo, 1}, files},  // B05.
-      {{StandardProduct3::SatelliteGroup::GPS, 1}, files},      // D2.
-      {{StandardProduct3::SatelliteGroup::みちびき, 1}, files},  // Quasi-zenith.
-      {{StandardProduct3::SatelliteGroup::みちびき, 7}, files},  // GEO 135° E.
-      {{StandardProduct3::SatelliteGroup::ГЛОНАСС, 1}, files},  // Plane I.
+      {{StandardProduct3::SatelliteGroup::北斗, 11}, files},    // MEO A07.
+      {{StandardProduct3::SatelliteGroup::Galileo, 1}, files},  // MEO B05.
+      {{StandardProduct3::SatelliteGroup::GPS, 1}, files},      // MEO D2.
+      {{StandardProduct3::SatelliteGroup::みちびき, 1}, files},  // QZO 139° E.
+      {{StandardProduct3::SatelliteGroup::みちびき, 7}, files},  // GEO 127° E.
+      {{StandardProduct3::SatelliteGroup::ГЛОНАСС, 1}, files},  // MEO Plane I.
   }};
   return orbits;
 }

@@ -30,6 +30,11 @@ std::ostream& operator<<(std::ostream& out,
                << value_digits.substr(value_decimal_exponent + 1) << "("
                << uncertainty_digits << ")";
   }
+  if (value_decimal_exponent >= -5 && value_decimal_exponent < 0) {
+    return out << (std::signbit(measurement.measured_value) ? "-" : "+") << "0."
+               << std::string(-value_decimal_exponent - 1, '0') << value_digits
+               << "(" << uncertainty_digits << ")";
+  }
   return out << (std::signbit(measurement.measured_value) ? "-" : "+")
              << value_digits[0] << "." << value_digits.substr(1) << "("
              << uncertainty_digits << u8") × 10^"
