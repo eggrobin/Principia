@@ -209,8 +209,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   apoapsis_distance_ = AverageOfCorrelated(apoapsis_distances);
   eccentricity_ = 1 - 2 / (periapsis_distance_ / apoapsis_distance_ + 1);
 
-  LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / JulianYear)
-             << u8"°/a";
+  LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / Day) << u8"°/d = "
+             << apsidal_precession_ / (Degree / JulianYear) << u8"°/a";
+  LOG(ERROR) << u8"ω = "
+             << AverageOfCorrelated(arguments_of_periapsides) / Degree << u8"°";
+
   LOG(ERROR) << u8"T = " << anomalistic_period_ / Second << " s";
   LOG(ERROR) << u8"r_p = " << periapsis_distance_ / Kilo(Metre) << " km";
   LOG(ERROR) << u8"      "
@@ -370,8 +373,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                        Unwind(longitudes_of_ascending_nodes)).slope;
   nodal_period_ = AverageOfCorrelated(times_between_ascending_nodes);
 
-  LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / JulianYear)
-             << u8"°/a";
+  LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / Day) << u8"°/d = "
+             << nodal_precession_ / (Degree / JulianYear) << u8"°/a";
+  LOG(ERROR) << u8"Ω = "
+             << AverageOfCorrelated(longitudes_of_ascending_nodes) / Degree
+             << u8"°";
   LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
 
   // TODO(egg): Consider factoring this out.
