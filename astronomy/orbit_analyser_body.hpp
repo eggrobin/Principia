@@ -17,6 +17,7 @@ namespace internal_orbit_analyser {
 
 using base::mod;
 using geometry::AngularVelocity;
+using geometry::Displacement;
 using geometry::OrientedAngleBetween;
 using geometry::Position;
 using geometry::Rotation;
@@ -372,6 +373,62 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / JulianYear)
              << u8"°/a";
   LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
+
+  // TODO(egg): Consider factoring this out.
+  std::vector<Angle> absolute_extremal_latitudes;
+  {
+    auto const latitude = [](Position<PrimaryCentred> q) -> Angle {
+      return (q - PrimaryCentred::origin).coordinates().ToSpherical().latitude;
+    };
+    auto const latitude_rate =
+        [](DegreesOfFreedom<PrimaryCentred> dof) -> AngularFrequency {
+      Displacement<PrimaryCentred> const r =
+          dof.position() - PrimaryCentred::origin;
+      Vector<double, PrimaryCentred> const celestial_north({0, 0, 1});
+      Vector<double, PrimaryCentred> const local_north =
+          Normalize(celestial_north.OrthogonalizationAgainst(r));
+      return InnerProduct(dof.velocity(), local_north) * Radian / r.Norm();
+    };
+    auto it = primary_centred_trajectory.Begin();
+    Instant previous_time = it.time();
+    Angle previous_latitude = latitude(it.degrees_of_freedom().position());
+    AngularFrequency previous_latitude_rate =
+        latitude_rate(it.degrees_of_freedom());
+    for (++it; it != primary_centred_trajectory.End(); ++it) {
+      Angle const new_latitude = latitude(it.degrees_of_freedom().position());
+      AngularFrequency const new_latitude_rate =
+          latitude_rate(it.degrees_of_freedom());
+      if (geometry::Sign(new_latitude_rate) !=
+          geometry::Sign(previous_latitude_rate)) {
+        numerics::Hermite3<Instant, Angle> interpolated_latitude(
+            {previous_time, it.time()},
+            {previous_latitude, new_latitude},
+            {previous_latitude_rate, new_latitude_rate});
+        Instant extremum_time;
+        int valid_extrema = 0;
+        for (Instant const& extremum : interpolated_latitude.FindExtrema()) {
+          if (extremum >= previous_time && extremum <= it.time()) {
+            extremum_time = extremum;
+            ++valid_extrema;
+          }
+        }
+        if (valid_extrema != 1) {
+          extremum_time = geometry::Barycentre<Instant, AngularFrequency>(
+              {it.time(), previous_time},
+              {previous_latitude_rate, -new_latitude_rate});
+        }
+        absolute_extremal_latitudes.push_back(Abs(latitude(
+            primary_centred_trajectory.EvaluatePosition(extremum_time))));
+        previous_time = it.time();
+        previous_latitude = new_latitude;
+        previous_latitude_rate = new_latitude_rate;
+      }
+    }
+  }
+  // TODO(egg): this would need special handling for retrograde orbits; more
+  // worryingly it is unsound for polar orbits.
+  inclination_ = AverageOfCorrelated(absolute_extremal_latitudes);
+  LOG(ERROR) << u8"i = " << inclination_ / Degree << u8"°";
 
   // (7.41).
   MeasurementResult<double> const daily_recurrence_frequency =
