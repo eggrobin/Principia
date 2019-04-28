@@ -161,6 +161,9 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                  periapsides,
                  apoapsides);
 
+  LOG(ERROR) << periapsides.Size() << " periapsides";
+  LOG(ERROR) << apoapsides.Size() << " apoapsides";
+
   std::vector<Instant> times_of_periapsides;
   std::vector<Time> times_between_periapsides;
   std::vector<Angle> arguments_of_periapsides;
@@ -203,13 +206,64 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   anomalistic_period_ = AverageOfCorrelated(times_between_periapsides);
   periapsis_distance_ = AverageOfCorrelated(periapsis_distances);
   apoapsis_distance_ = AverageOfCorrelated(apoapsis_distances);
+  eccentricity_ = 1 - 2 / (periapsis_distance_ / apoapsis_distance_ + 1);
+
   LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / JulianYear)
              << u8"°/a";
   LOG(ERROR) << u8"T = " << anomalistic_period_ / Second << " s";
   LOG(ERROR) << u8"r_p = " << periapsis_distance_ / Kilo(Metre) << " km";
+  LOG(ERROR) << u8"      "
+             << *std::min_element(periapsis_distances.begin(),
+                                  periapsis_distances.end()) /
+                    Kilo(Metre)
+             << " km";
+  LOG(ERROR) << u8"      "
+             << *std::max_element(periapsis_distances.begin(),
+                                  periapsis_distances.end()) /
+                    Kilo(Metre)
+             << " km";
   LOG(ERROR) << u8"r_a = " << apoapsis_distance_ / Kilo(Metre) << " km";
-  LOG(ERROR) << u8"h_p = " << (periapsis_distance_ - primary_->mean_radius()) / Kilo(Metre) << " km";
-  LOG(ERROR) << u8"h_a = " << (apoapsis_distance_ - primary_->mean_radius()) / Kilo(Metre) << " km";
+  LOG(ERROR) << u8"      "
+             << *std::min_element(apoapsis_distances.begin(),
+                                  apoapsis_distances.end()) /
+                    Kilo(Metre)
+             << " km";
+  LOG(ERROR) << u8"      "
+             << *std::max_element(apoapsis_distances.begin(),
+                                  apoapsis_distances.end()) /
+                    Kilo(Metre)
+             << " km";
+  LOG(ERROR) << u8"h_p = "
+             << (periapsis_distance_ - primary_->mean_radius()) / Kilo(Metre)
+             << " km";
+  LOG(ERROR) << u8"      "
+             << (*std::min_element(periapsis_distances.begin(),
+                                   periapsis_distances.end()) -
+                 primary_->mean_radius()) /
+                    Kilo(Metre)
+             << " km";
+  LOG(ERROR) << u8"      "
+             << (*std::max_element(periapsis_distances.begin(),
+                                   periapsis_distances.end()) -
+                 primary_->mean_radius()) /
+                    Kilo(Metre)
+             << " km";
+  LOG(ERROR) << u8"h_a = "
+             << (apoapsis_distance_ - primary_->mean_radius()) / Kilo(Metre)
+             << " km";
+  LOG(ERROR) << u8"      "
+             << (*std::min_element(apoapsis_distances.begin(),
+                                   apoapsis_distances.end()) -
+                 primary_->mean_radius()) /
+                    Kilo(Metre)
+             << " km";
+  LOG(ERROR) << u8"      "
+             << (*std::max_element(apoapsis_distances.begin(),
+                                   apoapsis_distances.end()) -
+                 primary_->mean_radius()) /
+                    Kilo(Metre)
+             << " km";
+  LOG(ERROR) << "e = " << eccentricity_;
 
   enum class PrimaryTag { normal, sideways };
   // The origin of the reference frame is the centre of mass of |*primary_|.

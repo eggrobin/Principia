@@ -14,6 +14,7 @@ using physics::DegreesOfFreedom;
 using physics::DiscreteTrajectory;
 using physics::Ephemeris;
 using physics::RotatingBody;
+using quantities::Angle;
 using quantities::AngularFrequency;
 using quantities::Length;
 using quantities::MeasurementResult;
@@ -50,6 +51,8 @@ class OrbitAnalyser {
   MeasurementResult<AngularFrequency> apsidal_precession_;
   MeasurementResult<Length> periapsis_distance_;
   MeasurementResult<Length> apoapsis_distance_;
+  MeasurementResult<double> eccentricity_;
+  MeasurementResult<Angle> inclination_;
 };
 
 }  // namespace internal_orbit_analyser
