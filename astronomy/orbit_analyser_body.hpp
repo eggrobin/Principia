@@ -146,9 +146,10 @@ void OrbitAnalyser<Frame>::Analyse() {
 
 template<typename Frame>
 void OrbitAnalyser<Frame>::RecomputeProperties() {
-  LOG(ERROR) << (trajectory_.last().time() - trajectory_.Begin().time()) / Day
-             << " d";
-  LOG(ERROR) << (trajectory_.last().time() - trajectory_.Begin().time()) /
+  LOG(ERROR) << "Analysing orbit of " << name_ << " over "
+             << (trajectory_.last().time() - trajectory_.Begin().time()) / Day
+             << " d = "
+             << (trajectory_.last().time() - trajectory_.Begin().time()) /
                     JulianYear
              << " a";
 

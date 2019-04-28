@@ -65,21 +65,22 @@ using ::testing::Eq;
 
 namespace astronomy {
 
+struct SP3Files {
+  std::vector<std::string> names;
+  StandardProduct3::Dialect dialect;
+};
+
 struct SP3Orbit {
   StandardProduct3::SatelliteIdentifier satellite;
-  std::vector<std::string> files;
-  StandardProduct3::Dialect dialect;
+  SP3Files files;
 };
 
 std::ostream& operator<<(std::ostream& out, SP3Orbit const& orbit) {
   out << orbit.satellite << " in (";
-  for (int i = 0; i < orbit.files.size(); ++i) {
-    out << orbit.files[i];
-    if (i + 1 != orbit.files.size()) {
-      out << ",";
-    }
+  for (int i = 0; i < orbit.files.names.size(); ++i) {
+    out << orbit.files.names[i] << ", ";
   }
-  return out << ")";
+  return out << "interpreted as " << orbit.files.dialect << ")";
 }
 
 class OrbitAnalyserTest : public ::testing::TestWithParam<SP3Orbit> {
@@ -104,10 +105,10 @@ class OrbitAnalyserTest : public ::testing::TestWithParam<SP3Orbit> {
 
   not_null<std::unique_ptr<DiscreteTrajectory<ICRS>>> Trajectory() {
     auto result = make_not_null_unique<DiscreteTrajectory<ICRS>>();
-    for (auto const& file : GetParam().files) {
+    for (auto const& file : GetParam().files.names) {
       StandardProduct3 sp3(
           SOLUTION_DIR / "astronomy" / "standard_product_3" / file,
-          GetParam().dialect);
+          GetParam().files.dialect);
       auto const& orbit = sp3.orbit(GetParam().satellite);
       CHECK_EQ(orbit.size(), 1);
       auto const& arc = *orbit.front();
@@ -175,23 +176,30 @@ TEST_F(OrbitAnalyserTest, DISABLED_Молния) {
   analyser.Analyse();
 }
 
-std::array<SP3Orbit, 1> const& GalileoOrbits() {
-  static const std::array<SP3Orbit, 1> orbits{{{
-      {StandardProduct3::SatelliteGroup::Galileo, 1},
-      {"WUM0MGXFIN_20190970000_01D_15M_ORB.SP3",
-       "WUM0MGXFIN_20190980000_01D_15M_ORB.SP3",
-       "WUM0MGXFIN_20190990000_01D_15M_ORB.SP3",
-       "WUM0MGXFIN_20191000000_01D_15M_ORB.SP3",
-       "WUM0MGXFIN_20191010000_01D_15M_ORB.SP3",
-       "WUM0MGXFIN_20191020000_01D_15M_ORB.SP3"},
-      StandardProduct3::Dialect::ChineseMGEX,
-  }}};
+std::vector<SP3Orbit> const& GNSSOrbits() {
+  static const SP3Files files = {{"WUM0MGXFIN_20190970000_01D_15M_ORB.SP3",
+                                  "WUM0MGXFIN_20190980000_01D_15M_ORB.SP3",
+                                  "WUM0MGXFIN_20190990000_01D_15M_ORB.SP3",
+                                  "WUM0MGXFIN_20191000000_01D_15M_ORB.SP3",
+                                  "WUM0MGXFIN_20191010000_01D_15M_ORB.SP3",
+                                  "WUM0MGXFIN_20191020000_01D_15M_ORB.SP3"},
+                                 StandardProduct3::Dialect::ChineseMGEX};
+  static const std::vector<SP3Orbit> orbits{{
+      {{StandardProduct3::SatelliteGroup::北斗, 1}, files},     // GEO 140° E.
+      {{StandardProduct3::SatelliteGroup::北斗, 6}, files},     // IGSO 118° E.
+      {{StandardProduct3::SatelliteGroup::北斗, 11}, files},    // A07.
+      {{StandardProduct3::SatelliteGroup::Galileo, 1}, files},  // B05.
+      {{StandardProduct3::SatelliteGroup::GPS, 1}, files},      // D2.
+      {{StandardProduct3::SatelliteGroup::みちびき, 1}, files},  // Quasi-zenith.
+      {{StandardProduct3::SatelliteGroup::みちびき, 7}, files},  // GEO 135° E.
+      {{StandardProduct3::SatelliteGroup::ГЛОНАСС, 1}, files},  // Plane I.
+  }};
   return orbits;
 }
 
-INSTANTIATE_TEST_CASE_P(Galileo,
+INSTANTIATE_TEST_CASE_P(GNSS,
                         OrbitAnalyserTest,
-                        ::testing::ValuesIn(GalileoOrbits()));
+                        ::testing::ValuesIn(GNSSOrbits()));
 
 TEST_P(OrbitAnalyserTest, DoTheAnalysis) {
   OrbitAnalyser<ICRS> analyser(
