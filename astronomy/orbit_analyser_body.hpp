@@ -177,13 +177,16 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     // TODO(egg): We could probably do something a lot more efficient, because
     // we know that we are at the periapsis, and we only need the argument of
     // periapsis.
-    Angle ω = *KeplerOrbit<Frame>(
-                  *primary_,
-                  MasslessBody{},
-                  ephemeris_->trajectory(primary_)->EvaluateDegreesOfFreedom(
-                      periapsis.time()) -
-                      periapsis.degrees_of_freedom(),
-                  periapsis.time()).elements_at_epoch().argument_of_periapsis;
+    Angle
+        ω = *KeplerOrbit<Frame>(
+                 *primary_,
+                 MasslessBody{},
+                 periapsis.degrees_of_freedom() -
+                     ephemeris_->trajectory(primary_)->EvaluateDegreesOfFreedom(
+                         periapsis.time()),
+                 periapsis.time())
+                 .elements_at_epoch()
+                 .argument_of_periapsis;
     if (!times_of_periapsides.empty()) {
       times_between_periapsides.push_back(periapsis.time() -
                                           times_of_periapsides.back());
