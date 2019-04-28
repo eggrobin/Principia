@@ -78,6 +78,18 @@ OrbitAnalyser<Frame>::OrbitAnalyser(
 }
 
 template<typename Frame>
+OrbitAnalyser<Frame>::OrbitAnalyser(
+    not_null<Ephemeris<Frame>*> const ephemeris,
+    not_null<RotatingBody<Frame> const*> const primary,
+    DiscreteTrajectory<Frame> const& trajectory,
+    std::string name)
+    : ephemeris_(ephemeris), primary_(primary), name_(std::move(name)) {
+  for (auto it = trajectory.Begin(); it != trajectory.End(); ++it) {
+    trajectory_.Append(it.time(), it.degrees_of_freedom());
+  }
+}
+
+template<typename Frame>
 void OrbitAnalyser<Frame>::Analyse() {
   Instant const t0 = trajectory_.Begin().time();
   ephemeris_->Prolong(t0);

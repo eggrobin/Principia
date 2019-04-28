@@ -28,11 +28,16 @@ class OrbitAnalyser {
                 DegreesOfFreedom<Frame> initial_state,
                 std::string name);
 
+  OrbitAnalyser(not_null<Ephemeris<Frame>*> ephemeris,
+                not_null<RotatingBody<Frame> const*> primary,
+                DiscreteTrajectory<Frame> const& trajectory,
+                std::string name);
+
   void Analyse();
 
- private:
   void RecomputeProperties();
 
+ private:
   not_null<Ephemeris<Frame>*> ephemeris_;
   not_null<RotatingBody<Frame> const*> primary_;
   DiscreteTrajectory<Frame> trajectory_;

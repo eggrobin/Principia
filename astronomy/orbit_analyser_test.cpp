@@ -20,6 +20,7 @@ namespace principia {
 using astronomy::ICRS;
 using astronomy::J2000;
 using base::dynamic_cast_not_null;
+using base::make_not_null_unique;
 using base::not_null;
 using base::OFStream;
 using geometry::Displacement;
@@ -65,10 +66,21 @@ using ::testing::Eq;
 namespace astronomy {
 
 struct SP3Orbit {
-  std::string_view filename;
   StandardProduct3::SatelliteIdentifier satellite;
-  StandardProduct3::Dialect dialect = StandardProduct3::Dialect::Standard;
+  std::vector<std::string> files;
+  StandardProduct3::Dialect dialect;
 };
+
+std::ostream& operator<<(std::ostream& out, SP3Orbit const& orbit) {
+  out << orbit.satellite << " in (";
+  for (int i = 0; i < orbit.files.size(); ++i) {
+    out << orbit.files[i];
+    if (i + 1 != orbit.files.size()) {
+      out << ",";
+    }
+  }
+  return out << ")";
+}
 
 class OrbitAnalyserTest : public ::testing::TestWithParam<SP3Orbit> {
  public:
@@ -88,6 +100,25 @@ class OrbitAnalyserTest : public ::testing::TestWithParam<SP3Orbit> {
         ephemeris_->Prolong(ParseTT(date));
       }
     }
+  }
+
+  not_null<std::unique_ptr<DiscreteTrajectory<ICRS>>> Trajectory() {
+    auto result = make_not_null_unique<DiscreteTrajectory<ICRS>>();
+    for (auto const& file : GetParam().files) {
+      StandardProduct3 sp3(
+          SOLUTION_DIR / "astronomy" / "standard_product_3" / file,
+          GetParam().dialect);
+      auto const& orbit = sp3.orbit(GetParam().satellite);
+      CHECK_EQ(orbit.size(), 1);
+      auto const& arc = *orbit.front();
+      for (auto it = arc.Begin(); it != arc.End(); ++it) {
+        ephemeris_->Prolong(it.time());
+        result->Append(
+            it.time(),
+            itrs_.FromThisFrameAtTime(it.time())(it.degrees_of_freedom()));
+      }
+    }
+    return result;
   }
 
  protected:
@@ -144,157 +175,31 @@ TEST_F(OrbitAnalyserTest, DISABLED_Молния) {
   analyser.Analyse();
 }
 
-INSTANTIATE_TEST_CASE_P(LAGEOS2,
-                        OrbitAnalyserTest,
-                        ::testing::Values(SP3Orbit{
-                                "ilrsa.orb.lageos2.160319.v35.sp3",
-                            {StandardProduct3::SatelliteGroup::General, 52},
-                            StandardProduct3::Dialect::ILRSA}));
-INSTANTIATE_TEST_CASE_P(GPS,
-                        OrbitAnalyserTest,
-                        ::testing::Values(SP3Orbit{
-                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::GPS, 1}}));
-INSTANTIATE_TEST_CASE_P(Galileo,
-                        OrbitAnalyserTest,
-                        ::testing::Values(SP3Orbit{
-                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::Galileo, 1}}));
-INSTANTIATE_TEST_CASE_P(ГЛОНАСС,
-                        OrbitAnalyserTest,
-                        ::testing::Values(SP3Orbit{
-                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::ГЛОНАСС, 1}}));
-// Whereas the AIUB, GFZ, GRGS, SHAO, TUM, and WHU MGEX analysis centres all
-// provide orbits for 北斗 satellites, only GFZ, SHAO, TUM, and WHU provide orbits
-// for the geostationary satellites C01 ‥ C05.  Of those, only WHU provides
-// final analysis products; GFZ, SHAO, and TUM provide rapid analysis products.
-INSTANTIATE_TEST_CASE_P(北斗Geostationary80,
-                        OrbitAnalyserTest,
-                        ::testing::Values(SP3Orbit{
-                                "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::北斗, 2},
-                            StandardProduct3::Dialect::ChineseMGEX}));
-INSTANTIATE_TEST_CASE_P(北斗Geostationary160,
-                        OrbitAnalyserTest,
-                        ::testing::Values(SP3Orbit{
-                                "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::北斗, 4},
-                            StandardProduct3::Dialect::ChineseMGEX}));
-INSTANTIATE_TEST_CASE_P(北斗InclinedGeosynchronous,
-                        OrbitAnalyserTest,
-                        ::testing::Values(SP3Orbit{
-                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::北斗, 6}}));
-INSTANTIATE_TEST_CASE_P(北斗MediumEarthOrbit,
-                        OrbitAnalyserTest,
-                        ::testing::Values(SP3Orbit{
-                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::北斗, 11}}));
-INSTANTIATE_TEST_CASE_P(QZSS,
-                        OrbitAnalyserTest,
-                        ::testing::Values(SP3Orbit{
-                                "COD0MGXFIN_20183640000_01D_05M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::みちびき, 1}}));
-// Whereas JAXA and the AIUB, GFZ, TUM, and WHU MGEX analysis centres all
-// provide orbits for QZSS satellites, only GFZ and WHU provide orbits for the
-// geostationary satellite J07.  Of those, only WHU provides final analysis
-// products; GFZ provides rapid analysis products.
-INSTANTIATE_TEST_CASE_P(QZSSGeostationary,
-                        OrbitAnalyserTest,
-                        ::testing::Values(SP3Orbit{
-                                "WUM0MGXFIN_20190270000_01D_15M_ORB.SP3",
-                            {StandardProduct3::SatelliteGroup::みちびき, 7},
-                            StandardProduct3::Dialect::ChineseMGEX}));
-
-TEST_P(OrbitAnalyserTest, Residuals) {
-  StandardProduct3 sp3(
-      SOLUTION_DIR / "astronomy" / "standard_product_3" / GetParam().filename,
-      GetParam().dialect);
-  StandardProduct3::SatelliteIdentifier const& satellite = GetParam().satellite;
-  std::string name = (std::stringstream() << satellite).str();
-
-  std::vector<Velocity<ICRS>> residuals;
-  std::vector<Angle> residuals_from_sun;
-  std::vector<double> times;
-
-  for (auto const& arc : sp3.orbit(satellite)) {
-    for (auto it = arc->Begin();;) {
-      ephemeris_->Prolong(it.time());
-
-      DiscreteTrajectory<ICRS> trajectory;
-      trajectory.Append(
-          it.time(),
-          itrs_.FromThisFrameAtTime(it.time())(it.degrees_of_freedom()));
-      if (++it == arc->End()) {
-        break;
-      }
-
-      Ephemeris<ICRS>::AdaptiveStepParameters parameters(
-          integrators::EmbeddedExplicitRungeKuttaNyströmIntegrator<
-             integrators::methods::DormandالمكاوىPrince1986RKN434FM,
-              Position<ICRS>>(),
-          /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
-          1 * Milli(Metre),
-          1 * Milli(Metre) / Second);
-      ephemeris_->FlowWithAdaptiveStep(
-          &trajectory,
-          Ephemeris<ICRS>::NoIntrinsicAcceleration,
-          it.time(),
-          parameters,
-          /*max_ephemeris_steps=*/std::numeric_limits<std::int64_t>::max(),
-          /*last_point_only=*/true);
-
-      times.push_back((trajectory.Begin().time() - J2000)/ Day);
-      residuals.push_back(
-          trajectory.last().degrees_of_freedom().velocity() -
-          itrs_.FromThisFrameAtTime(it.time())(it.degrees_of_freedom())
-              .velocity());
-      residuals_from_sun.push_back(geometry::AngleBetween(
-          ephemeris_->trajectory(earth_)->EvaluatePosition(it.time()) -
-              ephemeris_->trajectory(sun_)->EvaluatePosition(it.time()),
-          residuals.back()));
-    }
-    base::OFStream f(SOLUTION_DIR / ("residuals_" + name));
-    f << mathematica::Assign(
-        mathematica::Apply("residuals", {mathematica::Escape(name)}),
-        mathematica::Apply(
-            "Transpose",
-            {mathematica::Apply(
-                "List",
-                {mathematica::ToMathematica(times),
-                 mathematica::ToMathematica(mathematica::ExpressIn(
-                     Milli(Metre) / Second, residuals))})}));
-    f << mathematica::Assign(
-        mathematica::Apply("residualsFromSun", {mathematica::Escape(name)}),
-        mathematica::Apply(
-            "Transpose",
-            {mathematica::Apply(
-                "List",
-                {mathematica::ToMathematica(times),
-                 mathematica::ToMathematica(
-                     mathematica::ExpressIn(Radian, residuals_from_sun))})}));
-  }
+std::array<SP3Orbit, 1> const& GalileoOrbits() {
+  static const std::array<SP3Orbit, 1> orbits{{{
+      {StandardProduct3::SatelliteGroup::Galileo, 1},
+      {"WUM0MGXFIN_20190970000_01D_15M_ORB.SP3",
+       "WUM0MGXFIN_20190980000_01D_15M_ORB.SP3",
+       "WUM0MGXFIN_20190990000_01D_15M_ORB.SP3",
+       "WUM0MGXFIN_20191000000_01D_15M_ORB.SP3",
+       "WUM0MGXFIN_20191010000_01D_15M_ORB.SP3",
+       "WUM0MGXFIN_20191020000_01D_15M_ORB.SP3"},
+      StandardProduct3::Dialect::ChineseMGEX,
+  }}};
+  return orbits;
 }
 
-TEST_P(OrbitAnalyserTest, GNSS) {
-  StandardProduct3 sp3(
-      SOLUTION_DIR / "astronomy" / "standard_product_3" / GetParam().filename,
-      GetParam().dialect);
-  StandardProduct3::SatelliteIdentifier const& satellite = GetParam().satellite;
+INSTANTIATE_TEST_CASE_P(Galileo,
+                        OrbitAnalyserTest,
+                        ::testing::ValuesIn(GalileoOrbits()));
 
-  Instant const initial_time = sp3.orbit(satellite).front()->Begin().time();
-
-  ephemeris_->Prolong(initial_time);
-
+TEST_P(OrbitAnalyserTest, DoTheAnalysis) {
   OrbitAnalyser<ICRS> analyser(
       ephemeris_.get(),
       earth_,
-      initial_time,
-      itrs_.FromThisFrameAtTime(initial_time)(
-          sp3.orbit(satellite).front()->Begin().degrees_of_freedom()),
-      (std::stringstream() << satellite).str());
-  analyser.Analyse();
+      *Trajectory(),
+      (std::stringstream() << GetParam().satellite).str());
+  analyser.RecomputeProperties();
 }
 
 TEST_F(OrbitAnalyserTest, TOPEXPoséidon) {
