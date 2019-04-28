@@ -159,8 +159,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   ComputeApsides(*ephemeris_->trajectory(primary_),
                  trajectory_.Begin(),
                  trajectory_.End(),
-                 periapsides,
-                 apoapsides);
+                 apoapsides,
+                 periapsides);
 
   LOG(ERROR) << periapsides.Size() << " periapsides";
   LOG(ERROR) << apoapsides.Size() << " apoapsides";
