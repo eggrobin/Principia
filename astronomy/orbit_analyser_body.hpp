@@ -210,7 +210,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   anomalistic_period_ = AverageOfCorrelated(times_between_periapsides);
   periapsis_distance_ = AverageOfCorrelated(periapsis_distances);
   apoapsis_distance_ = AverageOfCorrelated(apoapsis_distances);
-  eccentricity_ = 1 - 2 / (periapsis_distance_ / apoapsis_distance_ + 1);
+  eccentricity_ = 1 - 2 / (apoapsis_distance_ / periapsis_distance_ + 1);
 
   LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / Day) << u8"°/d = "
              << apsidal_precession_ / (Degree / JulianYear) << u8"°/a";
