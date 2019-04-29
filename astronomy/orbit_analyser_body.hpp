@@ -383,7 +383,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
 
   // TODO(egg): Consider factoring this out.
-  std::vector<Angle> absolute_extremal_latitudes;
+  std::vector<Angle> inclinations_at_extremal_latitudes;
   {
     auto const latitude = [](Position<PrimaryCentred> q) -> Angle {
       return (q - PrimaryCentred::origin).coordinates().ToSpherical().latitude;
@@ -425,8 +425,20 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
               {it.time(), previous_time},
               {previous_latitude_rate, -new_latitude_rate});
         }
-        absolute_extremal_latitudes.push_back(Abs(latitude(
+        inclinations_at_extremal_latitudes.push_back(Abs(latitude(
             primary_centred_trajectory.EvaluatePosition(extremum_time))));
+        Bivector<double, PrimaryCentred> positive_pole({0, 0, 1});
+        if (geometry::Sign(
+                InnerProduct(Wedge((primary_centred_trajectory.EvaluatePosition(
+                                        extremum_time) -
+                                    PrimaryCentred::origin),
+                                   primary_centred_trajectory.EvaluateVelocity(
+                                       extremum_time)),
+                             positive_pole))
+                .Negative()) {
+          inclinations_at_extremal_latitudes.back() =
+              π * Radian - inclinations_at_extremal_latitudes.back();
+        }
         previous_time = it.time();
         previous_latitude = new_latitude;
         previous_latitude_rate = new_latitude_rate;
@@ -435,7 +447,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   }
   // TODO(egg): this would need special handling for retrograde orbits; more
   // worryingly it is unsound for polar orbits.
-  inclination_ = AverageOfCorrelated(absolute_extremal_latitudes);
+  inclination_ = AverageOfCorrelated(inclinations_at_extremal_latitudes);
   LOG(ERROR) << u8"i = " << inclination_ / Degree << u8"°";
 
   // (7.41).
