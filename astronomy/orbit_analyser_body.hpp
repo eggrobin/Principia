@@ -177,8 +177,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     // TODO(egg): We could probably do something a lot more efficient, because
     // we know that we are at the periapsis, and we only need the argument of
     // periapsis.
-    Angle
-        ω = *KeplerOrbit<Frame>(
+    Angle ω = *KeplerOrbit<Frame>(
                  *primary_,
                  MasslessBody{},
                  periapsis.degrees_of_freedom() -

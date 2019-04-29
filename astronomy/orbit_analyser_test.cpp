@@ -198,7 +198,7 @@ std::vector<SP3Orbit> const& GNSSOrbits() {
 }
 
 std::vector<SP3Orbit> const& SPOT5Orbit() {
-  static const SP3Files files = {{"ssasp501.b13344.e13355.D__.sp3"},
+  static const SP3Files files = {{"ssasp501.b10170.e10181.D__.sp3"},
                                  StandardProduct3::Dialect::Standard};
   static const std::vector<SP3Orbit> orbits{{
       {{StandardProduct3::SatelliteGroup::General, 94}, files},
