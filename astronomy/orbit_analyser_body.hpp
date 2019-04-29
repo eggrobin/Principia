@@ -356,6 +356,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   std::vector<Instant> times_of_ascending_nodes;
   std::vector<Time> times_between_ascending_nodes;
   std::vector<Angle> longitudes_of_ascending_nodes;
+  std::vector<Angle> inclinations_at_ascending_nodes;
   std::vector<Angle> terrestrial_longitudes_of_ascending_nodes;
   for (auto node = ascending_nodes.Begin(); node != ascending_nodes.End(); ++node) {
     // We do not construct |KeplerianElements|: we only need the longitude of
@@ -369,6 +370,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     }
     times_of_ascending_nodes.push_back(node.time());
     longitudes_of_ascending_nodes.push_back(Ω);
+
+    inclinations_at_ascending_nodes.push_back(AngleBetween(
+        z,
+        Wedge(node.degrees_of_freedom().position() - PrimaryCentred::origin,
+              node.degrees_of_freedom().velocity())));
   }
   nodal_precession_ =
       LinearRegression(times_of_ascending_nodes,
@@ -427,14 +433,13 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
         }
         inclinations_at_extremal_latitudes.push_back(Abs(latitude(
             primary_centred_trajectory.EvaluatePosition(extremum_time))));
-        Bivector<double, PrimaryCentred> positive_pole({0, 0, 1});
         if (geometry::Sign(
                 InnerProduct(Wedge((primary_centred_trajectory.EvaluatePosition(
                                         extremum_time) -
                                     PrimaryCentred::origin),
                                    primary_centred_trajectory.EvaluateVelocity(
                                        extremum_time)),
-                             positive_pole))
+                             z))
                 .Negative()) {
           inclinations_at_extremal_latitudes.back() =
               π * Radian - inclinations_at_extremal_latitudes.back();
@@ -448,7 +453,10 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   // TODO(egg): this would need special handling for retrograde orbits; more
   // worryingly it is unsound for polar orbits.
   inclination_ = AverageOfCorrelated(inclinations_at_extremal_latitudes);
-  LOG(ERROR) << u8"i = " << inclination_ / Degree << u8"°";
+  LOG(ERROR) << "i = " << inclination_ / Degree << u8"° (ψm)";
+  LOG(ERROR) << "i = "
+             << AverageOfCorrelated(inclinations_at_ascending_nodes) / Degree
+             << u8"° (i☊)";
 
   // (7.41).
   MeasurementResult<double> const daily_recurrence_frequency =
@@ -533,6 +541,10 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   tf << mathematica::Assign("longitudes" + name_,
                             terrestrial_longitudes_of_ascending_nodes);
   tf << mathematica::Assign("t" + name_, times_of_ascending_nodes);
+  tf << mathematica::Assign("iNA" + name_,
+                            inclinations_at_ascending_nodes);
+  tf << mathematica::Assign("iLatMax" + name_,
+                            inclinations_at_extremal_latitudes);
 }
 
 }  // namespace internal_orbit_analyser
