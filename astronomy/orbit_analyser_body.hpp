@@ -390,6 +390,9 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
 
   // TODO(egg): Consider factoring this out.
   std::vector<Angle> inclinations_at_extremal_latitudes;
+  std::vector<Angle> all_latitudes;
+  std::vector<AngularFrequency> all_latitude_rates;
+  std::vector<Instant> all_times;
   {
     auto const latitude = [](Position<PrimaryCentred> q) -> Angle {
       return (q - PrimaryCentred::origin).coordinates().ToSpherical().latitude;
@@ -412,6 +415,9 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
       Angle const new_latitude = latitude(it.degrees_of_freedom().position());
       AngularFrequency const new_latitude_rate =
           latitude_rate(it.degrees_of_freedom());
+    all_times.push_back(it.time());
+    all_latitudes.push_back(new_latitude);
+    all_latitude_rates.push_back(new_latitude_rate);
       if (geometry::Sign(new_latitude_rate) !=
           geometry::Sign(previous_latitude_rate)) {
         numerics::Hermite3<Instant, Angle> interpolated_latitude(
@@ -545,6 +551,10 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                             inclinations_at_ascending_nodes);
   tf << mathematica::Assign("iLatMax" + name_,
                             inclinations_at_extremal_latitudes);
+
+  tf << mathematica::Assign("lat" + name_, all_latitudes);
+  tf << mathematica::Assign("dlat" + name_, all_latitude_rates);
+  tf << mathematica::Assign("tlat" + name_, all_times);
 }
 
 }  // namespace internal_orbit_analyser
