@@ -412,13 +412,16 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"Ω = "
              << AverageOfCorrelated(longitudes_of_ascending_nodes) / Degree
              << u8"°";
-  LOG(ERROR) << u8"TSV_NA = "
-             << AverageOfCorrelated(true_solar_times_of_ascending_nodes) /
-                    Degree
-             << u8"° = "
-             << 12 + (AverageOfCorrelated(true_solar_times_of_ascending_nodes) *
-                      24 / (2 * π * Radian))
-             << u8" h";
+  auto const tsv = Unwind(true_solar_times_of_ascending_nodes);
+  Angle const min_tsv = *std::min_element(tsv.begin(), tsv.end());
+  Angle const max_tsv = *std::max_element(tsv.begin(), tsv.end());
+  MeasurementResult<Angle> const mean_tsv = AverageOfCorrelated(tsv);
+  LOG(ERROR) << u8"TSV_NA = " << mean_tsv / Degree << u8"° = "
+             << 12 + (mean_tsv * 24 / (2 * π * Radian)) << u8" h";
+  LOG(ERROR) << u8"   min = " << min_tsv / Degree << u8"° = "
+             << 12 + (min_tsv * 24 / (2 * π * Radian)) << u8" h";
+  LOG(ERROR) << u8"   max = " << max_tsv / Degree << u8"° = "
+             << 12 + (max_tsv * 24 / (2 * π * Radian)) << u8" h";
   LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
 
   // TODO(egg): Consider factoring this out.
