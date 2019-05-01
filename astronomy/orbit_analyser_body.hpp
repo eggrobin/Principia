@@ -450,10 +450,10 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
           inclinations_at_extremal_latitudes.back() =
               π * Radian - inclinations_at_extremal_latitudes.back();
         }
-        previous_time = it.time();
-        previous_latitude = new_latitude;
-        previous_latitude_rate = new_latitude_rate;
       }
+      previous_time = it.time();
+      previous_latitude = new_latitude;
+      previous_latitude_rate = new_latitude_rate;
     }
   }
   // TODO(egg): this would need special handling for retrograde orbits; more
