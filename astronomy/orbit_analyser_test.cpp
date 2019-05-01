@@ -169,6 +169,7 @@ TEST_F(OrbitAnalyserTest, DISABLED_Молния) {
   OrbitAnalyser<ICRS> analyser(
       ephemeris_.get(),
       earth_,
+      sun_,
       J2000,
       earth_trajectory_.EvaluateDegreesOfFreedom(J2000) +
           satellite_state_vectors,
@@ -218,6 +219,7 @@ TEST_P(OrbitAnalyserTest, DoTheAnalysis) {
   OrbitAnalyser<ICRS> analyser(
       ephemeris_.get(),
       earth_,
+      sun_,
       *Trajectory(),
       (std::stringstream() << GetParam().satellite).str());
   analyser.RecomputeProperties();
@@ -241,6 +243,7 @@ TEST_F(OrbitAnalyserTest, TOPEXPoséidon) {
   OrbitAnalyser<ICRS> analyser(
       ephemeris_.get(),
       earth_,
+      sun_,
       initial_time,
       itrs_.FromThisFrameAtTime(initial_time)(
           sp3.orbit(topex_poséidon).front()->Begin().degrees_of_freedom()),
@@ -283,6 +286,7 @@ TEST_F(OrbitAnalyserTest, 福爾摩沙衛星二號) {
   OrbitAnalyser<ICRS> analyser(
       ephemeris_.get(),
       earth_,
+      sun_,
       epoch,
       earth_trajectory_.EvaluateDegreesOfFreedom(epoch) +
           satellite_state_vectors,

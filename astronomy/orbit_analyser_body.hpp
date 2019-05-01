@@ -44,6 +44,7 @@ using quantities::Time;
 using quantities::astronomy::JulianYear;
 using quantities::si::Day;
 using quantities::si::Degree;
+using quantities::si::Hour;
 using quantities::si::Radian;
 using quantities::si::Second;
 
@@ -71,10 +72,14 @@ template<typename Frame>
 OrbitAnalyser<Frame>::OrbitAnalyser(
     not_null<Ephemeris<Frame>*> const ephemeris,
     not_null<RotatingBody<Frame> const*> const primary,
+    not_null<RotatingBody<Frame> const*> sun,
     Instant const initial_time,
     DegreesOfFreedom<Frame> const initial_state,
     std::string name)
-    : ephemeris_(ephemeris), primary_(primary), name_(std::move(name)) {
+    : ephemeris_(ephemeris),
+      primary_(primary),
+      sun_(sun),
+      name_(std::move(name)) {
   trajectory_.Append(initial_time, initial_state);
 }
 
@@ -82,9 +87,13 @@ template<typename Frame>
 OrbitAnalyser<Frame>::OrbitAnalyser(
     not_null<Ephemeris<Frame>*> const ephemeris,
     not_null<RotatingBody<Frame> const*> const primary,
+    not_null<RotatingBody<Frame> const*> sun,
     DiscreteTrajectory<Frame> const& trajectory,
     std::string name)
-    : ephemeris_(ephemeris), primary_(primary), name_(std::move(name)) {
+    : ephemeris_(ephemeris),
+      primary_(primary),
+      sun_(sun),
+      name_(std::move(name)) {
   for (auto it = trajectory.Begin(); it != trajectory.End(); ++it) {
     trajectory_.Append(it.time(), it.degrees_of_freedom());
   }
@@ -358,6 +367,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   std::vector<Angle> longitudes_of_ascending_nodes;
   std::vector<Angle> inclinations_at_ascending_nodes;
   std::vector<Angle> terrestrial_longitudes_of_ascending_nodes;
+  std::vector<Angle> true_solar_times_of_ascending_nodes;
   for (auto node = ascending_nodes.Begin(); node != ascending_nodes.End(); ++node) {
     // We do not construct |KeplerianElements|: we only need the longitude of
     // the ascending node, and we are at the ascending node so the computation
@@ -370,6 +380,22 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     }
     times_of_ascending_nodes.push_back(node.time());
     longitudes_of_ascending_nodes.push_back(Ω);
+
+    // REMOVE BEFORE FLIGHT: we should be able to orthogonalize vectors against
+    // bivectors and vice-versa.
+    // 0 for noon.
+    Angle const true_solar_time = OrientedAngleBetween(
+        (primary_centred
+             .ToThisFrameAtTime(node.time())(
+                 ephemeris_->trajectory(sun_)->EvaluateDegreesOfFreedom(
+                     node.time()))
+             .position() -
+         PrimaryCentred::origin)
+            .OrthogonalizationAgainst(
+                Vector<double, PrimaryCentred>({0, 0, 1})),
+        node.degrees_of_freedom().position() - PrimaryCentred::origin,
+        z);
+    true_solar_times_of_ascending_nodes.push_back(true_solar_time);
 
     inclinations_at_ascending_nodes.push_back(AngleBetween(
         z,
@@ -386,6 +412,13 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"Ω = "
              << AverageOfCorrelated(longitudes_of_ascending_nodes) / Degree
              << u8"°";
+  LOG(ERROR) << u8"TSV_NA = "
+             << AverageOfCorrelated(true_solar_times_of_ascending_nodes) /
+                    Degree
+             << u8"° = "
+             << 12 + (AverageOfCorrelated(true_solar_times_of_ascending_nodes) *
+                      24 / (2 * π * Radian))
+             << u8" h";
   LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
 
   // TODO(egg): Consider factoring this out.

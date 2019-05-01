@@ -25,12 +25,14 @@ class OrbitAnalyser {
  public:
   OrbitAnalyser(not_null<Ephemeris<Frame>*> ephemeris,
                 not_null<RotatingBody<Frame> const*> primary,
+                not_null<RotatingBody<Frame> const*> sun,
                 Instant initial_time,
                 DegreesOfFreedom<Frame> initial_state,
                 std::string name);
 
   OrbitAnalyser(not_null<Ephemeris<Frame>*> ephemeris,
                 not_null<RotatingBody<Frame> const*> primary,
+                not_null<RotatingBody<Frame> const*> sun,
                 DiscreteTrajectory<Frame> const& trajectory,
                 std::string name);
 
@@ -41,6 +43,7 @@ class OrbitAnalyser {
  private:
   not_null<Ephemeris<Frame>*> ephemeris_;
   not_null<RotatingBody<Frame> const*> primary_;
+  not_null<RotatingBody<Frame> const*> sun_;
   DiscreteTrajectory<Frame> trajectory_;
   std::string name_;
 
