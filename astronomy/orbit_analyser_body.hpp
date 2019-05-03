@@ -97,6 +97,53 @@ OrbitAnalyser<Frame>::OrbitAnalyser(
   for (auto it = trajectory.Begin(); it != trajectory.End(); ++it) {
     trajectory_.Append(it.time(), it.degrees_of_freedom());
   }
+
+  Instant const t0 = trajectory.Begin().time();
+  Time const osculating_year =
+      *KeplerOrbit<Frame>(
+           *sun_,
+           *primary_,
+           ephemeris_->trajectory(primary_)->EvaluateDegreesOfFreedom(t0) -
+               ephemeris_->trajectory(sun_)->EvaluateDegreesOfFreedom(t0),
+           t0)
+           .elements_at_epoch()
+           .period;
+  // TODO(egg): We should probably have a way to compute the apsides and nodes
+  // of a continuous trajectory.
+  DiscreteTrajectory<Frame> primary_trajectory;
+  for (double x = 0; x < 10; x += 1.0 / 1024) {
+    Instant const t = t0 + x * osculating_year;
+    ephemeris_->Prolong(t);
+    primary_trajectory.Append(
+        t, ephemeris_->trajectory(primary_)->EvaluateDegreesOfFreedom(t));
+  }
+  DiscreteTrajectory<Frame> primary_aphelia;
+  DiscreteTrajectory<Frame> primary_perihelia;
+  ComputeApsides(*ephemeris_->trajectory(sun_),
+                 primary_trajectory.Begin(),
+                 primary_trajectory.End(),
+                 primary_aphelia,
+                 primary_perihelia);
+  DiscreteTrajectory<Frame> ascending_nodes;
+  DiscreteTrajectory<Frame> descending_nodes;
+  ComputeNodes(primary_trajectory.Begin(),
+               primary_trajectory.End(),
+               primary_->polar_axis(),
+               ascending_nodes,
+               descending_nodes);
+  std::vector<Time> times_between_northward_equinoxes;
+  auto it = ascending_nodes.Begin();
+  Instant previous_equinox = it.time();
+  ++it;
+  for (; it != ascending_nodes.End(); ++it) {
+    times_between_northward_equinoxes.push_back(it.time() - previous_equinox);
+    previous_equinox = it.time();
+  }
+  tropical_year_ = AverageOfCorrelated(times_between_northward_equinoxes);
+  for (auto const& year : times_between_northward_equinoxes) {
+    LOG(ERROR) << year / Day;
+  }
+  LOG(ERROR) << tropical_year_ / Day;
 }
 
 template<typename Frame>
@@ -407,8 +454,12 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                        Unwind(longitudes_of_ascending_nodes)).slope;
   nodal_period_ = AverageOfCorrelated(times_between_ascending_nodes);
 
+  // REMOVE BEFORE FLIGHT: we should directly have the product of measurement
+  // results.
   LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / Day) << u8"°/d = "
-             << nodal_precession_ / (Degree / JulianYear) << u8"°/a";
+             << nodal_precession_ / (Degree / JulianYear) << u8"°/a"
+             << "\n = " << nodal_precession_ / (1 / tropical_year_) / Degree
+             << u8"° / tropical year";
   LOG(ERROR) << u8"Ω = "
              << AverageOfCorrelated(longitudes_of_ascending_nodes) / Degree
              << u8"°";

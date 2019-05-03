@@ -102,7 +102,7 @@ MeasurementResult<Quotient<T, U>> operator/(MeasurementResult<T> const& left,
       left.measured_value / right.measured_value,
       Sqrt(Pow<2>(left.standard_uncertainty) / Pow<2>(right.measured_value) +
            Pow<2>(right.standard_uncertainty) * Pow<2>(left.measured_value) /
-               Pow<4>(left.measured_value))};
+               Pow<4>(right.measured_value))};
 }
 
 template<typename T>

@@ -47,6 +47,8 @@ class OrbitAnalyser {
   DiscreteTrajectory<Frame> trajectory_;
   std::string name_;
 
+  MeasurementResult<Time> tropical_year_;
+
   MeasurementResult<Time> nodal_period_;
   MeasurementResult<Time> anomalistic_period_;
   MeasurementResult<Time> sidereal_period_;

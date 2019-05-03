@@ -285,8 +285,7 @@ TEST_F(OrbitAnalyserTest, 福爾摩沙衛星二號) {
 
   OrbitAnalyser<ICRS> analyser(
       ephemeris_.get(),
-      earth_,
-      sun_,
+      earth_, sun_,
       epoch,
       earth_trajectory_.EvaluateDegreesOfFreedom(epoch) +
           satellite_state_vectors,
