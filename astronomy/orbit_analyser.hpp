@@ -47,7 +47,9 @@ class OrbitAnalyser {
   DiscreteTrajectory<Frame> trajectory_;
   std::string name_;
 
+  Instant reference_perihelion_time_;
   MeasurementResult<Time> tropical_year_;
+  MeasurementResult<Angle> longitude_of_perihelion_;
 
   MeasurementResult<Time> nodal_period_;
   MeasurementResult<Time> anomalistic_period_;

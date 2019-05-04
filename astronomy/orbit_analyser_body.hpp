@@ -117,13 +117,10 @@ OrbitAnalyser<Frame>::OrbitAnalyser(
     primary_trajectory.Append(
         t, ephemeris_->trajectory(primary_)->EvaluateDegreesOfFreedom(t));
   }
-  DiscreteTrajectory<Frame> primary_aphelia;
-  DiscreteTrajectory<Frame> primary_perihelia;
-  ComputeApsides(*ephemeris_->trajectory(sun_),
-                 primary_trajectory.Begin(),
-                 primary_trajectory.End(),
-                 primary_aphelia,
-                 primary_perihelia);
+
+  // We use the procedure from Lee (1995) as described in Allison and McEwen
+  // (2000).
+  // REMOVE BEFORE FLIGHT: cite the titles.
   DiscreteTrajectory<Frame> ascending_nodes;
   DiscreteTrajectory<Frame> descending_nodes;
   ComputeNodes(primary_trajectory.Begin(),
@@ -132,18 +129,43 @@ OrbitAnalyser<Frame>::OrbitAnalyser(
                ascending_nodes,
                descending_nodes);
   std::vector<Time> times_between_northward_equinoxes;
-  auto it = ascending_nodes.Begin();
-  Instant previous_equinox = it.time();
-  ++it;
-  for (; it != ascending_nodes.End(); ++it) {
-    times_between_northward_equinoxes.push_back(it.time() - previous_equinox);
-    previous_equinox = it.time();
+  {
+    auto it = ascending_nodes.Begin();
+    Instant previous_equinox = it.time();
+    for (++it; it != ascending_nodes.End(); ++it) {
+      times_between_northward_equinoxes.push_back(it.time() - previous_equinox);
+      previous_equinox = it.time();
+    }
   }
   tropical_year_ = AverageOfCorrelated(times_between_northward_equinoxes);
-  for (auto const& year : times_between_northward_equinoxes) {
-    LOG(ERROR) << year / Day;
+
+  DiscreteTrajectory<Frame> primary_aphelia;
+  DiscreteTrajectory<Frame> primary_perihelia;
+  ComputeApsides(*ephemeris_->trajectory(sun_),
+                 primary_trajectory.Begin(),
+                 primary_trajectory.End(),
+                 primary_aphelia,
+                 primary_perihelia);
+
+  reference_perihelion_time_ = primary_perihelia.Begin().time();
+  std::vector<Angle> adjusted_longitudes_of_perihelia;
+  // REMOVE BEFORE FLIGHT: The reference direction here has to be node.
+  for (auto it = primary_perihelia.Begin(); it != primary_perihelia.End();
+       ++it) {
+    Angle const argument_of_perihelion = OrientedAngleBetween(
+        Vector<double, Frame>({1, 0, 0}),
+        ephemeris_->trajectory(sun_)->EvaluatePosition(it.time()) -
+            it.degrees_of_freedom().position(),
+        Bivector<double, Frame>({0, 0, 1}));
+    adjusted_longitudes_of_perihelia.push_back(
+        argument_of_perihelion - 2 * π * Radian *
+                                     (it.time() - reference_perihelion_time_) /
+                                     tropical_year_.measured_value);
   }
-  LOG(ERROR) << tropical_year_ / Day;
+  longitude_of_perihelion_ =
+      AverageOfCorrelated(Unwind(adjusted_longitudes_of_perihelia));
+
+  LOG(ERROR) << "Tropical year in ephemeris days: " << tropical_year_ / Day;
 }
 
 template<typename Frame>
@@ -415,6 +437,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   std::vector<Angle> inclinations_at_ascending_nodes;
   std::vector<Angle> terrestrial_longitudes_of_ascending_nodes;
   std::vector<Angle> true_solar_times_of_ascending_nodes;
+  std::vector<Angle> mean_solar_times_of_ascending_nodes;
   for (auto node = ascending_nodes.Begin(); node != ascending_nodes.End(); ++node) {
     // We do not construct |KeplerianElements|: we only need the longitude of
     // the ascending node, and we are at the ascending node so the computation
@@ -444,6 +467,18 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
         z);
     true_solar_times_of_ascending_nodes.push_back(true_solar_time);
 
+    // Ignoring the error bars on the mean sun, effectively making it
+    // conventional.
+    Angle const mean_solar_time =
+        (node.degrees_of_freedom().position() - PrimaryCentred::origin)
+            .coordinates()
+            .ToSpherical()
+            .longitude -
+        (longitude_of_perihelion_.measured_value +
+         2 * π * Radian * (node.time() - reference_perihelion_time_) /
+             tropical_year_.measured_value);
+    mean_solar_times_of_ascending_nodes.push_back(mean_solar_time);
+
     inclinations_at_ascending_nodes.push_back(AngleBetween(
         z,
         Wedge(node.degrees_of_freedom().position() - PrimaryCentred::origin,
@@ -463,6 +498,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"Ω = "
              << AverageOfCorrelated(longitudes_of_ascending_nodes) / Degree
              << u8"°";
+
   auto const tsv = Unwind(true_solar_times_of_ascending_nodes);
   Angle const min_tsv = *std::min_element(tsv.begin(), tsv.end());
   Angle const max_tsv = *std::max_element(tsv.begin(), tsv.end());
@@ -473,6 +509,18 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
              << 12 + (min_tsv * 24 / (2 * π * Radian)) << u8" h";
   LOG(ERROR) << u8"   max = " << max_tsv / Degree << u8"° = "
              << 12 + (max_tsv * 24 / (2 * π * Radian)) << u8" h";
+
+  auto const τ = Unwind(mean_solar_times_of_ascending_nodes);
+  Angle const min_τ = *std::min_element(τ.begin(), τ.end());
+  Angle const max_τ = *std::max_element(τ.begin(), τ.end());
+  MeasurementResult<Angle> const mean_τ = AverageOfCorrelated(τ);
+  LOG(ERROR) << u8"τNA = " << mean_τ / Degree << u8"° = "
+             << 12 + (mean_τ * 24 / (2 * π * Radian)) << u8" h";
+  LOG(ERROR) << u8"   min = " << min_τ / Degree << u8"° = "
+             << 12 + (min_τ * 24 / (2 * π * Radian)) << u8" h";
+  LOG(ERROR) << u8"   max = " << max_τ / Degree << u8"° = "
+             << 12 + (max_τ * 24 / (2 * π * Radian)) << u8" h";
+
   LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
 
   // TODO(egg): Consider factoring this out.

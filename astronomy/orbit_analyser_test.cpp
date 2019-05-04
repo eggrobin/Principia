@@ -207,6 +207,15 @@ std::vector<SP3Orbit> const& SPOT5Orbit() {
   return orbits;
 }
 
+std::vector<SP3Orbit> const& Sentinel3AOrbit() {
+  static const SP3Files files = {{"ssas3a20.b18358.e19003.DG_.sp3"},
+                                 StandardProduct3::Dialect::Standard};
+  static const std::vector<SP3Orbit> orbits{{
+      {{StandardProduct3::SatelliteGroup::General, 74}, files},
+  }};
+  return orbits;
+}
+
 INSTANTIATE_TEST_CASE_P(GNSS,
                         OrbitAnalyserTest,
                         ::testing::ValuesIn(GNSSOrbits()));
@@ -214,6 +223,10 @@ INSTANTIATE_TEST_CASE_P(GNSS,
 INSTANTIATE_TEST_CASE_P(SPOT5,
                         OrbitAnalyserTest,
                         ::testing::ValuesIn(SPOT5Orbit()));
+
+INSTANTIATE_TEST_CASE_P(Sentinel3A,
+                        OrbitAnalyserTest,
+                        ::testing::ValuesIn(Sentinel3AOrbit()));
 
 TEST_P(OrbitAnalyserTest, DoTheAnalysis) {
   OrbitAnalyser<ICRS> analyser(
