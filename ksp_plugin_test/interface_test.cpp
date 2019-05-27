@@ -53,7 +53,6 @@ using geometry::Velocity;
 using ksp_plugin::AliceSun;
 using ksp_plugin::Barycentric;
 using ksp_plugin::Index;
-using ksp_plugin::MakeNavigationManœuvre;
 using ksp_plugin::MockManœuvre;
 using ksp_plugin::MockPlugin;
 using ksp_plugin::MockRenderer;
@@ -149,6 +148,7 @@ class InterfaceTest : public testing::Test {
 
   InterfaceTest()
       : plugin_(make_not_null_unique<StrictMock<MockPlugin>>()),
+        // Use PluginTest.Serialization to create these files.
         hexadecimal_simple_plugin_(ReadFromHexadecimalFile(
             SOLUTION_DIR / "ksp_plugin_test" / "simple_plugin.proto.hex")),
         serialized_simple_plugin_(ReadFromBinaryFile(
