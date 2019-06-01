@@ -390,6 +390,9 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
         it.time(), tip(primary_centred_trajectory.last().degrees_of_freedom()));
   }
 
+  // REMOVE BEFORE FLIGHT: we should pick a reference direction orthogonal to
+  // the orbital plane here, to avoid issues with orbits in the xz plane.
+
   // By computing the "nodes" with respect to the xz plane, i.e., the crossings
   // of the xz plane, we compute the points at which the projection of the orbit
   // onto the reference plane xy passes the fixed reference direction x.

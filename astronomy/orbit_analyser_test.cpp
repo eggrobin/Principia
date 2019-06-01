@@ -143,7 +143,7 @@ class OrbitAnalyserTest : public ::testing::TestWithParam<SP3Orbit> {
 SolarSystem<ICRS> OrbitAnalyserTest::solar_system_(
     SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
     SOLUTION_DIR / "astronomy" /
-        "sol_initial_state_jd_2455200_500000000.proto.txt");
+        "sol_initial_state_jd_2436145_604166667.proto.txt");
 std::unique_ptr<Ephemeris<ICRS>> OrbitAnalyserTest::ephemeris_;
 
 #if !defined(_DEBUG)
@@ -216,6 +216,15 @@ std::vector<SP3Orbit> const& Sentinel3AOrbit() {
   return orbits;
 }
 
+std::vector<SP3Orbit> const& TOPEXPoséidonOrbit() {
+  static const SP3Files files = {{"grgtop03.b97344.e97348.D_S.sp3"},
+                                 StandardProduct3::Dialect::Standard};
+  static const std::vector<SP3Orbit> orbits{{
+      {{StandardProduct3::SatelliteGroup::General, 1}, files},
+  }};
+  return orbits;
+}
+
 INSTANTIATE_TEST_CASE_P(GNSS,
                         OrbitAnalyserTest,
                         ::testing::ValuesIn(GNSSOrbits()));
@@ -227,6 +236,10 @@ INSTANTIATE_TEST_CASE_P(SPOT5,
 INSTANTIATE_TEST_CASE_P(Sentinel3A,
                         OrbitAnalyserTest,
                         ::testing::ValuesIn(Sentinel3AOrbit()));
+
+INSTANTIATE_TEST_CASE_P(TOPEXPoséidon,
+                        OrbitAnalyserTest,
+                        ::testing::ValuesIn(TOPEXPoséidonOrbit()));
 
 TEST_P(OrbitAnalyserTest, DoTheAnalysis) {
   OrbitAnalyser<ICRS> analyser(
