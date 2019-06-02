@@ -681,6 +681,16 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"   " <<
       (λmax - λmin) * ((OblateBody<Frame>const&)*primary_).reference_radius()
       / Radian / Kilo(Metre) << u8" km";
+
+  LOG(ERROR) << "Apsidal precession per sidereal revolution  : "
+             << apsidal_precession_ * sidereal_period_.measured_value / Degree
+             << u8"°";
+  LOG(ERROR) << "Residual in apsidal variation per sid. rev. : "
+             << apsidal_precession_.standard_uncertainty *
+                    arguments_of_periapsides.size() *
+                    sidereal_period_.measured_value / Degree
+             << u8"°";
+
   base::OFStream tf(SOLUTION_DIR / ("longitudes" + name_));
   tf << mathematica::Assign("longitudes" + name_,
                             terrestrial_longitudes_of_ascending_nodes);
