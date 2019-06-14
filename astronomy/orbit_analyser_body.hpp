@@ -17,15 +17,15 @@ namespace internal_orbit_analyser {
 
 using base::mod;
 using geometry::AngularVelocity;
+using geometry::Bivector;
 using geometry::Displacement;
 using geometry::OrientedAngleBetween;
 using geometry::Position;
 using geometry::Rotation;
 using geometry::Vector;
-using geometry::Bivector;
 using geometry::Velocity;
-using integrators::methods::DormandالمكاوىPrince1986RKN434FM;
 using integrators::EmbeddedExplicitRungeKuttaNyströmIntegrator;
+using integrators::methods::DormandالمكاوىPrince1986RKN434FM;
 using physics::BodyCentredNonRotatingDynamicFrame;
 using physics::ComputeApsides;
 using physics::ComputeNodes;
@@ -37,6 +37,7 @@ using physics::RigidTransformation;
 using quantities::Abs;
 using quantities::Angle;
 using quantities::AverageOfCorrelated;
+using quantities::Infinity;
 using quantities::Length;
 using quantities::LinearRegression;
 using quantities::Speed;
@@ -232,6 +233,260 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                     JulianYear
              << " a";
 
+  enum class PrimaryTag { normal, sideways };
+  // The origin of the reference frame is the centre of mass of |*primary_|.
+  // The axes are those of |Frame|.
+  // The reference plane for orbital analysis is the xy plane.
+  using PrimaryCentred = geometry::Frame<PrimaryTag,
+                                         PrimaryTag::normal,
+                                         /*frame_is_inertial=*/false>;
+  Vector<double, PrimaryCentred> x({1, 0, 0});
+  Bivector<double, PrimaryCentred> z({0, 0, 1});
+
+  // Same as PrimaryCentredNonRotating, with different axes:
+  // - the x axis is the same as the one of PrimaryCentred;
+  // - the y axis is the z axis of PrimaryCentred;
+  // - the z axis is opposite the y axis of PrimaryCentred.
+  using PrimaryCentredSideways = geometry::Frame<PrimaryTag,
+                                                 PrimaryTag::sideways,
+                                                 /*frame_is_inertial=*/false>;
+
+  RigidMotion<PrimaryCentred, PrimaryCentredSideways> tip(
+      RigidTransformation<PrimaryCentred, PrimaryCentredSideways>(
+          PrimaryCentred::origin,
+          PrimaryCentredSideways::origin,
+          Rotation<PrimaryCentred, PrimaryCentredSideways>(x, z, x * z)
+              .Forget()),
+      /*angular_velocity_of_to_frame=*/AngularVelocity<PrimaryCentred>{},
+      /*velocity_of_to_frame_origin=*/
+      Velocity<PrimaryCentred>{});
+
+  BodyCentredNonRotatingDynamicFrame<Frame, PrimaryCentred> primary_centred(
+      ephemeris_, primary_);
+
+  DiscreteTrajectory<PrimaryCentred> primary_centred_trajectory;
+  DiscreteTrajectory<PrimaryCentredSideways>
+      sideways_primary_centred_trajectory;
+  for (auto it = trajectory_.Begin(); it != trajectory_.End(); ++it) {
+    primary_centred_trajectory.Append(
+        it.time(),
+        primary_centred.ToThisFrameAtTime(it.time())(it.degrees_of_freedom()));
+    sideways_primary_centred_trajectory.Append(
+        it.time(), tip(primary_centred_trajectory.last().degrees_of_freedom()));
+  }
+
+  // REMOVE BEFORE FLIGHT: we should pick a reference direction orthogonal to
+  // the orbital plane here, to avoid issues with orbits in the xz plane.
+
+  // By computing the "nodes" with respect to the xz plane, i.e., the crossings
+  // of the xz plane, we compute the points at which the projection of the orbit
+  // onto the reference plane xy passes the fixed reference direction x.
+  // While these points themselves are largely meaningless, the time between
+  // them is the sidereal period.
+  DiscreteTrajectory<PrimaryCentredSideways> xz_ascensions;
+  DiscreteTrajectory<PrimaryCentredSideways> xz_descents;
+  ComputeNodes(sideways_primary_centred_trajectory.Begin(),
+               sideways_primary_centred_trajectory.End(),
+               tip.orthogonal_map()(z * x),
+               xz_ascensions,
+               xz_descents);
+  std::vector<Time> times_between_xz_ascensions;
+  auto ascension = xz_ascensions.Begin();
+  Instant previous_time = ascension.time();
+  if (ascension != xz_ascensions.End()) {
+    ++ascension;
+  }
+  for (; ascension != xz_ascensions.End();
+       previous_time = ascension.time(), ++ascension) {
+    times_between_xz_ascensions.push_back(ascension.time() - previous_time);
+  }
+  base::OFStream f(SOLUTION_DIR / "sidereal_period_fine");
+  f << mathematica::Assign("t", times_between_xz_ascensions);
+  sidereal_period_ = AverageOfCorrelated(times_between_xz_ascensions);
+  LOG(ERROR) << u8"T* = " << sidereal_period_ / Second << " s";
+  Time const sidereal_rotation_period =
+      2 * π * Radian / primary_->angular_frequency();
+  LOG(ERROR) << u8"T* / T🜨 = " << sidereal_period_ / sidereal_rotation_period;
+  LOG(ERROR) << u8"T🜨 / T* = " << sidereal_rotation_period / sidereal_period_;
+
+  DiscreteTrajectory<PrimaryCentred> ascending_nodes;
+  DiscreteTrajectory<PrimaryCentred> descending_nodes;
+  ComputeNodes(primary_centred_trajectory.Begin(),
+               primary_centred_trajectory.End(),
+               Vector<double, PrimaryCentred>({0, 0, 1}),
+               ascending_nodes,
+               descending_nodes);
+
+  LOG(ERROR) << ascending_nodes.Size() << " ascending nodes";
+
+  std::vector<Instant> times_of_ascending_nodes;
+  std::vector<Time> times_between_ascending_nodes;
+  std::vector<Angle> longitudes_of_ascending_nodes;
+  std::vector<Angle> inclinations_at_ascending_nodes;
+  std::vector<Angle> terrestrial_longitudes_of_ascending_nodes;
+  std::vector<Angle> true_solar_times_of_ascending_nodes;
+  std::vector<Angle> mean_solar_times_of_ascending_nodes;
+  for (auto node = ascending_nodes.Begin(); node != ascending_nodes.End();
+       ++node) {
+    // We do not construct |KeplerianElements|: we only need the longitude of
+    // the ascending node, and we are at the ascending node so the computation
+    // is trivial.
+    Angle const Ω = OrientedAngleBetween(
+        x, node.degrees_of_freedom().position() - PrimaryCentred::origin, z);
+    if (!times_of_ascending_nodes.empty()) {
+      times_between_ascending_nodes.push_back(node.time() -
+                                              times_of_ascending_nodes.back());
+    }
+    times_of_ascending_nodes.push_back(node.time());
+    longitudes_of_ascending_nodes.push_back(Ω);
+
+    // REMOVE BEFORE FLIGHT: we should be able to orthogonalize vectors against
+    // bivectors and vice-versa.
+    // 0 for noon.
+    Angle const true_solar_time = OrientedAngleBetween(
+        (primary_centred
+             .ToThisFrameAtTime(node.time())(
+                 ephemeris_->trajectory(sun_)->EvaluateDegreesOfFreedom(
+                     node.time()))
+             .position() -
+         PrimaryCentred::origin)
+            .OrthogonalizationAgainst(
+                Vector<double, PrimaryCentred>({0, 0, 1})),
+        node.degrees_of_freedom().position() - PrimaryCentred::origin,
+        z);
+    true_solar_times_of_ascending_nodes.push_back(true_solar_time);
+
+    // Ignoring the error bars on the mean sun, effectively making it
+    // conventional.
+    Angle const mean_solar_time =
+        (node.degrees_of_freedom().position() - PrimaryCentred::origin)
+            .coordinates()
+            .ToSpherical()
+            .longitude -
+        (longitude_of_perihelion_.measured_value +
+         2 * π * Radian * (node.time() - reference_perihelion_time_) /
+             tropical_year_.measured_value);
+    mean_solar_times_of_ascending_nodes.push_back(mean_solar_time);
+
+    inclinations_at_ascending_nodes.push_back(AngleBetween(
+        z,
+        Wedge(node.degrees_of_freedom().position() - PrimaryCentred::origin,
+              node.degrees_of_freedom().velocity())));
+  }
+  nodal_precession_ = LinearRegression(times_of_ascending_nodes,
+                                       Unwind(longitudes_of_ascending_nodes))
+                          .slope;
+  nodal_period_ = AverageOfCorrelated(times_between_ascending_nodes);
+
+  // REMOVE BEFORE FLIGHT: we should directly have the product of measurement
+  // results.
+  LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / Day) << u8"°/d = "
+             << nodal_precession_ / (Degree / JulianYear) << u8"°/a"
+             << "\n = " << nodal_precession_ / (1 / tropical_year_) / Degree
+             << u8"° / tropical year";
+  LOG(ERROR) << u8"Ω = "
+             << AverageOfCorrelated(longitudes_of_ascending_nodes) / Degree
+             << u8"°";
+
+  auto const tsv = Unwind(true_solar_times_of_ascending_nodes);
+  Angle const min_tsv = *std::min_element(tsv.begin(), tsv.end());
+  Angle const max_tsv = *std::max_element(tsv.begin(), tsv.end());
+  MeasurementResult<Angle> const mean_tsv = AverageOfCorrelated(tsv);
+  LOG(ERROR) << u8"TSV_NA = " << mean_tsv / Degree << u8"° = "
+             << 12 + (mean_tsv * 24 / (2 * π * Radian)) << u8" h";
+  LOG(ERROR) << u8"   min = " << min_tsv / Degree << u8"° = "
+             << 12 + (min_tsv * 24 / (2 * π * Radian)) << u8" h";
+  LOG(ERROR) << u8"   max = " << max_tsv / Degree << u8"° = "
+             << 12 + (max_tsv * 24 / (2 * π * Radian)) << u8" h";
+
+  auto const τ = Unwind(mean_solar_times_of_ascending_nodes);
+  Angle const min_τ = *std::min_element(τ.begin(), τ.end());
+  Angle const max_τ = *std::max_element(τ.begin(), τ.end());
+  MeasurementResult<Angle> const mean_τ = AverageOfCorrelated(τ);
+  LOG(ERROR) << u8"τNA = " << mean_τ / Degree << u8"° = "
+             << 12 + (mean_τ * 24 / (2 * π * Radian)) << u8" h";
+  LOG(ERROR) << u8"   min = " << min_τ / Degree << u8"° = "
+             << 12 + (min_τ * 24 / (2 * π * Radian)) << u8" h";
+  LOG(ERROR) << u8"   max = " << max_τ / Degree << u8"° = "
+             << 12 + (max_τ * 24 / (2 * π * Radian)) << u8" h";
+
+  LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
+
+  // TODO(egg): Consider factoring this out.
+  std::vector<Angle> inclinations_at_extremal_latitudes;
+  std::vector<Angle> all_latitudes;
+  std::vector<AngularFrequency> all_latitude_rates;
+  std::vector<Instant> all_times;
+  {
+    auto const latitude = [](Position<PrimaryCentred> q) -> Angle {
+      return (q - PrimaryCentred::origin).coordinates().ToSpherical().latitude;
+    };
+    auto const latitude_rate =
+        [](DegreesOfFreedom<PrimaryCentred> dof) -> AngularFrequency {
+      Displacement<PrimaryCentred> const r =
+          dof.position() - PrimaryCentred::origin;
+      Vector<double, PrimaryCentred> const celestial_north({0, 0, 1});
+      Vector<double, PrimaryCentred> const local_north =
+          Normalize(celestial_north.OrthogonalizationAgainst(r));
+      return InnerProduct(dof.velocity(), local_north) * Radian / r.Norm();
+    };
+    auto it = primary_centred_trajectory.Begin();
+    Instant previous_time = it.time();
+    Angle previous_latitude = latitude(it.degrees_of_freedom().position());
+    AngularFrequency previous_latitude_rate =
+        latitude_rate(it.degrees_of_freedom());
+    for (++it; it != primary_centred_trajectory.End(); ++it) {
+      Angle const new_latitude = latitude(it.degrees_of_freedom().position());
+      AngularFrequency const new_latitude_rate =
+          latitude_rate(it.degrees_of_freedom());
+      all_times.push_back(it.time());
+      all_latitudes.push_back(new_latitude);
+      all_latitude_rates.push_back(new_latitude_rate);
+      if (geometry::Sign(new_latitude_rate) !=
+          geometry::Sign(previous_latitude_rate)) {
+        numerics::Hermite3<Instant, Angle> interpolated_latitude(
+            {previous_time, it.time()},
+            {previous_latitude, new_latitude},
+            {previous_latitude_rate, new_latitude_rate});
+        Instant extremum_time;
+        int valid_extrema = 0;
+        for (Instant const& extremum : interpolated_latitude.FindExtrema()) {
+          if (extremum >= previous_time && extremum <= it.time()) {
+            extremum_time = extremum;
+            ++valid_extrema;
+          }
+        }
+        if (valid_extrema != 1) {
+          extremum_time = geometry::Barycentre<Instant, AngularFrequency>(
+              {it.time(), previous_time},
+              {previous_latitude_rate, -new_latitude_rate});
+        }
+        inclinations_at_extremal_latitudes.push_back(Abs(latitude(
+            primary_centred_trajectory.EvaluatePosition(extremum_time))));
+        if (geometry::Sign(
+                InnerProduct(Wedge((primary_centred_trajectory.EvaluatePosition(
+                                        extremum_time) -
+                                    PrimaryCentred::origin),
+                                   primary_centred_trajectory.EvaluateVelocity(
+                                       extremum_time)),
+                             z))
+                .Negative()) {
+          inclinations_at_extremal_latitudes.back() =
+              π * Radian - inclinations_at_extremal_latitudes.back();
+        }
+      }
+      previous_time = it.time();
+      previous_latitude = new_latitude;
+      previous_latitude_rate = new_latitude_rate;
+    }
+  }
+  // TODO(egg): this would need special handling for retrograde orbits; more
+  // worryingly it is unsound for polar orbits.
+  inclination_ = AverageOfCorrelated(inclinations_at_extremal_latitudes);
+  LOG(ERROR) << "i = " << inclination_ / Degree << u8"° (ψm)";
+  LOG(ERROR) << "i = "
+             << AverageOfCorrelated(inclinations_at_ascending_nodes) / Degree
+             << u8"° (i☊)";
   DiscreteTrajectory<Frame> periapsides;
   DiscreteTrajectory<Frame> apoapsides;
   ComputeApsides(*ephemeris_->trajectory(primary_),
@@ -240,7 +495,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                  apoapsides,
                  periapsides);
 
-  LOG(ERROR) << periapsides.Size() << " periapsides";
+  LOG(ERROR) << periapsides.Size() << " apparent periapsides";
   LOG(ERROR) << apoapsides.Size() << " apoapsides";
 
   std::vector<Instant> times_of_periapsides;
@@ -249,41 +504,75 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   std::vector<Length> periapsis_distances;
   std::vector<Length> apoapsis_distances;
 
-  for (auto periapsis = periapsides.Begin();
-       periapsis != periapsides.End();
-       ++periapsis) {
+  for (std::optional<DiscreteTrajectory<Frame>::Iterator> previous_periapsis;
+       ;) {
+    // Eliminate spurious periapsides at low eccentricities by taking the lowest
+    // periapsis over 1.5 nodal periods (which should be enough to cover 1
+    // apsidal period, but not enough to cover 2). REMOVE BEFORE FLIGHT: Make
+    // sure that this really cannot cover 2 apsidal periods.
+    Length periapsis_distance = Infinity<Length>();
+    auto tentative_periapsis = previous_periapsis.value_or(periapsides.Begin());
+    if (previous_periapsis.has_value()) {
+      ++tentative_periapsis;
+    }
+    auto periapsis = tentative_periapsis;
+    for (; tentative_periapsis != periapsides.End() &&
+           tentative_periapsis.time() -
+                   previous_periapsis.value_or(periapsides.Begin()).time() <=
+               nodal_period_.measured_value * 1.5;
+         ++tentative_periapsis) {
+      Length const tentative_periapsis_distance =
+          (ephemeris_->trajectory(primary_)->EvaluatePosition(
+               tentative_periapsis.time()) -
+           tentative_periapsis.degrees_of_freedom().position())
+              .Norm();
+      if (tentative_periapsis_distance < periapsis_distance) {
+        periapsis_distance = tentative_periapsis_distance;
+        periapsis = tentative_periapsis;
+      }
+    }
+    if (tentative_periapsis == periapsides.End()) {
+      // We have not been able to look at a whole 1.5 nodal periods after the
+      // last periapsis; ignore trailing periapsides, as they may be spurious.
+      break;
+    }
+
     // TODO(egg): We could probably do something a lot more efficient, because
     // we know that we are at the periapsis, and we only need the argument of
     // periapsis.
-    Angle ω = *KeplerOrbit<Frame>(
-                 *primary_,
-                 MasslessBody{},
-                 periapsis.degrees_of_freedom() -
-                     ephemeris_->trajectory(primary_)->EvaluateDegreesOfFreedom(
-                         periapsis.time()),
-                 periapsis.time())
-                 .elements_at_epoch()
-                 .argument_of_periapsis;
+    Angle ω =
+        *KeplerOrbit<Frame>(
+             *primary_,
+             MasslessBody{},
+             periapsis.degrees_of_freedom() -
+                 ephemeris_->trajectory(primary_)->EvaluateDegreesOfFreedom(
+                     periapsis.time()),
+             periapsis.time())
+             .elements_at_epoch()
+             .argument_of_periapsis;
     if (!times_of_periapsides.empty()) {
       times_between_periapsides.push_back(periapsis.time() -
                                           times_of_periapsides.back());
     }
     times_of_periapsides.push_back(periapsis.time());
     arguments_of_periapsides.push_back(ω);
-    periapsis_distances.push_back(
-        (ephemeris_->trajectory(primary_)->EvaluatePosition(periapsis.time()) -
-         periapsis.degrees_of_freedom().position()).Norm());
+    periapsis_distances.push_back(periapsis_distance);
+
+    previous_periapsis = periapsis;
   }
-  for (auto apoapsis = apoapsides.Begin();
-       apoapsis != apoapsides.End();
+  LOG(ERROR) << periapsis_distances.size() << " true periapsides";
+
+  for (auto apoapsis = apoapsides.Begin(); apoapsis != apoapsides.End();
        ++apoapsis) {
+    // TODO(egg): Same treatment as for periapsides.
     apoapsis_distances.push_back(
         (ephemeris_->trajectory(primary_)->EvaluatePosition(apoapsis.time()) -
-         apoapsis.degrees_of_freedom().position()).Norm());
+         apoapsis.degrees_of_freedom().position())
+            .Norm());
   }
   apsidal_precession_ =
-      LinearRegression(times_of_periapsides,
-                       Unwind(arguments_of_periapsides)).slope;
+      LinearRegression(times_of_periapsides, Unwind(arguments_of_periapsides))
+          .slope;
   anomalistic_period_ = AverageOfCorrelated(times_between_periapsides);
   periapsis_distance_ = AverageOfCorrelated(periapsis_distances);
   apoapsis_distance_ = AverageOfCorrelated(apoapsis_distances);
@@ -349,259 +638,6 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
              << " km";
   LOG(ERROR) << "e = " << eccentricity_;
 
-  enum class PrimaryTag { normal, sideways };
-  // The origin of the reference frame is the centre of mass of |*primary_|.
-  // The axes are those of |Frame|.
-  // The reference plane for orbital analysis is the xy plane.
-  using PrimaryCentred = geometry::Frame<PrimaryTag,
-                                         PrimaryTag::normal,
-                                         /*frame_is_inertial=*/false>;
-  Vector<double, PrimaryCentred> x({1, 0, 0});
-  Bivector<double, PrimaryCentred> z({0, 0, 1});
-
-  // Same as PrimaryCentredNonRotating, with different axes:
-  // - the x axis is the same as the one of PrimaryCentred;
-  // - the y axis is the z axis of PrimaryCentred;
-  // - the z axis is opposite the y axis of PrimaryCentred.
-  using PrimaryCentredSideways = geometry::Frame<PrimaryTag,
-                                                 PrimaryTag::sideways,
-                                                 /*frame_is_inertial=*/false>;
-
-  RigidMotion<PrimaryCentred, PrimaryCentredSideways> tip(
-      RigidTransformation<PrimaryCentred, PrimaryCentredSideways>(
-          PrimaryCentred::origin,
-          PrimaryCentredSideways::origin,
-          Rotation<PrimaryCentred, PrimaryCentredSideways>(
-              x, z, x * z).Forget()),
-      /*angular_velocity_of_to_frame=*/AngularVelocity<PrimaryCentred>{},
-      /*velocity_of_to_frame_origin=*/
-      Velocity<PrimaryCentred>{});
-
-  BodyCentredNonRotatingDynamicFrame<Frame, PrimaryCentred> primary_centred(
-      ephemeris_, primary_);
-
-  DiscreteTrajectory<PrimaryCentred> primary_centred_trajectory;
-  DiscreteTrajectory<PrimaryCentredSideways> sideways_primary_centred_trajectory;
-  for (auto it = trajectory_.Begin(); it != trajectory_.End(); ++it) {
-    primary_centred_trajectory.Append(
-        it.time(),
-        primary_centred.ToThisFrameAtTime(it.time())(it.degrees_of_freedom()));
-    sideways_primary_centred_trajectory.Append(
-        it.time(), tip(primary_centred_trajectory.last().degrees_of_freedom()));
-  }
-
-  // REMOVE BEFORE FLIGHT: we should pick a reference direction orthogonal to
-  // the orbital plane here, to avoid issues with orbits in the xz plane.
-
-  // By computing the "nodes" with respect to the xz plane, i.e., the crossings
-  // of the xz plane, we compute the points at which the projection of the orbit
-  // onto the reference plane xy passes the fixed reference direction x.
-  // While these points themselves are largely meaningless, the time between
-  // them is the sidereal period.
-  DiscreteTrajectory<PrimaryCentredSideways> xz_ascensions;
-  DiscreteTrajectory<PrimaryCentredSideways> xz_descents;
-  ComputeNodes(sideways_primary_centred_trajectory.Begin(),
-               sideways_primary_centred_trajectory.End(),
-               tip.orthogonal_map()(z * x),
-               xz_ascensions,
-               xz_descents);
-  std::vector<Time> times_between_xz_ascensions;
-  auto ascension = xz_ascensions.Begin();
-  Instant previous_time = ascension.time();
-  if (ascension != xz_ascensions.End()) {
-    ++ascension;
-  }
-  for (; ascension != xz_ascensions.End();
-       previous_time = ascension.time(), ++ascension) {
-    times_between_xz_ascensions.push_back(ascension.time() - previous_time);
-  }
-  base::OFStream f(SOLUTION_DIR / "sidereal_period_fine");
-  f << mathematica::Assign("t", times_between_xz_ascensions);
-  sidereal_period_ = AverageOfCorrelated(times_between_xz_ascensions);
-  LOG(ERROR) << u8"T* = " << sidereal_period_ / Second << " s";
-  Time const sidereal_rotation_period =
-      2 * π * Radian / primary_->angular_frequency();
-  LOG(ERROR) << u8"T* / T🜨 = " << sidereal_period_ / sidereal_rotation_period;
-  LOG(ERROR) << u8"T🜨 / T* = " << sidereal_rotation_period / sidereal_period_;
-
-  DiscreteTrajectory<PrimaryCentred> ascending_nodes;
-  DiscreteTrajectory<PrimaryCentred> descending_nodes;
-  ComputeNodes(primary_centred_trajectory.Begin(),
-               primary_centred_trajectory.End(),
-               Vector<double, PrimaryCentred>({0, 0, 1}),
-               ascending_nodes,
-               descending_nodes);
-
-  LOG(ERROR) << ascending_nodes.Size() << " ascending nodes";
-
-  std::vector<Instant> times_of_ascending_nodes;
-  std::vector<Time> times_between_ascending_nodes;
-  std::vector<Angle> longitudes_of_ascending_nodes;
-  std::vector<Angle> inclinations_at_ascending_nodes;
-  std::vector<Angle> terrestrial_longitudes_of_ascending_nodes;
-  std::vector<Angle> true_solar_times_of_ascending_nodes;
-  std::vector<Angle> mean_solar_times_of_ascending_nodes;
-  for (auto node = ascending_nodes.Begin(); node != ascending_nodes.End(); ++node) {
-    // We do not construct |KeplerianElements|: we only need the longitude of
-    // the ascending node, and we are at the ascending node so the computation
-    // is trivial.
-    Angle const Ω = OrientedAngleBetween(
-        x, node.degrees_of_freedom().position() - PrimaryCentred::origin, z);
-    if (!times_of_ascending_nodes.empty()) {
-      times_between_ascending_nodes.push_back(node.time() -
-                                              times_of_ascending_nodes.back());
-    }
-    times_of_ascending_nodes.push_back(node.time());
-    longitudes_of_ascending_nodes.push_back(Ω);
-
-    // REMOVE BEFORE FLIGHT: we should be able to orthogonalize vectors against
-    // bivectors and vice-versa.
-    // 0 for noon.
-    Angle const true_solar_time = OrientedAngleBetween(
-        (primary_centred
-             .ToThisFrameAtTime(node.time())(
-                 ephemeris_->trajectory(sun_)->EvaluateDegreesOfFreedom(
-                     node.time()))
-             .position() -
-         PrimaryCentred::origin)
-            .OrthogonalizationAgainst(
-                Vector<double, PrimaryCentred>({0, 0, 1})),
-        node.degrees_of_freedom().position() - PrimaryCentred::origin,
-        z);
-    true_solar_times_of_ascending_nodes.push_back(true_solar_time);
-
-    // Ignoring the error bars on the mean sun, effectively making it
-    // conventional.
-    Angle const mean_solar_time =
-        (node.degrees_of_freedom().position() - PrimaryCentred::origin)
-            .coordinates()
-            .ToSpherical()
-            .longitude -
-        (longitude_of_perihelion_.measured_value +
-         2 * π * Radian * (node.time() - reference_perihelion_time_) /
-             tropical_year_.measured_value);
-    mean_solar_times_of_ascending_nodes.push_back(mean_solar_time);
-
-    inclinations_at_ascending_nodes.push_back(AngleBetween(
-        z,
-        Wedge(node.degrees_of_freedom().position() - PrimaryCentred::origin,
-              node.degrees_of_freedom().velocity())));
-  }
-  nodal_precession_ =
-      LinearRegression(times_of_ascending_nodes,
-                       Unwind(longitudes_of_ascending_nodes)).slope;
-  nodal_period_ = AverageOfCorrelated(times_between_ascending_nodes);
-
-  // REMOVE BEFORE FLIGHT: we should directly have the product of measurement
-  // results.
-  LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / Day) << u8"°/d = "
-             << nodal_precession_ / (Degree / JulianYear) << u8"°/a"
-             << "\n = " << nodal_precession_ / (1 / tropical_year_) / Degree
-             << u8"° / tropical year";
-  LOG(ERROR) << u8"Ω = "
-             << AverageOfCorrelated(longitudes_of_ascending_nodes) / Degree
-             << u8"°";
-
-  auto const tsv = Unwind(true_solar_times_of_ascending_nodes);
-  Angle const min_tsv = *std::min_element(tsv.begin(), tsv.end());
-  Angle const max_tsv = *std::max_element(tsv.begin(), tsv.end());
-  MeasurementResult<Angle> const mean_tsv = AverageOfCorrelated(tsv);
-  LOG(ERROR) << u8"TSV_NA = " << mean_tsv / Degree << u8"° = "
-             << 12 + (mean_tsv * 24 / (2 * π * Radian)) << u8" h";
-  LOG(ERROR) << u8"   min = " << min_tsv / Degree << u8"° = "
-             << 12 + (min_tsv * 24 / (2 * π * Radian)) << u8" h";
-  LOG(ERROR) << u8"   max = " << max_tsv / Degree << u8"° = "
-             << 12 + (max_tsv * 24 / (2 * π * Radian)) << u8" h";
-
-  auto const τ = Unwind(mean_solar_times_of_ascending_nodes);
-  Angle const min_τ = *std::min_element(τ.begin(), τ.end());
-  Angle const max_τ = *std::max_element(τ.begin(), τ.end());
-  MeasurementResult<Angle> const mean_τ = AverageOfCorrelated(τ);
-  LOG(ERROR) << u8"τNA = " << mean_τ / Degree << u8"° = "
-             << 12 + (mean_τ * 24 / (2 * π * Radian)) << u8" h";
-  LOG(ERROR) << u8"   min = " << min_τ / Degree << u8"° = "
-             << 12 + (min_τ * 24 / (2 * π * Radian)) << u8" h";
-  LOG(ERROR) << u8"   max = " << max_τ / Degree << u8"° = "
-             << 12 + (max_τ * 24 / (2 * π * Radian)) << u8" h";
-
-  LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
-
-  // TODO(egg): Consider factoring this out.
-  std::vector<Angle> inclinations_at_extremal_latitudes;
-  std::vector<Angle> all_latitudes;
-  std::vector<AngularFrequency> all_latitude_rates;
-  std::vector<Instant> all_times;
-  {
-    auto const latitude = [](Position<PrimaryCentred> q) -> Angle {
-      return (q - PrimaryCentred::origin).coordinates().ToSpherical().latitude;
-    };
-    auto const latitude_rate =
-        [](DegreesOfFreedom<PrimaryCentred> dof) -> AngularFrequency {
-      Displacement<PrimaryCentred> const r =
-          dof.position() - PrimaryCentred::origin;
-      Vector<double, PrimaryCentred> const celestial_north({0, 0, 1});
-      Vector<double, PrimaryCentred> const local_north =
-          Normalize(celestial_north.OrthogonalizationAgainst(r));
-      return InnerProduct(dof.velocity(), local_north) * Radian / r.Norm();
-    };
-    auto it = primary_centred_trajectory.Begin();
-    Instant previous_time = it.time();
-    Angle previous_latitude = latitude(it.degrees_of_freedom().position());
-    AngularFrequency previous_latitude_rate =
-        latitude_rate(it.degrees_of_freedom());
-    for (++it; it != primary_centred_trajectory.End(); ++it) {
-      Angle const new_latitude = latitude(it.degrees_of_freedom().position());
-      AngularFrequency const new_latitude_rate =
-          latitude_rate(it.degrees_of_freedom());
-    all_times.push_back(it.time());
-    all_latitudes.push_back(new_latitude);
-    all_latitude_rates.push_back(new_latitude_rate);
-      if (geometry::Sign(new_latitude_rate) !=
-          geometry::Sign(previous_latitude_rate)) {
-        numerics::Hermite3<Instant, Angle> interpolated_latitude(
-            {previous_time, it.time()},
-            {previous_latitude, new_latitude},
-            {previous_latitude_rate, new_latitude_rate});
-        Instant extremum_time;
-        int valid_extrema = 0;
-        for (Instant const& extremum : interpolated_latitude.FindExtrema()) {
-          if (extremum >= previous_time && extremum <= it.time()) {
-            extremum_time = extremum;
-            ++valid_extrema;
-          }
-        }
-        if (valid_extrema != 1) {
-          extremum_time = geometry::Barycentre<Instant, AngularFrequency>(
-              {it.time(), previous_time},
-              {previous_latitude_rate, -new_latitude_rate});
-        }
-        inclinations_at_extremal_latitudes.push_back(Abs(latitude(
-            primary_centred_trajectory.EvaluatePosition(extremum_time))));
-        if (geometry::Sign(
-                InnerProduct(Wedge((primary_centred_trajectory.EvaluatePosition(
-                                        extremum_time) -
-                                    PrimaryCentred::origin),
-                                   primary_centred_trajectory.EvaluateVelocity(
-                                       extremum_time)),
-                             z))
-                .Negative()) {
-          inclinations_at_extremal_latitudes.back() =
-              π * Radian - inclinations_at_extremal_latitudes.back();
-        }
-      }
-      previous_time = it.time();
-      previous_latitude = new_latitude;
-      previous_latitude_rate = new_latitude_rate;
-    }
-  }
-  // TODO(egg): this would need special handling for retrograde orbits; more
-  // worryingly it is unsound for polar orbits.
-  inclination_ = AverageOfCorrelated(inclinations_at_extremal_latitudes);
-  LOG(ERROR) << "i = " << inclination_ / Degree << u8"° (ψm)";
-  LOG(ERROR) << "i = "
-             << AverageOfCorrelated(inclinations_at_ascending_nodes) / Degree
-             << u8"° (i☊)";
-
   // (7.41).
   MeasurementResult<double> const daily_recurrence_frequency =
       (2 * π * Radian / nodal_period_) /
@@ -634,14 +670,12 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
 
   int const ν0 = std::nearbyint(daily_recurrence_frequency.measured_value);
   int const dto = nto - ν0 * cto;
-  LOG(ERROR) << u8"[ν0 ; DTo ; CTo] = ["
-             << ν0 << " ; " << dto << " ; " << cto << "]";
+  LOG(ERROR) << u8"[ν0 ; DTo ; CTo] = [" << ν0 << " ; " << dto << " ; " << cto
+             << "]";
   LOG(ERROR) << u8"𝕃 = NTo Td \t\t\t\t= " << nto * nodal_period_ / Day << " d";
   auto const ll = 2 * π * Radian * cto /
-                    (primary_->angular_frequency() - nodal_precession_) / Day;
-  LOG(ERROR) << u8"𝕃 = 2π CTo / (Ω′T - Ω′) \t= "
-             << ll 
-             << " d";
+                  (primary_->angular_frequency() - nodal_precession_) / Day;
+  LOG(ERROR) << u8"𝕃 = 2π CTo / (Ω′T - Ω′) \t= " << ll << " d";
 
   Angle const ΔλE = -2 * π * Radian * cto / nto;
   Angle const δ = 2 * π * Radian / nto;
@@ -664,13 +698,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     // TODO(egg): this assumes earthlike sign for the longitude.
     Angle const λ = Ω - (primary_->AngleAt(t) + π / 2 * Radian) + π * Radian;
     terrestrial_longitudes_of_ascending_nodes.push_back(
-        quantities::Mod(
-            λ - i * ΔλE,
-            2 * π * Radian) -
-        π * Radian);
+        quantities::Mod(λ - i * ΔλE, 2 * π * Radian) - π * Radian);
   }
 
-  std::vector<Angle> const λ = Unwind(terrestrial_longitudes_of_ascending_nodes);
+  std::vector<Angle> const λ =
+      Unwind(terrestrial_longitudes_of_ascending_nodes);
   auto const λ0 = AverageOfCorrelated(λ);
   auto const λmax = *std::max_element(λ.begin(), λ.end());
   auto const λmin = *std::min_element(λ.begin(), λ.end());
@@ -678,9 +710,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"λ- =" << λmin / Degree << u8"°";
   LOG(ERROR) << u8"λ+ =" << λmax / Degree << u8"°";
   LOG(ERROR) << u8"Δλ =" << (λmax - λmin) / Degree << u8"°";
-  LOG(ERROR) << u8"   " <<
-      (λmax - λmin) * ((OblateBody<Frame>const&)*primary_).reference_radius()
-      / Radian / Kilo(Metre) << u8" km";
+  LOG(ERROR) << u8"   "
+             << (λmax - λmin) *
+                    ((OblateBody<Frame> const&)*primary_).reference_radius() /
+                    Radian / Kilo(Metre)
+             << u8" km";
 
   LOG(ERROR) << "Apsidal precession per sidereal revolution  : "
              << apsidal_precession_ * sidereal_period_.measured_value / Degree
@@ -695,8 +729,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   tf << mathematica::Assign("longitudes" + name_,
                             terrestrial_longitudes_of_ascending_nodes);
   tf << mathematica::Assign("t" + name_, times_of_ascending_nodes);
-  tf << mathematica::Assign("iNA" + name_,
-                            inclinations_at_ascending_nodes);
+  tf << mathematica::Assign("iNA" + name_, inclinations_at_ascending_nodes);
   tf << mathematica::Assign("iLatMax" + name_,
                             inclinations_at_extremal_latitudes);
 
