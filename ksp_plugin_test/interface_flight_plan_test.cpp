@@ -152,9 +152,10 @@ TEST_F(InterfaceFlightPlanTest, FlightPlan) {
 
   EXPECT_CALL(flight_plan, SetDesiredFinalTime(Instant() + 60 * Second))
       .WillOnce(Return(base::Status::OK));
-  EXPECT_TRUE(principia__FlightPlanSetDesiredFinalTime(plugin_.get(),
-                                                       vessel_guid,
-                                                       60));
+  EXPECT_EQ(0,
+            principia__FlightPlanSetDesiredFinalTime(plugin_.get(),
+                                                     vessel_guid,
+                                                     60).error);
 
   EXPECT_CALL(flight_plan, initial_time())
       .WillOnce(Return(Instant() + 3 * Second));
@@ -165,56 +166,41 @@ TEST_F(InterfaceFlightPlanTest, FlightPlan) {
   EXPECT_EQ(4, principia__FlightPlanGetDesiredFinalTime(plugin_.get(),
                                                         vessel_guid));
 
-  EXPECT_CALL(flight_plan, adaptive_step_parameters())
-      .WillOnce(
-          ReturnRef(Ephemeris<Barycentric>::AdaptiveStepParameters(
-            EmbeddedExplicitRungeKuttaNyströmIntegrator<
-                    DormandالمكاوىPrince1986RKN434FM,
-                    Position<Barycentric>>(),
-                /*max_steps=*/1,
-                /*length_integration_tolerance=*/1 * Milli(Metre),
-                /*speed_integration_tolerance=*/1 * Milli(Metre) / Second)));
-  EXPECT_CALL(flight_plan, generalized_adaptive_step_parameters())
-      .WillOnce(
-          ReturnRef(Ephemeris<Barycentric>::GeneralizedAdaptiveStepParameters(
-              EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
-                  Fine1987RKNG34,
-                  Position<Barycentric>>(),
-              /*max_steps=*/1,
-              /*length_integration_tolerance=*/1 * Milli(Metre),
-              /*speed_integration_tolerance=*/1 * Milli(Metre) / Second)));
   EXPECT_CALL(
       flight_plan,
       SetAdaptiveStepParameters(
-          AllOf(Property(
-                    &Ephemeris<Barycentric>::AdaptiveStepParameters::max_steps,
-                    11),
-                Property(&Ephemeris<Barycentric>::AdaptiveStepParameters::
-                             length_integration_tolerance,
-                         22 * Metre),
-                Property(&Ephemeris<Barycentric>::AdaptiveStepParameters::
-                             speed_integration_tolerance,
-                         33 * Metre / Second)),
-          AllOf(Property(&Ephemeris<Barycentric>::
-                             GeneralizedAdaptiveStepParameters::max_steps,
-                         11),
-                Property(
-                    &Ephemeris<Barycentric>::GeneralizedAdaptiveStepParameters::
-                        length_integration_tolerance,
-                    22 * Metre),
-                Property(
-                    &Ephemeris<Barycentric>::GeneralizedAdaptiveStepParameters::
-                        speed_integration_tolerance,
-                    33 * Metre / Second))))
+          AllOf(
+              Property(
+                  &Ephemeris<Barycentric>::AdaptiveStepParameters::max_steps,
+                  11),
+              Property(&Ephemeris<Barycentric>::AdaptiveStepParameters::
+                            length_integration_tolerance,
+                        22 * Metre),
+              Property(&Ephemeris<Barycentric>::AdaptiveStepParameters::
+                            speed_integration_tolerance,
+                        33 * Metre / Second)),
+          AllOf(
+              Property(&Ephemeris<Barycentric>::
+                            GeneralizedAdaptiveStepParameters::max_steps,
+                        11),
+              Property(
+                  &Ephemeris<Barycentric>::GeneralizedAdaptiveStepParameters::
+                      length_integration_tolerance,
+                  22 * Metre),
+              Property(
+                  &Ephemeris<Barycentric>::GeneralizedAdaptiveStepParameters::
+                      speed_integration_tolerance,
+                  33 * Metre / Second))))
       .WillOnce(Return(base::Status::OK));
-  EXPECT_TRUE(principia__FlightPlanSetAdaptiveStepParameters(
-                  plugin_.get(),
-                  vessel_guid,
-                  {/*integrator_kind=*/1,
-                   /*generalized_integrator_kind=*/2,
-                   /*max_step=*/11,
-                   /*length_integration_tolerance=*/22,
-                   /*speed_integration_tolerance=*/33}));
+  EXPECT_EQ(0,
+            principia__FlightPlanSetAdaptiveStepParameters(
+                plugin_.get(),
+                vessel_guid,
+                {/*integrator_kind=*/1,
+                  /*generalized_integrator_kind=*/2,
+                  /*max_step=*/11,
+                  /*length_integration_tolerance=*/22,
+                  /*speed_integration_tolerance=*/33}).error);
 
   Ephemeris<Barycentric>::AdaptiveStepParameters adaptive_step_parameters(
       EmbeddedExplicitRungeKuttaNyströmIntegrator<
@@ -258,9 +244,10 @@ TEST_F(InterfaceFlightPlanTest, FlightPlan) {
                                       5 * (Metre / Second),
                                       6 * (Metre / Second)})))))
       .WillOnce(Return(base::Status::OK));
-  EXPECT_TRUE(principia__FlightPlanAppend(plugin_.get(),
-                                          vessel_guid,
-                                          interface_burn));
+  EXPECT_EQ(0,
+            principia__FlightPlanAppend(plugin_.get(),
+                                        vessel_guid,
+                                        interface_burn).error);
 
   EXPECT_CALL(flight_plan, number_of_manœuvres())
       .WillOnce(Return(4));
@@ -397,24 +384,20 @@ TEST_F(InterfaceFlightPlanTest, FlightPlan) {
               FillBodyCentredNonRotatingNavigationFrame(celestial_index, _))
       .WillOnce(FillUniquePtr<1>(
                     new StrictMock<MockDynamicFrame<Barycentric, Navigation>>));
-  EXPECT_CALL(flight_plan, GetManœuvre(0))
-      .WillOnce(
-          ReturnRef(NavigationManœuvre(/*initial_mass=*/1 * Kilogram, burn)));
-  EXPECT_CALL(flight_plan, number_of_manœuvres())
-      .WillOnce(Return(1));
-  EXPECT_CALL(flight_plan,
-              ReplaceLast(
-                  AllOf(HasThrust(10 * Kilo(Newton)),
-                        HasSpecificImpulse(2 * Second * StandardGravity),
-                        HasInitialTime(Instant() + 3 * Second),
-                        HasΔv(Velocity<Frenet<Navigation>>(
-                                  {4 * (Metre / Second),
-                                   5 * (Metre / Second),
-                                   6 * (Metre / Second)})))))
+  auto const manœuvre = NavigationManœuvre(/*initial_mass=*/1 * Kilogram, burn);
+  EXPECT_CALL(
+      flight_plan,
+      Replace(
+          AllOf(HasThrust(10 * Kilo(Newton)),
+                HasSpecificImpulse(2 * Second * StandardGravity),
+                HasInitialTime(Instant() + 3 * Second),
+                HasΔv(Velocity<Frenet<Navigation>>({4 * (Metre / Second),
+                                                    5 * (Metre / Second),
+                                                    6 * (Metre / Second)}))),
+          42))
       .WillOnce(Return(base::Status::OK));
-  EXPECT_TRUE(principia__FlightPlanReplaceLast(plugin_.get(),
-                                               vessel_guid,
-                                               interface_burn));
+  EXPECT_EQ(0, principia__FlightPlanReplace(
+                   plugin_.get(), vessel_guid, interface_burn, 42).error);
 
   EXPECT_CALL(flight_plan, RemoveLast());
   principia__FlightPlanRemoveLast(plugin_.get(), vessel_guid);

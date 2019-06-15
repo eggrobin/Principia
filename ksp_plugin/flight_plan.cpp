@@ -200,10 +200,6 @@ Status FlightPlan::Replace(NavigationManœuvre::Burn const& burn,
   return ComputeSegments(manœuvres_.begin() + index, manœuvres_.end());
 }
 
-Status FlightPlan::ReplaceLast(NavigationManœuvre::Burn const& burn) {
-  return Replace(burn, manœuvres_.size() - 1);
-}
-
 Status FlightPlan::SetDesiredFinalTime(Instant const& desired_final_time) {
   if (desired_final_time < start_of_last_coast()) {
     return BadDesiredFinalTime();
@@ -318,11 +314,14 @@ std::unique_ptr<FlightPlan> FlightPlan::ReadFromMessage(
         NavigationManœuvre::ReadFromMessage(manoeuvre, ephemeris));
   }
   // We need to forcefully prolong, otherwise we might exceed the ephemeris
-  // step limit while recomputing the segments and fail the check.
+  // step limit while recomputing the segments and make the flight plan
+  // anomalous for no good reason.
   flight_plan->ephemeris_->Prolong(flight_plan->desired_final_time_);
   Status const status = flight_plan->RecomputeAllSegments();
-  CHECK_GE(2, flight_plan->anomalous_segments_)
-      << message.DebugString() << " " << status;
+  LOG_IF(INFO, flight_plan->anomalous_segments_ > 0)
+      << "Loading a flight plan with " << flight_plan->anomalous_segments_
+      << " anomalous segments and status " << status << "\n"
+      << message.DebugString();
 
   return flight_plan;
 }
