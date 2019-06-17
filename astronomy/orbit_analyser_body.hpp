@@ -69,6 +69,21 @@ std::vector<Angle> Unwind(std::vector<Angle> const& angles) {
   return unwound_angles;
 }
 
+template<typename T>
+Variability<T> SequenceVariability(std::vector<T> const& values,
+                                   T const& nominal_value) {
+  std::vector<Difference<T>> deviations;
+  deviations.reserve(values.size());
+  for (auto const& value : value) {
+    deviations.push_back(Abs(value - nominal_value));
+  }
+  int n = 95 * values.size() / 100;
+  std::nth_element(deviations.begin(),
+                   deviations.begin() + n,
+                   deviations.end());
+  return Variability<T>{nominal_value, deviations[n]};
+}
+
 template<typename Frame>
 OrbitAnalyser<Frame>::OrbitAnalyser(
     not_null<Ephemeris<Frame>*> const ephemeris,
