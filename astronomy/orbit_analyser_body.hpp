@@ -711,13 +711,17 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"δ = " << δ / Degree << u8"°";
   LOG(ERROR) << u8"ETo* = " << eto;
 
-  for (int i = 0; i < longitudes_of_ascending_nodes.size(); ++i) {
+  for (int i = 0, k = 0; i < longitudes_of_ascending_nodes.size(); ++i) {
     Angle const Ω = longitudes_of_ascending_nodes[i];
     Instant const t = times_of_ascending_nodes[i];
     // TODO(egg): this assumes earthlike sign for the longitude.
-    Angle const λ = Ω - (primary_->AngleAt(t) + π / 2 * Radian) + π * Radian;
+    Angle const λ = Ω - (primary_->AngleAt(t) + π / 2 * Radian);
+    if (i == 0) {
+      k = geometry::Sign(ΔλE) * std::floor(λ / Abs(ΔλE));
+    }
     terrestrial_longitudes_of_ascending_nodes.push_back(
-        quantities::Mod(λ - i * ΔλE, 2 * π * Radian) - π * Radian);
+        quantities::Mod(λ - (i + k) * ΔλE + π * Radian, 2 * π * Radian) -
+        π * Radian);
   }
 
   std::vector<Angle> const λ =
