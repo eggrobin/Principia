@@ -218,7 +218,7 @@ std::vector<SP3Orbit> const& Sentinel3AOrbit() {
 
 std::vector<SP3Orbit> const& TOPEXPoséidonOrbit() {
   static const SP3Files files = {{"grgtop03.b97344.e97348.D_S.sp3"},
-                                 StandardProduct3::Dialect::Standard};
+                                 StandardProduct3::Dialect::GRGS};
   static const std::vector<SP3Orbit> orbits{{
       {{StandardProduct3::SatelliteGroup::General, 1}, files},
   }};

@@ -70,18 +70,18 @@ std::vector<Angle> Unwind(std::vector<Angle> const& angles) {
 }
 
 template<typename T>
-Variability<T> SequenceVariability(std::vector<T> const& values,
-                                   T const& nominal_value) {
+Difference<T> Variability(std::vector<T> const& values,
+                          T const& nominal_value) {
   std::vector<Difference<T>> deviations;
   deviations.reserve(values.size());
-  for (auto const& value : value) {
+  for (auto const& value : values) {
     deviations.push_back(Abs(value - nominal_value));
   }
   int n = 95 * values.size() / 100;
   std::nth_element(deviations.begin(),
                    deviations.begin() + n,
                    deviations.end());
-  return Variability<T>{nominal_value, deviations[n]};
+  return deviations[n];
 }
 
 template<typename Frame>
@@ -374,13 +374,17 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     // Ignoring the error bars on the mean sun, effectively making it
     // conventional.
     Angle const mean_solar_time =
+        quantities::Mod(
         (node.degrees_of_freedom().position() - PrimaryCentred::origin)
             .coordinates()
             .ToSpherical()
             .longitude -
         (longitude_of_perihelion_.measured_value +
          2 * π * Radian * (node.time() - reference_perihelion_time_) /
-             tropical_year_.measured_value);
+                 tropical_year_.measured_value) +
+            π * Radian,
+            2 * π * Radian) -
+        π * Radian;
     mean_solar_times_of_ascending_nodes.push_back(mean_solar_time);
 
     inclinations_at_ascending_nodes.push_back(AngleBetween(
@@ -404,26 +408,22 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
              << u8"°";
 
   auto const tsv = Unwind(true_solar_times_of_ascending_nodes);
-  Angle const min_tsv = *std::min_element(tsv.begin(), tsv.end());
-  Angle const max_tsv = *std::max_element(tsv.begin(), tsv.end());
   MeasurementResult<Angle> const mean_tsv = AverageOfCorrelated(tsv);
   LOG(ERROR) << u8"TSV_NA = " << mean_tsv / Degree << u8"° = "
              << 12 + (mean_tsv * 24 / (2 * π * Radian)) << u8" h";
-  LOG(ERROR) << u8"   min = " << min_tsv / Degree << u8"° = "
-             << 12 + (min_tsv * 24 / (2 * π * Radian)) << u8" h";
-  LOG(ERROR) << u8"   max = " << max_tsv / Degree << u8"° = "
-             << 12 + (max_tsv * 24 / (2 * π * Radian)) << u8" h";
+  LOG(ERROR) << u8"       ± "
+             << Variability(
+                    tsv, mean_tsv.measured_value) * (24 / (2 * π * Radian))
+             << " h (95 %)";
 
   auto const τ = Unwind(mean_solar_times_of_ascending_nodes);
-  Angle const min_τ = *std::min_element(τ.begin(), τ.end());
-  Angle const max_τ = *std::max_element(τ.begin(), τ.end());
   MeasurementResult<Angle> const mean_τ = AverageOfCorrelated(τ);
   LOG(ERROR) << u8"τNA = " << mean_τ / Degree << u8"° = "
              << 12 + (mean_τ * 24 / (2 * π * Radian)) << u8" h";
-  LOG(ERROR) << u8"   min = " << min_τ / Degree << u8"° = "
-             << 12 + (min_τ * 24 / (2 * π * Radian)) << u8" h";
-  LOG(ERROR) << u8"   max = " << max_τ / Degree << u8"° = "
-             << 12 + (max_τ * 24 / (2 * π * Radian)) << u8" h";
+  LOG(ERROR) << u8"       ± "
+             << Variability(τ, mean_τ.measured_value) *
+                    (24 / (2 * π * Radian))
+             << " h (95 %)";
 
   LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
 
@@ -522,7 +522,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   for (std::optional<DiscreteTrajectory<Frame>::Iterator> previous_periapsis;
        ;) {
     // Eliminate spurious periapsides at low eccentricities by taking the lowest
-    // periapsis over 1.5 nodal periods (which should be enough to cover 1
+    // periapsis over 1.75 nodal periods (which should be enough to cover 1
     // apsidal period, but not enough to cover 2). REMOVE BEFORE FLIGHT: Make
     // sure that this really cannot cover 2 apsidal periods.
     Length periapsis_distance = Infinity<Length>();
@@ -534,7 +534,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     for (; tentative_periapsis != periapsides.End() &&
            tentative_periapsis.time() -
                    previous_periapsis.value_or(periapsides.Begin()).time() <=
-               nodal_period_.measured_value * 1.5;
+               nodal_period_.measured_value * 1.75;
          ++tentative_periapsis) {
       Length const tentative_periapsis_distance =
           (ephemeris_->trajectory(primary_)->EvaluatePosition(
@@ -555,16 +555,18 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     // TODO(egg): We could probably do something a lot more efficient, because
     // we know that we are at the periapsis, and we only need the argument of
     // periapsis.
-    Angle ω =
-        *KeplerOrbit<Frame>(
+    auto const elements =
+        KeplerOrbit<Frame>(
              *primary_,
              MasslessBody{},
              periapsis.degrees_of_freedom() -
                  ephemeris_->trajectory(primary_)->EvaluateDegreesOfFreedom(
                      periapsis.time()),
              periapsis.time())
-             .elements_at_epoch()
-             .argument_of_periapsis;
+             .elements_at_epoch();
+    Angle ω = quantities::Mod(*elements.argument_of_periapsis +
+                              *elements.true_anomaly,
+                              2 * π * Radian);
     if (!times_of_periapsides.empty()) {
       times_between_periapsides.push_back(periapsis.time() -
                                           times_of_periapsides.back());
@@ -595,8 +597,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
 
   LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / Day) << u8"°/d = "
              << apsidal_precession_ / (Degree / JulianYear) << u8"°/a";
-  LOG(ERROR) << u8"ω = "
-             << AverageOfCorrelated(arguments_of_periapsides) / Degree << u8"°";
+  auto const ω = AverageOfCorrelated(arguments_of_periapsides);
+  LOG(ERROR) << u8"ω = " << ω / Degree << u8"°";
+  LOG(ERROR) << u8"  ± "
+             << Variability(arguments_of_periapsides, ω.measured_value) / Degree
+             << u8"° (95%)";
 
   LOG(ERROR) << u8"T = " << anomalistic_period_ / Second << " s";
   LOG(ERROR) << u8"r_p = " << periapsis_distance_ / Kilo(Metre) << " km";
@@ -719,17 +724,13 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   std::vector<Angle> const λ =
       Unwind(terrestrial_longitudes_of_ascending_nodes);
   auto const λ0 = AverageOfCorrelated(λ);
-  auto const λmax = *std::max_element(λ.begin(), λ.end());
-  auto const λmin = *std::min_element(λ.begin(), λ.end());
   LOG(ERROR) << u8"λ0 =" << λ0 / Degree << u8"°";
-  LOG(ERROR) << u8"λ- =" << λmin / Degree << u8"°";
-  LOG(ERROR) << u8"λ+ =" << λmax / Degree << u8"°";
-  LOG(ERROR) << u8"Δλ =" << (λmax - λmin) / Degree << u8"°";
-  LOG(ERROR) << u8"   "
-             << (λmax - λmin) *
+  LOG(ERROR) << u8"   ± " << Variability(λ, λ0.measured_value) / Degree
+             << u8"° (95%)";
+  LOG(ERROR) << u8"   ± " << Variability(λ, λ0.measured_value) *
                     ((OblateBody<Frame> const&)*primary_).reference_radius() /
                     Radian / Kilo(Metre)
-             << u8" km";
+             << u8" km (95%)";
 
   LOG(ERROR) << "Apsidal precession per sidereal revolution  : "
              << apsidal_precession_ * sidereal_period_.measured_value / Degree
@@ -741,16 +742,29 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
              << u8"°";
 
   base::OFStream tf(SOLUTION_DIR / ("longitudes" + name_));
-  tf << mathematica::Assign("longitudes" + name_,
-                            terrestrial_longitudes_of_ascending_nodes);
-  tf << mathematica::Assign("t" + name_, times_of_ascending_nodes);
-  tf << mathematica::Assign("iNA" + name_, inclinations_at_ascending_nodes);
-  tf << mathematica::Assign("iLatMax" + name_,
-                            inclinations_at_extremal_latitudes);
-
-  tf << mathematica::Assign("lat" + name_, all_latitudes);
-  tf << mathematica::Assign("dlat" + name_, all_latitude_rates);
-  tf << mathematica::Assign("tlat" + name_, all_times);
+  std::vector<double> udeg;
+  std::vector<double> rkm;
+  for (auto it = trajectory_.Begin(); it != trajectory_.End(); ++it) {
+    auto const elements =
+        KeplerOrbit<Frame>(
+            *primary_,
+            MasslessBody{},
+            it.degrees_of_freedom() -
+                ephemeris_->trajectory(primary_)->EvaluateDegreesOfFreedom(
+                    it.time()),
+            it.time())
+            .elements_at_epoch();
+    Angle u = quantities::Mod(
+        *elements.argument_of_periapsis + *elements.true_anomaly,
+        2 * π * Radian);
+    udeg.push_back(u / Degree);
+    rkm.push_back((it.degrees_of_freedom().position() -
+         ephemeris_->trajectory(primary_)->EvaluatePosition(it.time()))
+            .Norm() /
+        Kilo(Metre));
+  }
+  tf << mathematica::Assign("udeg" + name_, udeg);
+  tf << mathematica::Assign("rkm" + name_, rkm);
 }
 
 }  // namespace internal_orbit_analyser

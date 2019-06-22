@@ -22,18 +22,12 @@ using quantities::MeasurementResult;
 using quantities::Time;
 
 // A characterization of the deviation of a value from some nominal value.
-// The |half_width| is a 95th percentile, that is, this describes a value which
-// is within [nominal_value - half_width, nominal_value + half_width] 95% of the
-// time.
+// The result is a 95th percentile, that is, with
+//   half_width = Variability(values, nominal_value),
+// 95% of the |values| are within
+// [nominal_value - half_width, nominal_value + half_width].
 template<typename T>
-struct Variability {
-  T nominal_value;
-  Difference<T> half_width;
-};
-
-template<typename T>
-Variability<T> SequenceVariability(std::vector<T> const& values,
-                                   T const& nominal_value);
+Difference<T> Variability(std::vector<T> const& values, T const& nominal_value);
 
 template<typename Frame>
 class OrbitAnalyser {
