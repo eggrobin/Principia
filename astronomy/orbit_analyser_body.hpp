@@ -547,7 +547,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
       }
     }
     if (tentative_periapsis == periapsides.End()) {
-      // We have not been able to look at a whole 1.5 nodal periods after the
+      // We have not been able to look at a whole 1.75 nodal periods after the
       // last periapsis; ignore trailing periapsides, as they may be spurious.
       break;
     }
@@ -579,14 +579,43 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   }
   LOG(ERROR) << periapsis_distances.size() << " true periapsides";
 
-  for (auto apoapsis = apoapsides.Begin(); apoapsis != apoapsides.End();
-       ++apoapsis) {
-    // TODO(egg): Same treatment as for periapsides.
-    apoapsis_distances.push_back(
-        (ephemeris_->trajectory(primary_)->EvaluatePosition(apoapsis.time()) -
-         apoapsis.degrees_of_freedom().position())
-            .Norm());
+
+
+  for (std::optional<DiscreteTrajectory<Frame>::Iterator> previous_apoapsis;
+       ;) {
+    // Same as above, for apoapsides.
+    Length apoapsis_distance = Infinity<Length>();
+    auto tentative_apoapsis = previous_apoapsis.value_or(apoapsides.Begin());
+    if (previous_apoapsis.has_value()) {
+      ++tentative_apoapsis;
+    }
+    auto apoapsis = tentative_apoapsis;
+    for (; tentative_apoapsis != apoapsides.End() &&
+           tentative_apoapsis.time() -
+                   previous_apoapsis.value_or(apoapsides.Begin()).time() <=
+               nodal_period_.measured_value * 1.75;
+         ++tentative_apoapsis) {
+      Length const tentative_apoapsis_distance =
+          (ephemeris_->trajectory(primary_)->EvaluatePosition(
+               tentative_apoapsis.time()) -
+           tentative_apoapsis.degrees_of_freedom().position())
+              .Norm();
+      if (tentative_apoapsis_distance < apoapsis_distance) {
+        apoapsis_distance = tentative_apoapsis_distance;
+        apoapsis = tentative_apoapsis;
+      }
+    }
+    if (tentative_apoapsis == apoapsides.End()) {
+      // We have not been able to look at a whole 1.75 nodal periods after the
+      // last apoapsis; ignore trailing apoapsides, as they may be spurious.
+      break;
+    }
+    apoapsis_distances.push_back(apoapsis_distance);
+
+    previous_apoapsis = apoapsis;
   }
+  LOG(ERROR) << apoapsis_distances.size() << " true apoapsides";
+
   apsidal_precession_ =
       LinearRegression(times_of_periapsides, Unwind(arguments_of_periapsides))
           .slope;
@@ -605,57 +634,27 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
 
   LOG(ERROR) << u8"T = " << anomalistic_period_ / Second << " s";
   LOG(ERROR) << u8"r_p = " << periapsis_distance_ / Kilo(Metre) << " km";
-  LOG(ERROR) << u8"      "
-             << *std::min_element(periapsis_distances.begin(),
-                                  periapsis_distances.end()) /
+  LOG(ERROR) << u8"    ± "
+             << Variability(periapsis_distances,
+                            periapsis_distance_.measured_value) /
                     Kilo(Metre)
-             << " km";
-  LOG(ERROR) << u8"      "
-             << *std::max_element(periapsis_distances.begin(),
-                                  periapsis_distances.end()) /
-                    Kilo(Metre)
-             << " km";
+             << u8" km (95%)";
   LOG(ERROR) << u8"r_a = " << apoapsis_distance_ / Kilo(Metre) << " km";
-  LOG(ERROR) << u8"      "
-             << *std::min_element(apoapsis_distances.begin(),
-                                  apoapsis_distances.end()) /
+  LOG(ERROR) << u8"    ± "
+             << Variability(apoapsis_distances,
+                            apoapsis_distance_.measured_value) /
                     Kilo(Metre)
-             << " km";
-  LOG(ERROR) << u8"      "
-             << *std::max_element(apoapsis_distances.begin(),
-                                  apoapsis_distances.end()) /
-                    Kilo(Metre)
-             << " km";
+             << u8" km (95%)";
   LOG(ERROR) << u8"h_p = "
              << (periapsis_distance_ - primary_->mean_radius()) / Kilo(Metre)
-             << " km";
-  LOG(ERROR) << u8"      "
-             << (*std::min_element(periapsis_distances.begin(),
-                                   periapsis_distances.end()) -
-                 primary_->mean_radius()) /
-                    Kilo(Metre)
-             << " km";
-  LOG(ERROR) << u8"      "
-             << (*std::max_element(periapsis_distances.begin(),
-                                   periapsis_distances.end()) -
-                 primary_->mean_radius()) /
-                    Kilo(Metre)
              << " km";
   LOG(ERROR) << u8"h_a = "
              << (apoapsis_distance_ - primary_->mean_radius()) / Kilo(Metre)
              << " km";
-  LOG(ERROR) << u8"      "
-             << (*std::min_element(apoapsis_distances.begin(),
-                                   apoapsis_distances.end()) -
-                 primary_->mean_radius()) /
-                    Kilo(Metre)
-             << " km";
-  LOG(ERROR) << u8"      "
-             << (*std::max_element(apoapsis_distances.begin(),
-                                   apoapsis_distances.end()) -
-                 primary_->mean_radius()) /
-                    Kilo(Metre)
-             << " km";
+  LOG(ERROR) << "a = "
+             << (apoapsis_distance_.measured_value +
+                 periapsis_distance_.measured_value) /
+                    Kilo(Metre);
   LOG(ERROR) << "e = " << eccentricity_;
 
   // (7.41).
