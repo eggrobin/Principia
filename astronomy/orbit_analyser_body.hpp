@@ -78,9 +78,8 @@ Difference<T> Variability(std::vector<T> const& values,
     deviations.push_back(Abs(value - nominal_value));
   }
   int n = 95 * values.size() / 100;
-  std::nth_element(deviations.begin(),
-                   deviations.begin() + n,
-                   deviations.end());
+  std::nth_element(
+      deviations.begin(), deviations.begin() + n, deviations.end());
   return deviations[n];
 }
 
@@ -375,14 +374,14 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     // conventional.
     Angle const mean_solar_time =
         quantities::Mod(
-        (node.degrees_of_freedom().position() - PrimaryCentred::origin)
-            .coordinates()
-            .ToSpherical()
-            .longitude -
-        (longitude_of_perihelion_.measured_value +
-         2 * π * Radian * (node.time() - reference_perihelion_time_) /
-                 tropical_year_.measured_value) +
-            π * Radian,
+            (node.degrees_of_freedom().position() - PrimaryCentred::origin)
+                    .coordinates()
+                    .ToSpherical()
+                    .longitude -
+                (longitude_of_perihelion_.measured_value +
+                 2 * π * Radian * (node.time() - reference_perihelion_time_) /
+                     tropical_year_.measured_value) +
+                π * Radian,
             2 * π * Radian) -
         π * Radian;
     mean_solar_times_of_ascending_nodes.push_back(mean_solar_time);
@@ -412,8 +411,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"TSV_NA = " << mean_tsv / Degree << u8"° = "
              << 12 + (mean_tsv * 24 / (2 * π * Radian)) << u8" h";
   LOG(ERROR) << u8"       ± "
-             << Variability(
-                    tsv, mean_tsv.measured_value) * (24 / (2 * π * Radian))
+             << Variability(tsv, mean_tsv.measured_value) *
+                    (24 / (2 * π * Radian))
              << " h (95 %)";
 
   auto const τ = Unwind(mean_solar_times_of_ascending_nodes);
@@ -421,8 +420,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"τNA = " << mean_τ / Degree << u8"° = "
              << 12 + (mean_τ * 24 / (2 * π * Radian)) << u8" h";
   LOG(ERROR) << u8"       ± "
-             << Variability(τ, mean_τ.measured_value) *
-                    (24 / (2 * π * Radian))
+             << Variability(τ, mean_τ.measured_value) * (24 / (2 * π * Radian))
              << " h (95 %)";
 
   LOG(ERROR) << u8"T☊ = " << nodal_period_ / Second << " s";
@@ -562,16 +560,16 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     // periapsis.
     auto const elements =
         KeplerOrbit<Frame>(
-             *primary_,
-             MasslessBody{},
-             periapsis.degrees_of_freedom() -
-                 ephemeris_->trajectory(primary_)->EvaluateDegreesOfFreedom(
-                     periapsis.time()),
-             periapsis.time())
-             .elements_at_epoch();
-    Angle ω = quantities::Mod(*elements.argument_of_periapsis +
-                              *elements.true_anomaly,
-                              2 * π * Radian);
+            *primary_,
+            MasslessBody{},
+            periapsis.degrees_of_freedom() -
+                ephemeris_->trajectory(primary_)->EvaluateDegreesOfFreedom(
+                    periapsis.time()),
+            periapsis.time())
+            .elements_at_epoch();
+    Angle ω = quantities::Mod(
+        *elements.argument_of_periapsis + *elements.true_anomaly,
+        2 * π * Radian);
     if (!times_of_periapsides.empty()) {
       times_between_periapsides.push_back(periapsis.time() -
                                           times_of_periapsides.back());
@@ -584,10 +582,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   }
   LOG(ERROR) << periapsis_distances.size() << " true periapsides";
 
-
-
-  for (std::optional<DiscreteTrajectory<Frame>::Iterator> previous_apoapsis;
-       ;) {
+  for (std::optional<DiscreteTrajectory<Frame>::Iterator> previous_apoapsis;;) {
     // Same as above, for apoapsides.
     Length apoapsis_distance = Infinity<Length>();
     auto tentative_apoapsis = previous_apoapsis.value_or(apoapsides.Begin());
@@ -658,10 +653,37 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
              << " km";
   LOG(ERROR) << "a = "
              << ((apoapsis_distance_.measured_value +
-                 periapsis_distance_.measured_value) /
+                  periapsis_distance_.measured_value) /
                  2) /
                     Kilo(Metre)
              << " km";
+  {
+    std::optional<Instant> previous_time;
+    std::optional<Length> previous_a;
+    quantities::Product<Length, Time> ſ_a_dt;
+    for (auto it = trajectory_.Begin(); it != trajectory_.End(); ++it) {
+      auto const elements =
+          KeplerOrbit<Frame>(
+              *primary_,
+              MasslessBody{},
+              it.degrees_of_freedom() -
+                  ephemeris_->trajectory(primary_)->EvaluateDegreesOfFreedom(
+                      it.time()),
+              it.time())
+              .elements_at_epoch();
+      if (previous_time.has_value()) {
+        ſ_a_dt += (*previous_a + *elements.semimajor_axis) / 2 *
+                  (it.time() - *previous_time);
+      }
+      previous_time = it.time();
+      previous_a = elements.semimajor_axis;
+    }
+    LOG(ERROR) << "a = "
+               << ſ_a_dt /
+                      (trajectory_.last().time() - trajectory_.Begin().time()) /
+                      Kilo(Metre)
+               << " km (integrated osculating)";
+  }
   LOG(ERROR) << "e = " << eccentricity_;
 
   // (7.41).
@@ -737,7 +759,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"λ0 =" << λ0 / Degree << u8"°";
   LOG(ERROR) << u8"   ± " << Variability(λ, λ0.measured_value) / Degree
              << u8"° (95%)";
-  LOG(ERROR) << u8"   ± " << Variability(λ, λ0.measured_value) *
+  LOG(ERROR) << u8"   ± "
+             << Variability(λ, λ0.measured_value) *
                     ((OblateBody<Frame> const&)*primary_).reference_radius() /
                     Radian / Kilo(Metre)
              << u8" km (95%)";
@@ -768,7 +791,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
         *elements.argument_of_periapsis + *elements.true_anomaly,
         2 * π * Radian);
     udeg.push_back(u / Degree);
-    rkm.push_back((it.degrees_of_freedom().position() -
+    rkm.push_back(
+        (it.degrees_of_freedom().position() -
          ephemeris_->trajectory(primary_)->EvaluatePosition(it.time()))
             .Norm() /
         Kilo(Metre));
