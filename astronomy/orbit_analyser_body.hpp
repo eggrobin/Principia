@@ -499,6 +499,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   // worryingly it is unsound for polar orbits.
   inclination_ = AverageOfCorrelated(inclinations_at_extremal_latitudes);
   LOG(ERROR) << "i = " << inclination_ / Degree << u8"° (ψm)";
+  LOG(ERROR) << u8"  ± "
+             << Variability(inclinations_at_extremal_latitudes,
+                            inclination_.measured_value) /
+                    Degree
+             << u8"° (95%)";
   LOG(ERROR) << "i = "
              << AverageOfCorrelated(inclinations_at_ascending_nodes) / Degree
              << u8"° (i☊)";
@@ -652,9 +657,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
              << (apoapsis_distance_ - primary_->mean_radius()) / Kilo(Metre)
              << " km";
   LOG(ERROR) << "a = "
-             << (apoapsis_distance_.measured_value +
+             << ((apoapsis_distance_.measured_value +
                  periapsis_distance_.measured_value) /
-                    Kilo(Metre);
+                 2) /
+                    Kilo(Metre)
+             << " km";
   LOG(ERROR) << "e = " << eccentricity_;
 
   // (7.41).
