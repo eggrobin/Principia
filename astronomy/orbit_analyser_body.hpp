@@ -524,6 +524,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << apoapsides.Size() << " apoapsides";
 
   std::vector<Instant> times_of_periapsides;
+  std::vector<Instant> times_of_apoapsides;
   std::vector<Time> times_between_periapsides;
   std::vector<Angle> arguments_of_periapsides;
   std::vector<Length> periapsis_distances;
@@ -617,6 +618,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
       // last apoapsis; ignore trailing apoapsides, as they may be spurious.
       break;
     }
+    times_of_apoapsides.push_back(apoapsis.time());
     apoapsis_distances.push_back(apoapsis_distance);
 
     previous_apoapsis = apoapsis;
@@ -771,6 +773,42 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                     ((OblateBody<Frame> const&)*primary_).reference_radius() /
                     Radian / Kilo(Metre)
              << u8" km (95%)";
+  if (nto == 1 && cto == 1) {
+    std::vector<Angle> λ_pe;
+    std::vector<Angle> λ_ap;
+    for (auto const& t : times_of_periapsides) {
+      λ_pe.push_back(
+          quantities::Mod((primary_centred_trajectory.EvaluatePosition(t) -
+                           PrimaryCentred::origin)
+                                  .coordinates()
+                                  .ToSpherical()
+                                  .longitude -
+                              (primary_->AngleAt(t) + π / 2 * Radian) +
+                              π * Radian,
+                          2 * π * Radian) -
+          π * Radian);
+    }
+    for (auto const& t : times_of_apoapsides) {
+      λ_ap.push_back(
+          quantities::Mod((primary_centred_trajectory.EvaluatePosition(t) -
+                           PrimaryCentred::origin)
+                                  .coordinates()
+                                  .ToSpherical()
+                                  .longitude -
+                              (primary_->AngleAt(t) + π / 2 * Radian) +
+                              π * Radian,
+                          2 * π * Radian) -
+          π * Radian);
+    }
+    auto const mean_λ_pe = AverageOfCorrelated(Unwind(λ_pe));
+    auto const mean_λ_ap = AverageOfCorrelated(Unwind(λ_ap));
+    LOG(ERROR) << u8"λ_pe =" << mean_λ_pe / Degree << u8"°";
+    LOG(ERROR) << u8"   ± " << Variability(λ_pe, mean_λ_pe.measured_value) / Degree
+               << u8"° (95%)";
+    LOG(ERROR) << u8"λ_ap =" << mean_λ_ap / Degree << u8"°";
+    LOG(ERROR) << u8"   ± " << Variability(λ_ap, mean_λ_ap.measured_value) / Degree
+               << u8"° (95%)";
+  }
 
   LOG(ERROR) << "Apsidal precession per sidereal revolution  : "
              << apsidal_precession_ * sidereal_period_.measured_value / Degree
