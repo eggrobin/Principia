@@ -406,6 +406,13 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
              << AverageOfCorrelated(longitudes_of_ascending_nodes) / Degree
              << u8"°";
 
+  // REMOVE BEFORE FLIGHT: There probably should be a sign here to turn the
+  // tropical year into Ω'S.
+  auto const ΔtS =
+      2 * π * Radian /
+      (nodal_precession_ - (2 * π * Radian / tropical_year_.measured_value));
+  LOG(ERROR) << u8"ΔtS = " << ΔtS / Day << " d";
+
   auto const tsv = Unwind(true_solar_times_of_ascending_nodes);
   MeasurementResult<Angle> const mean_tsv = AverageOfCorrelated(tsv);
   LOG(ERROR) << u8"TSV_NA = " << mean_tsv / Degree << u8"° = "
