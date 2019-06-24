@@ -598,9 +598,22 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   auto const ω = AverageOfCorrelated(arguments_of_periapsides);
 
   quantities::Product<Length, Time> ſ_a_dt;
+  quantities::Product<Length, Time> ſ_r_pe_dt;
+  quantities::Product<Length, Time> ſ_r_ap_dt;
+  Time ſ_e_dt;
+  Time ſ_e_cos_ω_dt;
+  Time ſ_e_sin_ω_dt;
+  Time ſ_log_e_dt;
+  Time ſ_e⁻¹_dt;
+  quantities::Product<Angle, Time> ſ_i_dt;
   {
     std::optional<Instant> previous_time;
     std::optional<Length> previous_a;
+    std::optional<Length> previous_r_pe;
+    std::optional<Length> previous_r_ap;
+    std::optional<double> previous_e;
+    std::optional<Angle> previous_ω;
+    std::optional<Angle> previous_i;
     for (auto it = trajectory_.Begin(); it != trajectory_.End(); ++it) {
       auto const elements =
           KeplerOrbit<Frame>(
@@ -612,11 +625,32 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
               it.time())
               .elements_at_epoch();
       if (previous_time.has_value()) {
-        ſ_a_dt += (*previous_a + *elements.semimajor_axis) / 2 *
-                  (it.time() - *previous_time);
+        Time const Δt = it.time() - * previous_time;
+        ſ_a_dt += (*previous_a + *elements.semimajor_axis) / 2 * Δt;
+        ſ_r_pe_dt += (*previous_r_pe + *elements.periapsis_distance) / 2 * Δt;
+        ſ_r_ap_dt += (*previous_r_ap + *elements.apoapsis_distance) / 2 * Δt;
+        ſ_e_cos_ω_dt +=
+            (*previous_e * Cos(*previous_ω) +
+             *elements.eccentricity * Cos(*elements.argument_of_periapsis)) /
+            2 * Δt;
+        ſ_e_sin_ω_dt +=
+            (*previous_e * quantities::Sin(*previous_ω) +
+             *elements.eccentricity * quantities::Sin(*elements.argument_of_periapsis)) /
+            2 * Δt;
+        ſ_e_dt += (*previous_e + *elements.eccentricity) / 2 * Δt;
+        ſ_log_e_dt +=
+            (std::log(*previous_e) + std::log(*elements.eccentricity)) / 2 * Δt;
+        ſ_e⁻¹_dt += (1 / *previous_e + 1 / *elements.eccentricity) / 2 * Δt;
+        // TODO(egg): We should probably unwind.
+        ſ_i_dt += (*previous_i + elements.inclination) / 2 * Δt;
       }
       previous_time = it.time();
       previous_a = elements.semimajor_axis;
+      previous_r_pe = elements.periapsis_distance;
+      previous_r_ap = elements.apoapsis_distance;
+      previous_e = elements.eccentricity;
+      previous_ω = elements.argument_of_periapsis;
+      previous_i = elements.inclination;
     }
   }
 
@@ -727,11 +761,41 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                     Degree
              << u8"° (95%)";
   LOG(ERROR) << "e = " << eccentricity_;
+  LOG(ERROR) << "e = " << 1 - ſ_r_pe_dt / ſ_a_dt
+             << u8" (from integrated osculating a & r_pe)";
+  LOG(ERROR) << "e = " << ſ_r_ap_dt / ſ_a_dt - 1
+             << u8" (from integrated osculating a & r_ap)";
+  LOG(ERROR) << "e = " << (ſ_r_ap_dt - ſ_r_pe_dt) / (ſ_r_ap_dt + ſ_r_pe_dt)
+             << u8" (from integrated osculating r_pe & r_ap)";
+  LOG(ERROR) << "  = " << (ſ_r_ap_dt - ſ_r_pe_dt) / (2 * ſ_a_dt)
+             << u8" (from integrated osculating r_pe & r_ap, a = r_pe + r_ap)";
+  LOG(ERROR) << u8"ω = "
+             << quantities::ArcTan(ſ_e_sin_ω_dt, ſ_e_cos_ω_dt) / Degree
+             << "° (from integrated eccentricity vector)";
+  LOG(ERROR) << "e = "
+             << quantities::Sqrt((Pow<2>(ſ_e_cos_ω_dt) + Pow<2>(ſ_e_sin_ω_dt))) /
+                    (trajectory_.last().time() - trajectory_.Begin().time())
+             << " (from integrated eccentricity vector)";
+  LOG(ERROR) << "e = "
+             << ſ_e_dt / (trajectory_.last().time() - trajectory_.Begin().time())
+             << " (from integrated osculating e)";
+  LOG(ERROR) << "e = " << std::exp(ſ_log_e_dt / (trajectory_.last().time() -
+                                       trajectory_.Begin().time()))
+             << " (from integrated log osculating e)";
+  LOG(ERROR) << "e = "
+             << (trajectory_.last().time() - trajectory_.Begin().time()) /
+                    ſ_e⁻¹_dt
+             << " (from integrated inverse osculating e)";
   LOG(ERROR) << "a = "
              << ſ_a_dt /
                     (trajectory_.last().time() - trajectory_.Begin().time()) /
                     Kilo(Metre)
              << " km (integrated osculating)";
+  LOG(ERROR) << "i = "
+             << ſ_i_dt /
+                    (trajectory_.last().time() - trajectory_.Begin().time()) /
+                    Degree
+             << u8"° (integrated osculating)";
   LOG(ERROR) << "--- Orbit with respect to the Earth ---";
   LOG(ERROR) << "- Phasing -";
   LOG(ERROR) << u8"κ = " << daily_recurrence_frequency;
@@ -746,6 +810,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"ETo* = " << eto;
 
   LOG(ERROR) << "- Ground track -";
+  // TODOegg): extremal latitudes (& nominal inclination);
   LOG(ERROR) << u8"λ0 =" << λ0 / Degree << u8"°";
   LOG(ERROR) << u8"   ± " << Variability(λ, λ0.measured_value) / Degree
              << u8"° (95%)";
@@ -756,6 +821,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
              << u8" km (95%)";
 
   if (nto == 1 && cto == 1) {
+    LOG(ERROR) << "- Geosynchronous orbit: central longitude -";
     LOG(ERROR) << u8"λ_pe =" << mean_λ_pe / Degree << u8"°";
     LOG(ERROR) << u8"   ± "
                << Variability(λ_pe, mean_λ_pe.measured_value) / Degree
