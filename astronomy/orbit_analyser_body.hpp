@@ -606,6 +606,10 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   Time ſ_log_e_dt;
   Time ſ_e⁻¹_dt;
   quantities::Product<Angle, Time> ſ_i_dt;
+  std::vector<Instant> times;
+  std::vector<Angle> mean_anomalies;
+  std::vector<Angle> mean_longitudes;
+  std::vector<Angle> mean_arguments_of_latitude;
   {
     std::optional<Instant> previous_time;
     std::optional<Length> previous_a;
@@ -624,8 +628,14 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                       it.time()),
               it.time())
               .elements_at_epoch();
+      times.push_back(it.time());
+      mean_anomalies.push_back(*elements.mean_anomaly);
+      mean_longitudes.push_back(*elements.longitude_of_periapsis +
+                                *elements.mean_anomaly);
+      mean_arguments_of_latitude.push_back(*elements.argument_of_periapsis +
+                                           *elements.mean_anomaly);
       if (previous_time.has_value()) {
-        Time const Δt = it.time() - * previous_time;
+        Time const Δt = it.time() - *previous_time;
         ſ_a_dt += (*previous_a + *elements.semimajor_axis) / 2 * Δt;
         ſ_r_pe_dt += (*previous_r_pe + *elements.periapsis_distance) / 2 * Δt;
         ſ_r_ap_dt += (*previous_r_ap + *elements.apoapsis_distance) / 2 * Δt;
@@ -633,10 +643,10 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
             (*previous_e * Cos(*previous_ω) +
              *elements.eccentricity * Cos(*elements.argument_of_periapsis)) /
             2 * Δt;
-        ſ_e_sin_ω_dt +=
-            (*previous_e * quantities::Sin(*previous_ω) +
-             *elements.eccentricity * quantities::Sin(*elements.argument_of_periapsis)) /
-            2 * Δt;
+        ſ_e_sin_ω_dt += (*previous_e * quantities::Sin(*previous_ω) +
+                         *elements.eccentricity *
+                             quantities::Sin(*elements.argument_of_periapsis)) /
+                        2 * Δt;
         ſ_e_dt += (*previous_e + *elements.eccentricity) / 2 * Δt;
         ſ_log_e_dt +=
             (std::log(*previous_e) + std::log(*elements.eccentricity)) / 2 * Δt;
@@ -755,6 +765,24 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / Day) << u8"°/d = "
              << apsidal_precession_ / (Degree / JulianYear) << u8"°/a";
   LOG(ERROR) << "i = " << inclination_ / Degree << u8"° (ψm)";
+  LOG(ERROR) << "- Periods from osculating element regression -";
+  LOG(ERROR) << "T_M = "
+             << 2 * π * Radian /
+                    LinearRegression(times, Unwind(mean_anomalies)).slope /
+                    Second
+             << " s";
+  LOG(ERROR) << "T_l = "
+             << 2 * π * Radian /
+                    LinearRegression(times, Unwind(mean_longitudes)).slope /
+                    Second
+             << " s";
+  LOG(ERROR)
+      << "T_u = "
+      << 2 * π * Radian /
+             LinearRegression(times, Unwind(mean_arguments_of_latitude)).slope /
+             Second
+      << " s";
+  LOG(ERROR) << "----";
   LOG(ERROR) << u8"  ± "
              << Variability(inclinations_at_extremal_latitudes,
                             inclination_.measured_value) /
@@ -773,13 +801,16 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
              << quantities::ArcTan(ſ_e_sin_ω_dt, ſ_e_cos_ω_dt) / Degree
              << "° (from integrated eccentricity vector)";
   LOG(ERROR) << "e = "
-             << quantities::Sqrt((Pow<2>(ſ_e_cos_ω_dt) + Pow<2>(ſ_e_sin_ω_dt))) /
+             << quantities::Sqrt(
+                    (Pow<2>(ſ_e_cos_ω_dt) + Pow<2>(ſ_e_sin_ω_dt))) /
                     (trajectory_.last().time() - trajectory_.Begin().time())
              << " (from integrated eccentricity vector)";
   LOG(ERROR) << "e = "
-             << ſ_e_dt / (trajectory_.last().time() - trajectory_.Begin().time())
+             << ſ_e_dt /
+                    (trajectory_.last().time() - trajectory_.Begin().time())
              << " (from integrated osculating e)";
-  LOG(ERROR) << "e = " << std::exp(ſ_log_e_dt / (trajectory_.last().time() -
+  LOG(ERROR) << "e = "
+             << std::exp(ſ_log_e_dt / (trajectory_.last().time() -
                                        trajectory_.Begin().time()))
              << " (from integrated log osculating e)";
   LOG(ERROR) << "e = "
