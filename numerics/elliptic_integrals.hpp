@@ -1,4 +1,6 @@
-#pragma once
+﻿#pragma once
+
+#include "quantities/quantities.hpp"
 
 // This code is a straightforward translation in C++ of:
 // Fukushima, Toshio. (2018). xelbdj.txt: Fortran test driver for
@@ -10,13 +12,14 @@
 namespace principia {
 namespace numerics {
 
-void Elbdj(double const phi,
-           double const phic,
-           double const n,
-           double const mc,
-           double& b,
-           double& d,
-           double& j);
+void FukushimaEllipticBDJ(quantities::Angle const& φ,
+                          double n,
+                          double mc,
+                          double& b,
+                          double& d,
+                          double& j);
+
+double EllipticK(double mc);
 
 }  // namespace numerics
 }  // namespace principia
