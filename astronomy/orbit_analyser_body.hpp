@@ -22,25 +22,34 @@ using geometry::Displacement;
 using geometry::OrientedAngleBetween;
 using geometry::Position;
 using geometry::Rotation;
+using geometry::Sign;
 using geometry::Vector;
 using geometry::Velocity;
 using integrators::EmbeddedExplicitRungeKuttaNyströmIntegrator;
 using integrators::methods::DormandالمكاوىPrince1986RKN434FM;
+using physics::Body;
 using physics::BodyCentredNonRotatingDynamicFrame;
 using physics::ComputeApsides;
 using physics::ComputeNodes;
 using physics::KeplerianElements;
 using physics::KeplerOrbit;
+using physics::MassiveBody;
 using physics::MasslessBody;
 using physics::RigidMotion;
 using physics::RigidTransformation;
 using quantities::Abs;
 using quantities::Angle;
 using quantities::AverageOfCorrelated;
+using quantities::Cos;
 using quantities::Infinity;
 using quantities::Length;
 using quantities::LinearRegression;
+using quantities::Pow;
+using quantities::Product;
+using quantities::Sin;
 using quantities::Speed;
+using quantities::Square;
+using quantities::Tan;
 using quantities::Time;
 using quantities::astronomy::JulianYear;
 using quantities::si::Day;
@@ -49,11 +58,17 @@ using quantities::si::Hour;
 using quantities::si::Radian;
 using quantities::si::Second;
 
+// Returns the element of {α + 2nπ| n ∈ ℤ} which is closest to |previous_angle|.
+inline Angle UnwindFrom(Angle const& previous_angle, Angle const& α) {
+  return α + std::nearbyint((previous_angle - α) / (2 * π * Radian)) * 2 * π *
+                 Radian;
+}
+
 // |angles| should be sampled from a slowly-varying continuous function
 // f: ℝ →  𝑆¹ = ℝ / 2π ℝ (specifically, consecutive angles should  differ by
 // less than π).  Returns the corresponding sampling of the continuous g: ℝ → ℝ
 // such that f = g mod 2π and f(0) = g(0).
-std::vector<Angle> Unwind(std::vector<Angle> const& angles) {
+inline std::vector<Angle> Unwind(std::vector<Angle> const& angles) {
   if (angles.empty()) {
     return angles;
   }
@@ -61,10 +76,7 @@ std::vector<Angle> Unwind(std::vector<Angle> const& angles) {
   unwound_angles.reserve(angles.size());
   unwound_angles.push_back(angles.front());
   for (int i = 1; i < angles.size(); ++i) {
-    unwound_angles.push_back(
-        angles[i] +
-        std::nearbyint((unwound_angles.back() - angles[i]) / (2 * π * Radian)) *
-            2 * π * Radian);
+    unwound_angles.push_back(UnwindFrom(unwound_angles.back(), angles[i]));
   }
   return unwound_angles;
 }
@@ -81,6 +93,79 @@ Difference<T> Variability(std::vector<T> const& values,
   std::nth_element(
       deviations.begin(), deviations.begin() + n, deviations.end());
   return deviations[n];
+}
+
+struct EquinoctialElements {
+  Instant t;
+  // See Broucke and Cefola (1972), On the equinoctial orbit elements.
+  Length a;
+  double h;
+  double k;
+  Angle λ;
+  double p;
+  double q;
+  // pʹ and qʹ use the cotangent of the half-inclination instead of its tangent;
+  // they are better suited to retrograde orbits.
+  double pʹ;
+  double qʹ;
+};
+
+template<typename PrimaryCentred>
+std::vector<EquinoctialElements> OsculatingEquinoctialElements(
+    DiscreteTrajectory<PrimaryCentred> const& trajectory,
+    MassiveBody const& primary,
+    Body const& secondary) {
+  LOG(ERROR) << trajectory.Size();
+  DegreesOfFreedom<PrimaryCentred> const primary_dof{
+      PrimaryCentred::origin, Velocity<PrimaryCentred>{}};
+  std::vector<EquinoctialElements> result;
+  for (auto it = trajectory.Begin(); it != trajectory.End(); ++it) {
+    auto const osculating_elements =
+        KeplerOrbit<PrimaryCentred>(primary,
+                                    secondary,
+                                    it.degrees_of_freedom() - primary_dof,
+                                    it.time())
+            .elements_at_epoch();
+    double const& e = *osculating_elements.eccentricity;
+    Angle const& ϖ = *osculating_elements.longitude_of_periapsis;
+    Angle const& Ω = osculating_elements.longitude_of_ascending_node;
+    Angle const& M = *osculating_elements.mean_anomaly;
+    Angle const& i = osculating_elements.inclination;
+    double const tg_½i = Tan(i / 2);
+    double const cotg_½i = 1 / tg_½i;
+    result.push_back({/*.t = */ it.time(),
+                      /*.a = */ *osculating_elements.semimajor_axis,
+                      /*.h = */ e * Sin(ϖ),
+                      /*.k = */ e * Cos(ϖ),
+                      /*.λ = */ result.empty()
+                          ? ϖ + M
+                          : UnwindFrom(result.back().λ, ϖ + M),
+                      /*.p = */ tg_½i * Sin(Ω),
+                      /*.q = */ tg_½i * Cos(Ω),
+                      /*.pʹ = */ cotg_½i * Sin(Ω),
+                      /*.qʹ = */ cotg_½i * Cos(Ω)});
+  }
+  LOG(ERROR) << result.size();
+  return result;
+}
+
+// |equinoctial_elements| must contain at least 2 elements.
+inline Time SiderealPeriod(
+    std::vector<EquinoctialElements> equinoctial_elements) {
+  LOG(ERROR) << equinoctial_elements.size();
+  Time const Δt =
+      equinoctial_elements.back().t - equinoctial_elements.front().t;
+  Instant const t0 = equinoctial_elements.front().t + Δt / 2;
+  Product<Angle, Square<Time>> ſ_λt_dt;
+
+  for (auto previous = equinoctial_elements.begin(),
+            it = equinoctial_elements.begin() + 1;
+       it != equinoctial_elements.end();
+       previous = it, ++it) {
+    ſ_λt_dt += (it->λ * (it->t - t0) + previous->λ * (previous->t - t0)) / 2 *
+               (it->t - previous->t);
+  }
+  return 2 * π * Radian * Pow<3>(Δt) / (12 * ſ_λt_dt);
 }
 
 template<typename Frame>
@@ -251,7 +336,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   // The reference plane for orbital analysis is the xy plane.
   using PrimaryCentred = geometry::Frame<PrimaryTag,
                                          PrimaryTag::normal,
-                                         /*frame_is_inertial=*/false>;
+                                         /*frame_is_inertial=*/true /*lies!*/>;
   Vector<double, PrimaryCentred> x({1, 0, 0});
   Bivector<double, PrimaryCentred> z({0, 0, 1});
 
@@ -286,6 +371,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     sideways_primary_centred_trajectory.Append(
         it.time(), tip(primary_centred_trajectory.last().degrees_of_freedom()));
   }
+
+  auto const osculating_equinoctial_elements = OsculatingEquinoctialElements(
+      primary_centred_trajectory, *primary_, MasslessBody{});
+  auto const sidereal_period = SiderealPeriod(osculating_equinoctial_elements);
+  LOG(ERROR) << "sidereal period by integration = " << sidereal_period;
 
   // REMOVE BEFORE FLIGHT: we should pick a reference direction orthogonal to
   // the orbital plane here, to avoid issues with orbits in the xz plane.
