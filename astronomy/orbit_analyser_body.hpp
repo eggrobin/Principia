@@ -55,6 +55,7 @@ using quantities::astronomy::JulianYear;
 using quantities::si::Day;
 using quantities::si::Degree;
 using quantities::si::Hour;
+using quantities::si::Metre;
 using quantities::si::Radian;
 using quantities::si::Second;
 
@@ -109,6 +110,23 @@ struct EquinoctialElements {
   double pʹ;
   double qʹ;
 };
+
+std::vector<std::vector<double>> ElementsForLogging(
+    std::vector<EquinoctialElements> const& elements_series) {
+  std::vector<std::vector<double>> result;
+  for (auto const& elements : elements_series) {
+    result.push_back({(elements.t - elements_series.front().t) / Second,
+                      elements.a / Metre,
+                      elements.h,
+                      elements.k,
+                      elements.λ / Radian,
+                      elements.p,
+                      elements.q,
+                      elements.pʹ,
+                      elements.qʹ});
+  }
+  return result;
+}
 
 template<typename PrimaryCentred>
 std::vector<EquinoctialElements> OsculatingEquinoctialElements(
@@ -453,6 +471,16 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << "sidereal period by integration = " << sidereal_period;
   auto const mean_equinoctial_elements =
       MeanEquinoctialElements(osculating_equinoctial_elements, sidereal_period);
+
+  {
+    base::OFStream file(SOLUTION_DIR / (name_ + "_elements"));
+    file << mathematica::Assign(
+        name_ + "osculatingEquinoctialElements",
+        ElementsForLogging(osculating_equinoctial_elements));
+    file << mathematica::Assign(
+        name_ + "meanEquinoctialElements",
+        ElementsForLogging(mean_equinoctial_elements));
+  }
 
   // REMOVE BEFORE FLIGHT: we should pick a reference direction orthogonal to
   // the orbital plane here, to avoid issues with orbits in the xz plane.
