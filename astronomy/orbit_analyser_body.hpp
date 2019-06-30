@@ -133,17 +133,16 @@ std::vector<EquinoctialElements> OsculatingEquinoctialElements(
     Angle const& i = osculating_elements.inclination;
     double const tg_½i = Tan(i / 2);
     double const cotg_½i = 1 / tg_½i;
-    result.push_back({/*.t = */ it.time(),
-                      /*.a = */ *osculating_elements.semimajor_axis,
-                      /*.h = */ e * Sin(ϖ),
-                      /*.k = */ e * Cos(ϖ),
-                      /*.λ = */ result.empty()
-                          ? ϖ + M
-                          : UnwindFrom(result.back().λ, ϖ + M),
-                      /*.p = */ tg_½i * Sin(Ω),
-                      /*.q = */ tg_½i * Cos(Ω),
-                      /*.pʹ = */ cotg_½i * Sin(Ω),
-                      /*.qʹ = */ cotg_½i * Cos(Ω)});
+    result.push_back(
+        {/*.t = */ it.time(),
+         /*.a = */ *osculating_elements.semimajor_axis,
+         /*.h = */ e * Sin(ϖ),
+         /*.k = */ e * Cos(ϖ),
+         /*.λ = */ result.empty() ? ϖ + M : UnwindFrom(result.back().λ, ϖ + M),
+         /*.p = */ tg_½i * Sin(Ω),
+         /*.q = */ tg_½i * Cos(Ω),
+         /*.pʹ = */ cotg_½i * Sin(Ω),
+         /*.qʹ = */ cotg_½i * Cos(Ω)});
   }
   LOG(ERROR) << result.size();
   return result;
@@ -166,6 +165,82 @@ inline Time SiderealPeriod(
                (it->t - previous->t);
   }
   return 2 * π * Radian * Pow<3>(Δt) / (12 * ſ_λt_dt);
+}
+
+// |osculating| must contain at least 2 elements.
+// The resulting elements are averaged over one period, centred on t.
+// The mean λ is not computed, and left 0.
+std::vector<EquinoctialElements> MeanEquinoctialElements(
+    std::vector<EquinoctialElements> const& osculating,
+    Time const& period) {
+  Instant const& t_min = osculating.front().t;
+  struct IntegratedEquinoctialElements {
+    Instant t_max;
+    // The integrals are from t_min to t_max.
+    Product<Length, Time> ſ_a_dt;
+    Time ſ_h_dt;
+    Time ſ_k_dt;
+    Time ſ_p_dt;
+    Time ſ_q_dt;
+    Time ſ_pʹ_dt;
+    Time ſ_qʹ_dt;
+  };
+  std::vector<IntegratedEquinoctialElements> integrals;
+  integrals.push_back({t_min});
+  for (auto previous = osculating.begin(), it = osculating.begin() + 1;
+       it != osculating.end();
+       previous = it, ++it) {
+    integrals.push_back(integrals.back());
+    integrals.back().t_max = it->t;
+    Time const dt = it->t - previous->t;
+    integrals.back().ſ_a_dt += (it->a + previous->a) / 2 * dt;
+    integrals.back().ſ_h_dt += (it->h + previous->h) / 2 * dt;
+    integrals.back().ſ_k_dt += (it->k + previous->k) / 2 * dt;
+    integrals.back().ſ_p_dt += (it->p + previous->p) / 2 * dt;
+    integrals.back().ſ_q_dt += (it->q + previous->q) / 2 * dt;
+    integrals.back().ſ_pʹ_dt += (it->pʹ + previous->pʹ) / 2 * dt;
+    integrals.back().ſ_qʹ_dt += (it->qʹ + previous->qʹ) / 2 * dt;
+  }
+  std::vector<EquinoctialElements> result;
+  int i = 0;
+  for (auto first = integrals.begin(); first != integrals.end(); ++first) {
+    Instant const t_first = first->t_max;
+    while (integrals[i].t_max - t_first < period) {
+      if (++i == integrals.size()) {
+        return result;
+      }
+    }
+    auto const& last = integrals[i - 1];
+    // |element| should be a pointer to a member of |EquinoctialElements|;
+    // Integrates from |last.t_max| to |t_first + period|.
+    auto ſ = [i, &period, &t_first, &osculating](auto element) {
+      auto const& next_osculating = osculating[i];
+      auto const& last_osculating = osculating[i - 1];
+      Time const Δt = next_osculating.t - last_osculating.t;
+      Time const dt = t_first + period - last_osculating.t;
+      auto const element_at_end =
+          last_osculating.*element +
+          (next_osculating.*element - last_osculating.*element) * (dt / Δt);
+      return (last_osculating.*element + element_at_end) / 2 * dt;
+    };
+    result.emplace_back();
+    result.back().t = t_first + period / 2;
+    result.back().a =
+        (last.ſ_a_dt - first->ſ_a_dt + ſ(&EquinoctialElements::a)) / period;
+    result.back().h =
+        (last.ſ_h_dt - first->ſ_h_dt + ſ(&EquinoctialElements::h)) / period;
+    result.back().k =
+        (last.ſ_k_dt - first->ſ_k_dt + ſ(&EquinoctialElements::k)) / period;
+    result.back().p =
+        (last.ſ_p_dt - first->ſ_p_dt + ſ(&EquinoctialElements::p)) / period;
+    result.back().q =
+        (last.ſ_q_dt - first->ſ_q_dt + ſ(&EquinoctialElements::q)) / period;
+    result.back().pʹ =
+        (last.ſ_pʹ_dt - first->ſ_pʹ_dt + ſ(&EquinoctialElements::pʹ)) / period;
+    result.back().qʹ =
+        (last.ſ_qʹ_dt - first->ſ_qʹ_dt + ſ(&EquinoctialElements::qʹ)) / period;
+  }
+  return result;
 }
 
 template<typename Frame>
@@ -376,6 +451,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
       primary_centred_trajectory, *primary_, MasslessBody{});
   auto const sidereal_period = SiderealPeriod(osculating_equinoctial_elements);
   LOG(ERROR) << "sidereal period by integration = " << sidereal_period;
+  auto const mean_equinoctial_elements =
+      MeanEquinoctialElements(osculating_equinoctial_elements, sidereal_period);
 
   // REMOVE BEFORE FLIGHT: we should pick a reference direction orthogonal to
   // the orbital plane here, to avoid issues with orbits in the xz plane.
