@@ -39,6 +39,7 @@ using physics::RigidMotion;
 using physics::RigidTransformation;
 using quantities::Abs;
 using quantities::Angle;
+using quantities::ArcTan;
 using quantities::AverageOfCorrelated;
 using quantities::Cos;
 using quantities::Infinity;
@@ -48,6 +49,7 @@ using quantities::Pow;
 using quantities::Product;
 using quantities::Sin;
 using quantities::Speed;
+using quantities::Sqrt;
 using quantities::Square;
 using quantities::Tan;
 using quantities::Time;
@@ -187,7 +189,6 @@ inline Time SiderealPeriod(
 
 // |osculating| must contain at least 2 elements.
 // The resulting elements are averaged over one period, centred on t.
-// The mean λ is not computed, and left 0.
 std::vector<EquinoctialElements> MeanEquinoctialElements(
     std::vector<EquinoctialElements> const& osculating,
     Time const& period) {
@@ -198,6 +199,7 @@ std::vector<EquinoctialElements> MeanEquinoctialElements(
     Product<Length, Time> ſ_a_dt;
     Time ſ_h_dt;
     Time ſ_k_dt;
+    Product<Angle, Time> ſ_λ_dt;
     Time ſ_p_dt;
     Time ſ_q_dt;
     Time ſ_pʹ_dt;
@@ -214,6 +216,7 @@ std::vector<EquinoctialElements> MeanEquinoctialElements(
     integrals.back().ſ_a_dt += (it->a + previous->a) / 2 * dt;
     integrals.back().ſ_h_dt += (it->h + previous->h) / 2 * dt;
     integrals.back().ſ_k_dt += (it->k + previous->k) / 2 * dt;
+    integrals.back().ſ_λ_dt += (it->λ + previous->λ) / 2 * dt;
     integrals.back().ſ_p_dt += (it->p + previous->p) / 2 * dt;
     integrals.back().ſ_q_dt += (it->q + previous->q) / 2 * dt;
     integrals.back().ſ_pʹ_dt += (it->pʹ + previous->pʹ) / 2 * dt;
@@ -249,6 +252,8 @@ std::vector<EquinoctialElements> MeanEquinoctialElements(
         (last.ſ_h_dt - first->ſ_h_dt + ſ(&EquinoctialElements::h)) / period;
     result.back().k =
         (last.ſ_k_dt - first->ſ_k_dt + ſ(&EquinoctialElements::k)) / period;
+    result.back().λ =
+        (last.ſ_λ_dt - first->ſ_λ_dt + ſ(&EquinoctialElements::λ)) / period;
     result.back().p =
         (last.ſ_p_dt - first->ſ_p_dt + ſ(&EquinoctialElements::p)) / period;
     result.back().q =
@@ -257,6 +262,43 @@ std::vector<EquinoctialElements> MeanEquinoctialElements(
         (last.ſ_pʹ_dt - first->ſ_pʹ_dt + ſ(&EquinoctialElements::pʹ)) / period;
     result.back().qʹ =
         (last.ſ_qʹ_dt - first->ſ_qʹ_dt + ſ(&EquinoctialElements::qʹ)) / period;
+  }
+  return result;
+}
+
+// The classical Keplerian elements.
+struct ClassicalElements {
+  Instant t;
+  Length a;
+  double e;
+  Angle Ω;
+  Angle i;
+  Angle ω;
+  Angle M;
+};
+
+std::vector<ClassicalElements> ToClassicalElements(
+    std::vector<EquinoctialElements> const& equinoctial_elements) {
+  std::vector<ClassicalElements> result;
+  for (auto const& equinoctial : equinoctial_elements) {
+    double const tg_½i = Sqrt(Pow<2>(equinoctial.p) + Pow<2>(equinoctial.q));
+    double const cotg_½i =
+        Sqrt(Pow<2>(equinoctial.pʹ) + Pow<2>(equinoctial.qʹ));
+    Angle const i =
+        cotg_½i > tg_½i ? 2 * ArcTan(tg_½i) : 2 * ArcTan(1 / cotg_½i);
+    Angle const Ω = cotg_½i > tg_½i ? ArcTan(equinoctial.p, equinoctial.q)
+                                    : ArcTan(equinoctial.pʹ, equinoctial.qʹ);
+    double const e = Sqrt(Pow<2>(equinoctial.h) + Pow<2>(equinoctial.k));
+    Angle const ϖ = ArcTan(equinoctial.h, equinoctial.k);
+    Angle const ω = ϖ - Ω;
+    Angle const M = equinoctial.λ - ϖ;
+    result.push_back({equinoctial.t,
+                      equinoctial.a,
+                      e,
+                      Ω,
+                      i,
+                      ω,
+                      result.empty() ? M : UnwindFrom(result.back().M, M)});
   }
   return result;
 }
@@ -471,6 +513,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << "sidereal period by integration = " << sidereal_period;
   auto const mean_equinoctial_elements =
       MeanEquinoctialElements(osculating_equinoctial_elements, sidereal_period);
+  auto const mean_classical_elements =
+      ToClassicalElements(mean_equinoctial_elements);
 
   {
     base::OFStream file(SOLUTION_DIR / (name_ + "_elements"));
