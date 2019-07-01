@@ -53,6 +53,7 @@ using quantities::Sqrt;
 using quantities::Square;
 using quantities::Tan;
 using quantities::Time;
+using quantities::Variation;
 using quantities::astronomy::JulianYear;
 using quantities::si::Day;
 using quantities::si::Degree;
@@ -295,9 +296,9 @@ std::vector<ClassicalElements> ToClassicalElements(
     result.push_back({equinoctial.t,
                       equinoctial.a,
                       e,
-                      Ω,
+                      result.empty() ? Ω : UnwindFrom(result.back().Ω, Ω),
                       i,
-                      ω,
+                      result.empty() ? ω : UnwindFrom(result.back().ω, ω),
                       result.empty() ? M : UnwindFrom(result.back().M, M)});
   }
   return result;
@@ -334,6 +335,37 @@ inline Time NodalPeriod(std::vector<ClassicalElements> elements) {
     previous_u = u;
   }
   return 2 * π * Radian * Pow<3>(Δt) / (12 * ſ_ut_dt);
+}
+
+// |elements| must contain at least 2 elements.
+inline Variation<Angle> NodalPrecession(
+    std::vector<ClassicalElements> elements) {
+  Time const Δt = elements.back().t - elements.front().t;
+  Instant const t0 = elements.front().t + Δt / 2;
+  Product<Angle, Square<Time>> ſ_Ωt_dt;
+
+  for (auto previous = elements.begin(), it = elements.begin() + 1;
+       it != elements.end();
+       previous = it, ++it) {
+    ſ_Ωt_dt += (it->Ω * (it->t - t0) + previous->Ω * (previous->t - t0)) / 2 *
+               (it->t - previous->t);
+  }
+  return 12 * ſ_Ωt_dt / Pow<3>(Δt);
+}
+
+// |elements| must contain at least 2 elements.
+inline Variation<Angle> ApsidalPrecession(std::vector<ClassicalElements> elements) {
+  Time const Δt = elements.back().t - elements.front().t;
+  Instant const t0 = elements.front().t + Δt / 2;
+  Product<Angle, Square<Time>> ſ_ωt_dt;
+
+  for (auto previous = elements.begin(), it = elements.begin() + 1;
+       it != elements.end();
+       previous = it, ++it) {
+    ſ_ωt_dt += (it->ω * (it->t - t0) + previous->ω * (previous->t - t0)) / 2 *
+               (it->t - previous->t);
+  }
+  return 12 * ſ_ωt_dt / Pow<3>(Δt);
 }
 
 template<typename Frame>
@@ -543,21 +575,29 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   auto const osculating_equinoctial_elements = OsculatingEquinoctialElements(
       primary_centred_trajectory, *primary_, MasslessBody{});
   auto const sidereal_period = SiderealPeriod(osculating_equinoctial_elements);
-  LOG(ERROR) << "sidereal period by integration = " << sidereal_period;
+  LOG(ERROR) << "sidereal period by integration = " << sidereal_period / Second
+             << " s";
   auto const osculating_classical_elements =
       ToClassicalElements(osculating_equinoctial_elements);
   LOG(ERROR) << "anomalistic period from osculating = "
-             << AnomalisticPeriod(osculating_classical_elements);
+             << AnomalisticPeriod(osculating_classical_elements) / Second
+             << " s";
   LOG(ERROR) << "nodal period from osculating = "
-             << NodalPeriod(osculating_classical_elements);
+             << NodalPeriod(osculating_classical_elements) / Second << " s";
   auto const mean_equinoctial_elements =
       MeanEquinoctialElements(osculating_equinoctial_elements, sidereal_period);
   auto const mean_classical_elements =
       ToClassicalElements(mean_equinoctial_elements);
   LOG(ERROR) << "anomalistic period from mean = "
-             << AnomalisticPeriod(mean_classical_elements);
+             << AnomalisticPeriod(mean_classical_elements) / Second << " s";
   LOG(ERROR) << "nodal period from mean = "
-             << NodalPeriod(mean_classical_elements);
+             << NodalPeriod(mean_classical_elements) / Second << " s";
+  LOG(ERROR) << "nodal precession = "
+             << NodalPrecession(mean_classical_elements) / (Degree / Day)
+             << u8"°/d";
+  LOG(ERROR) << "apsidal precession = "
+             << ApsidalPrecession(mean_classical_elements) / (Degree / Day)
+             << u8"°/d";
 
   {
     base::OFStream file(SOLUTION_DIR / (name_ + "_elements"));
