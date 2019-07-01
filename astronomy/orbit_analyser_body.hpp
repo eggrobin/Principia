@@ -303,6 +303,39 @@ std::vector<ClassicalElements> ToClassicalElements(
   return result;
 }
 
+// |elements| must contain at least 2 elements.
+inline Time AnomalisticPeriod(std::vector<ClassicalElements> elements) {
+  Time const Δt = elements.back().t - elements.front().t;
+  Instant const t0 = elements.front().t + Δt / 2;
+  Product<Angle, Square<Time>> ſ_Mt_dt;
+
+  for (auto previous = elements.begin(), it = elements.begin() + 1;
+       it != elements.end();
+       previous = it, ++it) {
+    ſ_Mt_dt += (it->M * (it->t - t0) + previous->M * (previous->t - t0)) / 2 *
+               (it->t - previous->t);
+  }
+  return 2 * π * Radian * Pow<3>(Δt) / (12 * ſ_Mt_dt);
+}
+
+// |elements| must contain at least 2 elements.
+inline Time NodalPeriod(std::vector<ClassicalElements> elements) {
+  Time const Δt = elements.back().t - elements.front().t;
+  Instant const t0 = elements.front().t + Δt / 2;
+  Product<Angle, Square<Time>> ſ_ut_dt;
+
+  auto previous = elements.begin();
+  Angle previous_u = previous->ω + previous->M;
+  for (auto it = elements.begin() + 1; it != elements.end();
+       previous = it, ++it) {
+    Angle const u = UnwindFrom(previous_u, it->ω + it->M);
+    ſ_ut_dt += (u * (it->t - t0) + previous_u * (previous->t - t0)) / 2 *
+               (it->t - previous->t);
+    previous_u = u;
+  }
+  return 2 * π * Radian * Pow<3>(Δt) / (12 * ſ_ut_dt);
+}
+
 template<typename Frame>
 OrbitAnalyser<Frame>::OrbitAnalyser(
     not_null<Ephemeris<Frame>*> const ephemeris,
@@ -511,10 +544,20 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
       primary_centred_trajectory, *primary_, MasslessBody{});
   auto const sidereal_period = SiderealPeriod(osculating_equinoctial_elements);
   LOG(ERROR) << "sidereal period by integration = " << sidereal_period;
+  auto const osculating_classical_elements =
+      ToClassicalElements(osculating_equinoctial_elements);
+  LOG(ERROR) << "anomalistic period from osculating = "
+             << AnomalisticPeriod(osculating_classical_elements);
+  LOG(ERROR) << "nodal period from osculating = "
+             << NodalPeriod(osculating_classical_elements);
   auto const mean_equinoctial_elements =
       MeanEquinoctialElements(osculating_equinoctial_elements, sidereal_period);
   auto const mean_classical_elements =
       ToClassicalElements(mean_equinoctial_elements);
+  LOG(ERROR) << "anomalistic period from mean = "
+             << AnomalisticPeriod(mean_classical_elements);
+  LOG(ERROR) << "nodal period from mean = "
+             << NodalPeriod(mean_classical_elements);
 
   {
     base::OFStream file(SOLUTION_DIR / (name_ + "_elements"));
