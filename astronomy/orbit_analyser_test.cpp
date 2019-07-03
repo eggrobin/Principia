@@ -183,8 +183,19 @@ std::vector<SP3Orbit> const& GNSSOrbits() {
                                   "WUM0MGXFIN_20190990000_01D_15M_ORB.SP3",
                                   "WUM0MGXFIN_20191000000_01D_15M_ORB.SP3",
                                   "WUM0MGXFIN_20191010000_01D_15M_ORB.SP3",
-                                  "WUM0MGXFIN_20191020000_01D_15M_ORB.SP3"},
+                                  "WUM0MGXFIN_20191020000_01D_15M_ORB.SP3",
+                                  "WUM0MGXFIN_20191030000_01D_15M_ORB.SP3",
+                                  "WUM0MGXFIN_20191040000_01D_15M_ORB.SP3",
+                                  "WUM0MGXFIN_20191050000_01D_15M_ORB.SP3",
+                                  "WUM0MGXFIN_20191060000_01D_15M_ORB.SP3"},
                                  StandardProduct3::Dialect::ChineseMGEX};
+  // J07 is not present in the last two files.
+  static const SP3Files first_8_files = []() {
+    SP3Files result = files;
+    result.names.pop_back();
+    result.names.pop_back();
+    return result;
+  }();
   static const std::vector<SP3Orbit> orbits{{
       {{StandardProduct3::SatelliteGroup::北斗, 1}, files},     // GEO 140° E.
       {{StandardProduct3::SatelliteGroup::北斗, 6}, files},     // IGSO 118° E.
@@ -192,7 +203,8 @@ std::vector<SP3Orbit> const& GNSSOrbits() {
       {{StandardProduct3::SatelliteGroup::Galileo, 1}, files},  // MEO B05.
       {{StandardProduct3::SatelliteGroup::GPS, 1}, files},      // MEO D2.
       {{StandardProduct3::SatelliteGroup::みちびき, 1}, files},  // QZO 139° E.
-      {{StandardProduct3::SatelliteGroup::みちびき, 7}, files},  // GEO 127° E.
+      {{StandardProduct3::SatelliteGroup::みちびき, 7},          // GEO 127° E.
+       first_8_files},
       {{StandardProduct3::SatelliteGroup::ГЛОНАСС, 1}, files},  // MEO Plane I.
   }};
   return orbits;
