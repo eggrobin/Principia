@@ -555,30 +555,17 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
 
   auto const osculating_equinoctial_elements = OsculatingEquinoctialElements(
       primary_centred_trajectory, *primary_, MasslessBody{});
-  auto const sidereal_period = SiderealPeriod(osculating_equinoctial_elements);
-  LOG(ERROR) << "sidereal period by integration = " << sidereal_period / Second
-             << " s";
+  sidereal_period_ = SiderealPeriod(osculating_equinoctial_elements);
   auto const osculating_classical_elements =
       ToClassicalElements(osculating_equinoctial_elements);
-  LOG(ERROR) << "anomalistic period from osculating = "
-             << AnomalisticPeriod(osculating_classical_elements) / Second
-             << " s";
-  LOG(ERROR) << "nodal period from osculating = "
-             << NodalPeriod(osculating_classical_elements) / Second << " s";
   auto const mean_equinoctial_elements =
-      MeanEquinoctialElements(osculating_equinoctial_elements, sidereal_period);
+      MeanEquinoctialElements(osculating_equinoctial_elements, sidereal_period_);
   auto const mean_classical_elements =
       ToClassicalElements(mean_equinoctial_elements);
-  LOG(ERROR) << "anomalistic period from mean = "
-             << AnomalisticPeriod(mean_classical_elements) / Second << " s";
-  LOG(ERROR) << "nodal period from mean = "
-             << NodalPeriod(mean_classical_elements) / Second << " s";
-  LOG(ERROR) << "nodal precession = "
-             << NodalPrecession(mean_classical_elements) / (Degree / Day)
-             << u8"°/d";
-  LOG(ERROR) << "apsidal precession = "
-             << ApsidalPrecession(mean_classical_elements) / (Degree / Day)
-             << u8"°/d";
+  anomalistic_period_ = AnomalisticPeriod(mean_classical_elements);
+  nodal_period_ = NodalPeriod(mean_classical_elements);
+  nodal_precession_ = NodalPrecession(mean_classical_elements);
+  apsidal_precession_ = ApsidalPrecession(mean_classical_elements);
 
   {
     base::OFStream file(SOLUTION_DIR / (name_ + "_elements"));
