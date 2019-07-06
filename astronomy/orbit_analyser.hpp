@@ -2,7 +2,6 @@
 
 #include "base/not_null.hpp"
 #include "physics/ephemeris.hpp"
-#include "quantities/uncertainty.hpp"
 
 namespace principia {
 namespace astronomy {
@@ -18,7 +17,6 @@ using quantities::Angle;
 using quantities::AngularFrequency;
 using quantities::Difference;
 using quantities::Length;
-using quantities::MeasurementResult;
 using quantities::Time;
 
 // A characterization of the deviation of a value from some nominal value.
@@ -57,18 +55,18 @@ class OrbitAnalyser {
   std::string name_;
 
   Instant reference_perihelion_time_;
-  MeasurementResult<Time> tropical_year_;
-  MeasurementResult<Angle> longitude_of_perihelion_;
+  Time tropical_year_;
+  Angle longitude_of_perihelion_;
 
-  MeasurementResult<Time> nodal_period_;
-  MeasurementResult<Time> anomalistic_period_;
-  MeasurementResult<Time> sidereal_period_;
-  MeasurementResult<AngularFrequency> nodal_precession_;
-  MeasurementResult<AngularFrequency> apsidal_precession_;
-  MeasurementResult<Length> periapsis_distance_;
-  MeasurementResult<Length> apoapsis_distance_;
-  MeasurementResult<double> eccentricity_;
-  MeasurementResult<Angle> inclination_;
+  Time nodal_period_;
+  Time anomalistic_period_;
+  Time sidereal_period_;
+  AngularFrequency nodal_precession_;
+  AngularFrequency apsidal_precession_;
+  Length periapsis_distance_;
+  Length apoapsis_distance_;
+  double eccentricity_;
+  Angle inclination_;
 };
 
 }  // namespace internal_orbit_analyser

@@ -40,11 +40,9 @@ using physics::RigidTransformation;
 using quantities::Abs;
 using quantities::Angle;
 using quantities::ArcTan;
-using quantities::AverageOfCorrelated;
 using quantities::Cos;
 using quantities::Infinity;
 using quantities::Length;
-using quantities::LinearRegression;
 using quantities::Pow;
 using quantities::Product;
 using quantities::Sin;
@@ -61,6 +59,15 @@ using quantities::si::Hour;
 using quantities::si::Metre;
 using quantities::si::Radian;
 using quantities::si::Second;
+
+template<typename T>
+T Average(std::vector<T> const& values) {
+  T result;
+  for (auto const& value : values) {
+    result += (value - T{}) / values.size();
+  }
+  return result;
+}
 
 // Returns the element of {α + 2nπ| n ∈ ℤ} which is closest to |previous_angle|.
 inline Angle UnwindFrom(Angle const& previous_angle, Angle const& α) {
@@ -421,6 +428,7 @@ OrbitAnalyser<Frame>::OrbitAnalyser(
   // We use the procedure from Lee (1995) as described in Allison and McEwen
   // (2000).
   // REMOVE BEFORE FLIGHT: cite the titles.
+  // REMOVE BEFORE FLIGHT: do this with mean elements.
   DiscreteTrajectory<Frame> ascending_nodes;
   DiscreteTrajectory<Frame> descending_nodes;
   ComputeNodes(primary_trajectory.Begin(),
@@ -437,7 +445,7 @@ OrbitAnalyser<Frame>::OrbitAnalyser(
       previous_equinox = it.time();
     }
   }
-  tropical_year_ = AverageOfCorrelated(times_between_northward_equinoxes);
+  tropical_year_ = Average(times_between_northward_equinoxes);
 
   DiscreteTrajectory<Frame> primary_aphelia;
   DiscreteTrajectory<Frame> primary_perihelia;
@@ -460,10 +468,10 @@ OrbitAnalyser<Frame>::OrbitAnalyser(
     adjusted_longitudes_of_perihelia.push_back(
         argument_of_perihelion - 2 * π * Radian *
                                      (it.time() - reference_perihelion_time_) /
-                                     tropical_year_.measured_value);
+                                     tropical_year_);
   }
   longitude_of_perihelion_ =
-      AverageOfCorrelated(Unwind(adjusted_longitudes_of_perihelia));
+      Average(Unwind(adjusted_longitudes_of_perihelia));
 }
 
 template<typename Frame>
@@ -616,9 +624,9 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                     .coordinates()
                     .ToSpherical()
                     .longitude -
-                (longitude_of_perihelion_.measured_value +
+                (longitude_of_perihelion_ +
                  2 * π * Radian * (node.time() - reference_perihelion_time_) /
-                     tropical_year_.measured_value) +
+                     tropical_year_) +
                 π * Radian,
             2 * π * Radian) -
         π * Radian;
@@ -626,10 +634,10 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   }
 
   auto const τ = Unwind(mean_solar_times_of_ascending_nodes);
-  MeasurementResult<Angle> const mean_τ = AverageOfCorrelated(τ);
+  Angle const mean_τ = Average(τ);
 
   // (7.41).
-  MeasurementResult<double> const daily_recurrence_frequency =
+  double const daily_recurrence_frequency =
       (2 * π * Radian / nodal_period_) /
       (primary_->angular_frequency() - nodal_precession_);
 
@@ -639,8 +647,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   int nto;
   int cto;
   for (int j = 1; j < 50; ++j) {
-    MeasurementResult<double> κ_j = daily_recurrence_frequency * j;
-    double const abs_κ_j = std::abs(κ_j.measured_value);
+    double κ_j = daily_recurrence_frequency * j;
+    double const abs_κ_j = std::abs(κ_j);
     double const fraction = std::abs(abs_κ_j - std::nearbyint(abs_κ_j));
     if (fraction < smallest_fraction) {
       cycle_days = j;
@@ -650,7 +658,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     }
   }
 
-  int const ν0 = std::nearbyint(daily_recurrence_frequency.measured_value);
+  int const ν0 = std::nearbyint(daily_recurrence_frequency);
   int const dto = nto - ν0 * cto;
   auto const ll = 2 * π * Radian * cto /
                   (primary_->angular_frequency() - nodal_precession_) / Day;
@@ -681,7 +689,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
 
   std::vector<Angle> const λ =
       Unwind(terrestrial_longitudes_of_ascending_nodes);
-  auto const λ0 = AverageOfCorrelated(λ);
+  auto const λ0 = Average(λ);
 
   LOG(ERROR) << "--- General parameters ---";
   LOG(ERROR) << u8"T* = ";
@@ -709,10 +717,9 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << "- Ground track -";
   // TODOegg): extremal latitudes (& nominal inclination);
   LOG(ERROR) << u8"λ0 =" << λ0 / Degree << u8"°";
-  LOG(ERROR) << u8"   ± " << Variability(λ, λ0.measured_value) / Degree
-             << u8"° (95%)";
+  LOG(ERROR) << u8"   ± " << Variability(λ, λ0) / Degree << u8"° (95%)";
   LOG(ERROR) << u8"   ± "
-             << Variability(λ, λ0.measured_value) *
+             << Variability(λ, λ0) *
                     ((OblateBody<Frame> const&)*primary_).reference_radius() /
                     Radian / Kilo(Metre)
              << u8" km (95%)";
@@ -728,14 +735,13 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   // REMOVE BEFORE FLIGHT: There probably should be a sign here to turn the
   // tropical year into Ω'S.
   auto const ΔtS =
-      2 * π * Radian /
-      (nodal_precession_ - (2 * π * Radian / tropical_year_.measured_value));
+      2 * π * Radian / (nodal_precession_ - (2 * π * Radian / tropical_year_));
   LOG(ERROR) << u8"ΔtS = " << ΔtS / Day << " d";
 
   LOG(ERROR) << u8"τNA = " << mean_τ / Degree << u8"° = "
              << 12 + (mean_τ * 24 / (2 * π * Radian)) << u8" h";
   LOG(ERROR) << u8"       ± "
-             << Variability(τ, mean_τ.measured_value) * (24 / (2 * π * Radian))
+             << Variability(τ, mean_τ) * (24 / (2 * π * Radian))
              << " h (95 %)";
 }
 
