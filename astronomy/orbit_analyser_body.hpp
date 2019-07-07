@@ -361,7 +361,8 @@ inline Variation<Angle> NodalPrecession(
 }
 
 // |elements| must contain at least 2 elements.
-inline Variation<Angle> ApsidalPrecession(std::vector<ClassicalElements> elements) {
+inline Variation<Angle> ApsidalPrecession(
+    std::vector<ClassicalElements> elements) {
   Time const Δt = elements.back().t - elements.front().t;
   Instant const t0 = elements.front().t + Δt / 2;
   Product<Angle, Square<Time>> ſ_ωt_dt;
@@ -373,6 +374,76 @@ inline Variation<Angle> ApsidalPrecession(std::vector<ClassicalElements> element
                (it->t - previous->t);
   }
   return 12 * ſ_ωt_dt / Pow<3>(Δt);
+}
+
+inline OrbitRecurrence::OrbitRecurrence(int νₒ, int Dᴛₒ, int Cᴛₒ)
+    : νₒ_(νₒ), Dᴛₒ_(Dᴛₒ), Cᴛₒ_(Cᴛₒ) {
+  int& Eᴛₒ٭ = subcycle_;
+  Eᴛₒ = 1;
+  // See 11.5.3; the termination condition is (11.25).
+  // By trying the values in ascending order, we get the smallest solution Eᴛₒ*
+  // for Eᴛₒ.
+  while (!(mod(Eᴛₒ * Dᴛₒ, Cᴛₒ) == 1 || mod(Eᴛₒ * Dᴛₒ, -Cᴛₒ) == -1)) {
+    ++Eᴛₒ٭;
+  }
+}
+
+template<typename Frame>
+OrbitRecurrence OrbitRecurrence::ClosestRecurrence(
+    Time const& nodal_period,
+    AngularFrequency const& nodal_precession,
+    RotatingBody<Frame> const& primary,
+    int max_Cᴛₒ) {
+  AngularFrequency const& Ωʹ = nodal_precession;
+  AngularFrequency const& Ωʹᴛ = primary.angular_frequency();
+
+  // Nodal mean motion.
+  AngularFrequency const& nd = 2 * π * Radian / nodal_period;
+  // Daily recurrence frequency, see (7.41).
+  double const κ = nd / (Ωʹᴛ - Ωʹ);
+  // Look for the closest rational approximation Nᴛₒ / Cᴛₒ to κ whose
+  // denominator is at most max_Cᴛₒ.
+  // The notation follows section 11.7.2.
+  int Cᴛₒ;
+  double min_frac_abs_κ_J = std::numeric_limits<double>::infinity();
+  for (int J = 1; J <= max_Cᴛₒ; ++J) {
+    double const abs_κ_J = std::abs(κ * J);
+    double const frac_abs_κ_J = std::abs(abs_κ_J - std::nearbyint(abs_κ_J));
+    if (frac_abs_κ_J < min_frac_abs_κ_J) {
+      min_frac_abs_κ_J = frac_abs_κ_J;
+      Cᴛₒ = J;
+    }
+  }
+
+  int const νₒ = std::nearbyint(κ);
+  int const Dᴛₒ = std::nearbyint((κ - νₒ) * Cᴛₒ);
+  return OrbitRecurrence(νₒ, Dᴛₒ, Cᴛₒ);
+}
+
+inline int OrbitRecurrence::νₒ() const {
+  return νₒ_;
+}
+
+inline int OrbitRecurrence::Dᴛₒ() const {
+  return Dᴛₒ_;
+}
+
+inline int OrbitRecurrence::Cᴛₒ() const {
+  return Cᴛₒ_;
+}
+
+inline int OrbitRecurrence::number_of_revolutions() const {
+  return νₒ_ * Cᴛₒ_ + Dᴛₒ_;
+}
+
+inline int OrbitRecurrence::subcycle() const {
+  return subcycle_;
+}
+
+inline Angle OrbitRecurrence::equatorial_shift() {
+  double const Nᴛₒ = number_of_revolutions();
+  double const ⅟κ = Cᴛₒ / Nᴛₒ;
+  return -2 * π * Radian * ⅟κ;
 }
 
 template<typename Frame>
@@ -470,8 +541,7 @@ OrbitAnalyser<Frame>::OrbitAnalyser(
                                      (it.time() - reference_perihelion_time_) /
                                      tropical_year_);
   }
-  longitude_of_perihelion_ =
-      Average(Unwind(adjusted_longitudes_of_perihelia));
+  longitude_of_perihelion_ = Average(Unwind(adjusted_longitudes_of_perihelia));
 }
 
 template<typename Frame>
@@ -558,8 +628,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   sidereal_period_ = SiderealPeriod(osculating_equinoctial_elements);
   auto const osculating_classical_elements =
       ToClassicalElements(osculating_equinoctial_elements);
-  auto const mean_equinoctial_elements =
-      MeanEquinoctialElements(osculating_equinoctial_elements, sidereal_period_);
+  auto const mean_equinoctial_elements = MeanEquinoctialElements(
+      osculating_equinoctial_elements, sidereal_period_);
   auto const mean_classical_elements =
       ToClassicalElements(mean_equinoctial_elements);
   anomalistic_period_ = AnomalisticPeriod(mean_classical_elements);
@@ -572,9 +642,8 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
     file << mathematica::Assign(
         name_ + "osculatingEquinoctialElements",
         ElementsForLogging(osculating_equinoctial_elements));
-    file << mathematica::Assign(
-        name_ + "meanEquinoctialElements",
-        ElementsForLogging(mean_equinoctial_elements));
+    file << mathematica::Assign(name_ + "meanEquinoctialElements",
+                                ElementsForLogging(mean_equinoctial_elements));
   }
 
   DiscreteTrajectory<PrimaryCentred> ascending_nodes;
@@ -623,43 +692,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   auto const τ = Unwind(mean_solar_times_of_ascending_nodes);
   Angle const mean_τ = Average(τ);
 
-  // (7.41).
-  double const daily_recurrence_frequency =
-      (2 * π * Radian / nodal_period_) /
-      (primary_->angular_frequency() - nodal_precession_);
-
-  // 11.7.2.
-  double smallest_fraction = std::numeric_limits<double>::infinity();
-  int cycle_days;
-  int nto;
-  int cto;
-  for (int j = 1; j < 50; ++j) {
-    double κ_j = daily_recurrence_frequency * j;
-    double const abs_κ_j = std::abs(κ_j);
-    double const fraction = std::abs(abs_κ_j - std::nearbyint(abs_κ_j));
-    if (fraction < smallest_fraction) {
-      cycle_days = j;
-      smallest_fraction = fraction;
-      nto = std::nearbyint(abs_κ_j);
-      cto = j;
-    }
-  }
-
-  int const ν0 = std::nearbyint(daily_recurrence_frequency);
-  int const dto = nto - ν0 * cto;
   auto const ll = 2 * π * Radian * cto /
                   (primary_->angular_frequency() - nodal_precession_) / Day;
 
   Angle const ΔλE = -2 * π * Radian * cto / nto;
   Angle const δ = 2 * π * Radian / nto;
-
-  int eto;
-  for (int j = 1; j < cto; ++j) {
-    if (mod(j * dto, cto) == 1 || mod(j * dto, -cto) == -1) {
-      eto = j;
-      break;
-    }
-  }
   /*
   for (int i = 0, k = 0; i < longitudes_of_ascending_nodes.size(); ++i) {
     Angle const Ω = longitudes_of_ascending_nodes[i];
@@ -682,11 +719,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"T* = ";
   LOG(ERROR) << u8"T* / T🜨 =";
   LOG(ERROR) << u8"T🜨 / T* = ";
-  LOG(ERROR) << u8"T☊ = " ;
+  LOG(ERROR) << u8"T☊ = ";
   LOG(ERROR) << u8"T = ";
   LOG(ERROR) << u8"Ω′ = ";
-  LOG(ERROR) << u8"ω′ = " ;
-  LOG(ERROR) << "i = " ;
+  LOG(ERROR) << u8"ω′ = ";
+  LOG(ERROR) << "i = ";
   LOG(ERROR) << "----";
   LOG(ERROR) << "--- Orbit with respect to the Earth ---";
   LOG(ERROR) << "- Phasing -";
@@ -728,8 +765,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"τNA = " << mean_τ / Degree << u8"° = "
              << 12 + (mean_τ * 24 / (2 * π * Radian)) << u8" h";
   LOG(ERROR) << u8"       ± "
-             << Variability(τ, mean_τ) * (24 / (2 * π * Radian))
-             << " h (95 %)";
+             << Variability(τ, mean_τ) * (24 / (2 * π * Radian)) << " h (95 %)";
 }
 
 }  // namespace internal_orbit_analyser

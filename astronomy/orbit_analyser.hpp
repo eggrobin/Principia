@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "base/not_null.hpp"
 #include "physics/ephemeris.hpp"
@@ -27,8 +27,43 @@ using quantities::Time;
 template<typename T>
 Difference<T> Variability(std::vector<T> const& values, T const& nominal_value);
 
+class OrbitRecurrence final {
+ public:
+  // The following conditions must hold:
+  //   Cᴛₒ > 0;
+  //   |Dᴛₒ / Cᴛₒ| ≤ 1/2.
+  OrbitRecurrence(int νₒ, int Dᴛₒ, int Cᴛₒ);
+
+  template<typename Frame>
+  static OrbitRecurrence ClosestRecurrence(
+      Time const& nodal_period,
+      AngularFrequency const& nodal_precession,
+      RotatingBody<Frame> const& primary,
+      int max_Cᴛₒ);
+
+  // The Capderou recurrence triple [νₒ; Dᴛₒ; Cᴛₒ], see section 11.1.3.
+  int νₒ() const;
+  int Dᴛₒ() const;
+  int Cᴛₒ() const;
+  // The number of (nodal) revolutions per cycle Nᴛₒ, see section 11.1.2.
+  // Note that this may be negative: it is negative if Ωʹᴛ - Ωʹ is negative,
+  // which, in practice, happens when Ωʹᴛ is negative, i.e. around bodies whose
+  // rotation is retrograde 
+  int number_of_revolutions() const;
+  // The subcycle Eᴛₒ*, see section 11.5.3.
+  int subcycle() const;
+  // The equatorial shift Δλᴇ, see section 8.3.2.
+  Angle equatorial_shift();
+
+ private:
+  int νₒ_;
+  int Dᴛₒ_;
+  int Cᴛₒ_;
+  int subcycle_;
+};
+
 template<typename Frame>
-class OrbitAnalyser {
+class OrbitAnalyser final {
  public:
   OrbitAnalyser(not_null<Ephemeris<Frame>*> ephemeris,
                 not_null<RotatingBody<Frame> const*> primary,
