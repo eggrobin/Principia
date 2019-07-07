@@ -386,6 +386,10 @@ inline OrbitRecurrence::OrbitRecurrence(int νₒ, int Dᴛₒ, int Cᴛₒ)
 
   int const sign_Cᴛₒ = Sign(Cᴛₒ) * 1;
   int& Eᴛₒ = subcycle_;
+  if (Dᴛₒ == 0) {
+    Eᴛₒ = 0;
+    return;
+  }
   Eᴛₒ = sign_Cᴛₒ;
   // See 11.5.3; the termination condition is (11.25).
   // By trying the values in ascending order, we get the smallest solution Eᴛₒ*
