@@ -378,13 +378,21 @@ inline Variation<Angle> ApsidalPrecession(
 
 inline OrbitRecurrence::OrbitRecurrence(int νₒ, int Dᴛₒ, int Cᴛₒ)
     : νₒ_(νₒ), Dᴛₒ_(Dᴛₒ), Cᴛₒ_(Cᴛₒ) {
-  int& Eᴛₒ٭ = subcycle_;
-  Eᴛₒ = 1;
+  CHECK_NE(Cᴛₒ, 0);
+  if (νₒ != 0) {
+    CHECK_EQ(Sign(νₒ), Sign(Cᴛₒ));
+  }
+  CHECK_LE(std::abs(2 * Dᴛₒ), std::abs(Cᴛₒ));
+
+  int const sign_Cᴛₒ = Sign(Cᴛₒ) * 1;
+  int& Eᴛₒ = subcycle_;
+  Eᴛₒ = sign_Cᴛₒ;
   // See 11.5.3; the termination condition is (11.25).
   // By trying the values in ascending order, we get the smallest solution Eᴛₒ*
   // for Eᴛₒ.
-  while (!(mod(Eᴛₒ * Dᴛₒ, Cᴛₒ) == 1 || mod(Eᴛₒ * Dᴛₒ, -Cᴛₒ) == -1)) {
-    ++Eᴛₒ٭;
+  while (
+      !(mod(Eᴛₒ * Dᴛₒ, Cᴛₒ) == sign_Cᴛₒ || mod(Eᴛₒ * Dᴛₒ, -Cᴛₒ) == -sign_Cᴛₒ)) {
+    Eᴛₒ += sign_Cᴛₒ;
   }
 }
 
@@ -393,7 +401,7 @@ OrbitRecurrence OrbitRecurrence::ClosestRecurrence(
     Time const& nodal_period,
     AngularFrequency const& nodal_precession,
     RotatingBody<Frame> const& primary,
-    int max_Cᴛₒ) {
+    int max_abs_Cᴛₒ) {
   AngularFrequency const& Ωʹ = nodal_precession;
   AngularFrequency const& Ωʹᴛ = primary.angular_frequency();
 
@@ -406,12 +414,12 @@ OrbitRecurrence OrbitRecurrence::ClosestRecurrence(
   // The notation follows section 11.7.2.
   int Cᴛₒ;
   double min_frac_abs_κ_J = std::numeric_limits<double>::infinity();
-  for (int J = 1; J <= max_Cᴛₒ; ++J) {
+  for (int J = 1; J <= max_abs_Cᴛₒ; ++J) {
     double const abs_κ_J = std::abs(κ * J);
     double const frac_abs_κ_J = std::abs(abs_κ_J - std::nearbyint(abs_κ_J));
     if (frac_abs_κ_J < min_frac_abs_κ_J) {
       min_frac_abs_κ_J = frac_abs_κ_J;
-      Cᴛₒ = J;
+      Cᴛₒ = Sign(κ) * J;
     }
   }
 
@@ -433,17 +441,29 @@ inline int OrbitRecurrence::Cᴛₒ() const {
 }
 
 inline int OrbitRecurrence::number_of_revolutions() const {
+  // See (11.13).
   return νₒ_ * Cᴛₒ_ + Dᴛₒ_;
+}
+
+inline Angle OrbitRecurrence::equatorial_shift() const {
+  double const Nᴛₒ = number_of_revolutions();
+  double const ⅟κ = Cᴛₒ_ / Nᴛₒ;
+  // See (8.24).
+  return -2 * π * Radian * ⅟κ;
+}
+
+inline Angle OrbitRecurrence::base_interval() const {
+  return Abs(equatorial_shift());
+}
+
+inline Angle OrbitRecurrence::grid_interval() const {
+  int const Nᴛₒ = number_of_revolutions();
+  // See (11.20).
+  return 2 * π * Radian / Nᴛₒ;
 }
 
 inline int OrbitRecurrence::subcycle() const {
   return subcycle_;
-}
-
-inline Angle OrbitRecurrence::equatorial_shift() {
-  double const Nᴛₒ = number_of_revolutions();
-  double const ⅟κ = Cᴛₒ / Nᴛₒ;
-  return -2 * π * Radian * ⅟κ;
 }
 
 template<typename Frame>
@@ -616,6 +636,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   BodyCentredNonRotatingDynamicFrame<Frame, PrimaryCentred> primary_centred(
       ephemeris_, primary_);
 
+
   DiscreteTrajectory<PrimaryCentred> primary_centred_trajectory;
   for (auto it = trajectory_.Begin(); it != trajectory_.End(); ++it) {
     primary_centred_trajectory.Append(
@@ -646,6 +667,11 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
                                 ElementsForLogging(mean_equinoctial_elements));
   }
 
+  auto const recurrence = OrbitRecurrence::ClosestRecurrence(
+      nodal_period_, nodal_precession_, *primary_, /*max_abs_Cᴛₒ=*/50);
+  Angle const Δλᴇ = recurrence.equatorial_shift();
+  Angle const δʀ = recurrence.base_interval();
+
   DiscreteTrajectory<PrimaryCentred> ascending_nodes;
   DiscreteTrajectory<PrimaryCentred> descending_nodes;
   ComputeNodes(primary_centred_trajectory.Begin(),
@@ -656,21 +682,36 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
 
   LOG(ERROR) << ascending_nodes.Size() << " ascending nodes";
 
-  std::vector<Angle> terrestrial_longitudes_of_ascending_nodes;
+  std::vector<Angle> reduced_terrestrial_longitudes_of_ascending_nodes;
   std::vector<Angle> mean_solar_times_of_ascending_nodes;
-  for (auto node = ascending_nodes.Begin(); node != ascending_nodes.End();
-       ++node) { /*
-    // We do not construct |KeplerianElements|: we only need the longitude of
-    // the ascending node, and we are at the ascending node so the computation
-    // is trivial.
-    Angle const Ω = OrientedAngleBetween(
-        x, node.degrees_of_freedom().position() - PrimaryCentred::origin, z);
-    if (!times_of_ascending_nodes.empty()) {
-      times_between_ascending_nodes.push_back(node.time() -
-                                              times_of_ascending_nodes.back());
+  int k;
+  int i = 0;
+  for (auto node = ascending_nodes.Begin();
+       node != ascending_nodes.End();
+       ++node, ++i) {
+    Angle const Ω =
+        (node.degrees_of_freedom().position() - PrimaryCentred::origin)
+            .coordinates()
+            .ToSpherical()
+            .longitude;
+    Instant const t = node.time();
+    // TODO(egg): this assumes earthlike sign for the longitude.
+    Angle const λ = Ω - (primary_->AngleAt(t) + π / 2 * Radian);
+    // k is the initial number of equatorial shifts from the interval of
+    // longitudes [0, δʀ].
+    // REMOVE BEFORE FLIGHT: this is probably wrong for Δλᴇ > 0; further,
+    // we probably want to reduce on the grid interval [0, δ].
+    if (i == 0) {
+      k = Sign(Δλᴇ) * std::floor(λ / Abs(Δλᴇ));
     }
-    times_of_ascending_nodes.push_back(node.time());
-    longitudes_of_ascending_nodes.push_back(Ω);*/
+    Angle const λ_reduced =
+        quantities::Mod(λ - (i + k) * Δλᴇ + π * Radian, 2 * π * Radian) -
+        π * Radian;
+    reduced_terrestrial_longitudes_of_ascending_nodes.push_back(
+        i == 0 ? λ_reduced
+               : UnwindFrom(
+                     reduced_terrestrial_longitudes_of_ascending_nodes.back(),
+                     λ_reduced));
 
     // Ignoring the error bars on the mean sun, effectively making it
     // conventional.
@@ -692,63 +733,41 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   auto const τ = Unwind(mean_solar_times_of_ascending_nodes);
   Angle const mean_τ = Average(τ);
 
-  auto const ll = 2 * π * Radian * cto /
-                  (primary_->angular_frequency() - nodal_precession_) / Day;
-
-  Angle const ΔλE = -2 * π * Radian * cto / nto;
-  Angle const δ = 2 * π * Radian / nto;
-  /*
-  for (int i = 0, k = 0; i < longitudes_of_ascending_nodes.size(); ++i) {
-    Angle const Ω = longitudes_of_ascending_nodes[i];
-    Instant const t = times_of_ascending_nodes[i];
-    // TODO(egg): this assumes earthlike sign for the longitude.
-    Angle const λ = Ω - (primary_->AngleAt(t) + π / 2 * Radian);
-    if (i == 0) {
-      k = geometry::Sign(ΔλE) * std::floor(λ / Abs(ΔλE));
-    }
-    terrestrial_longitudes_of_ascending_nodes.push_back(
-        quantities::Mod(λ - (i + k) * ΔλE + π * Radian, 2 * π * Radian) -
-        π * Radian);
-  }*/
-
-  std::vector<Angle> const λ =
-      Unwind(terrestrial_longitudes_of_ascending_nodes);
-  auto const λ0 = Average(λ);
+  auto const λ0 = Average(reduced_terrestrial_longitudes_of_ascending_nodes);
 
   LOG(ERROR) << "--- General parameters ---";
-  LOG(ERROR) << u8"T* = ";
-  LOG(ERROR) << u8"T* / T🜨 =";
-  LOG(ERROR) << u8"T🜨 / T* = ";
-  LOG(ERROR) << u8"T☊ = ";
-  LOG(ERROR) << u8"T = ";
-  LOG(ERROR) << u8"Ω′ = ";
-  LOG(ERROR) << u8"ω′ = ";
+  LOG(ERROR) << u8"T* = " << sidereal_period_ / Second << " s";
+  LOG(ERROR) << u8"Td = " << nodal_period_ / Second << " s";
+  LOG(ERROR) << u8"T = " << anomalistic_period_ / Second << " s";
+  LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / Day) << u8"°/d";
+  LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / Day) << u8"°/d";
   LOG(ERROR) << "i = ";
   LOG(ERROR) << "----";
   LOG(ERROR) << "--- Orbit with respect to the Earth ---";
   LOG(ERROR) << "- Phasing -";
-  LOG(ERROR) << u8"κ = " << daily_recurrence_frequency;
-  LOG(ERROR) << "N_To / C_To = " << nto << " / " << cto;
-  LOG(ERROR) << u8"[ν0 ; DTo ; CTo] = [" << ν0 << " ; " << dto << " ; " << cto
+  LOG(ERROR) << "N_To / C_To = " << recurrence.number_of_revolutions() << " / "
+             << recurrence.Cᴛₒ();
+  LOG(ERROR) << u8"[ν0 ; DTo ; CTo] = [" << recurrence.νₒ() << " ; "
+             << recurrence.Dᴛₒ() << " ; " << recurrence.Cᴛₒ()
              << "]";
-  LOG(ERROR) << u8"𝕃 = NTo Td \t\t\t\t= " << nto * nodal_period_ / Day << " d";
-  LOG(ERROR) << u8"𝕃 = 2π CTo / (Ω′T - Ω′) \t= " << ll << " d";
+  LOG(ERROR) << u8"𝕃 = NTo Td = "
+             << recurrence.number_of_revolutions() * nodal_period_ / Day
+             << " d";
 
-  LOG(ERROR) << u8"ΔλE = " << ΔλE / Degree << u8"°";
-  LOG(ERROR) << u8"δ = " << δ / Degree << u8"°";
-  LOG(ERROR) << u8"ETo* = " << eto;
+  LOG(ERROR) << u8"ΔλE = " << Δλᴇ / Degree << u8"°";
+  LOG(ERROR) << u8"δ = " << recurrence.grid_interval() / Degree << u8"°";
+  LOG(ERROR) << u8"ETo* = " << recurrence.subcycle();
 
   LOG(ERROR) << "- Ground track -";
   // TODOegg): extremal latitudes (& nominal inclination);
   LOG(ERROR) << u8"λ0 =" << λ0 / Degree << u8"°";
-  LOG(ERROR) << u8"   ± " << Variability(λ, λ0) / Degree << u8"° (95%)";
   LOG(ERROR) << u8"   ± "
-             << Variability(λ, λ0) *
-                    ((OblateBody<Frame> const&)*primary_).reference_radius() /
-                    Radian / Kilo(Metre)
-             << u8" km (95%)";
+             << Variability(reduced_terrestrial_longitudes_of_ascending_nodes,
+                            λ0) /
+                    Degree
+             << u8"° (95%)";
 
-  if (nto == 1 && cto == 1) {
+  if (recurrence.νₒ() == 1 && recurrence.Cᴛₒ() == 1) {
     LOG(ERROR) << "- Geosynchronous orbit: central longitude -";
   }
 
