@@ -1,21 +1,27 @@
 ﻿
 #include "numerics/elliptic_functions.hpp"
 
+#include <limits>
+
 #include "glog/logging.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "numerics/elliptic_integrals.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
 #include "testing_utilities/is_near.hpp"
 #include "testing_utilities/serialization.hpp"
 
 namespace principia {
+namespace numerics {
 
+using quantities::Angle;
+using quantities::si::Radian;
 using testing_utilities::AlmostEquals;
 using testing_utilities::IsNear;
 using testing_utilities::ReadFromTabulatedData;
-
-namespace numerics {
+using ::testing::Le;
 
 class EllipticFunctionsTest : public ::testing::Test {};
 
@@ -53,6 +59,69 @@ TEST_F(EllipticFunctionsTest, Xgscd) {
       ++expected_index;
     }
     std::printf("\n");
+  }
+}
+
+TEST_F(EllipticFunctionsTest, Mathematica) {
+  auto const elliptic_functions_expected = ReadFromTabulatedData(
+      SOLUTION_DIR / "numerics" / "elliptic_functions.proto.txt");
+
+  for (auto const& entry : elliptic_functions_expected.entry()) {
+    double const argument_u = entry.argument(0);
+    double const argument_m = entry.argument(1);
+    double const expected_value_s = entry.value(0);
+    double const expected_value_c = entry.value(1);
+    double const expected_value_d = entry.value(2);
+    Angle const expected_value_a = entry.value(3) * Radian;
+
+    double actual_value_s;
+    double actual_value_c;
+    double actual_value_d;
+    JacobiSNCNDN(argument_u,
+                 1.0 - argument_m,
+                 actual_value_s,
+                 actual_value_c,
+                 actual_value_d);
+
+    Angle const actual_value_a = JacobiAmplitude(argument_u, 1.0 - argument_m);
+
+    // TODO(phl): The errors are uncomfortably large here.  Figure out what's
+    // happening.
+    EXPECT_THAT(actual_value_s, AlmostEquals(expected_value_s, 0, 12507))
+        << argument_u << " " << argument_m;
+    EXPECT_THAT(actual_value_c, AlmostEquals(expected_value_c, 0, 7648))
+        << argument_u << " " << argument_m;
+    EXPECT_THAT(actual_value_d, AlmostEquals(expected_value_d, 0, 85))
+        << argument_u << " " << argument_m;
+
+    EXPECT_THAT(actual_value_a, AlmostEquals(expected_value_a, 0, 22074))
+        << argument_u << " " << argument_m;
+  }
+}
+
+TEST_F(EllipticFunctionsTest, Monotonicity) {
+  for (double const mc : {0.01, 0.1, 0.5}) {
+    double const k = EllipticK(mc);
+    for (int i = -5; i <= 5; ++i) {
+      double const u = i * k;
+      Angle const am = JacobiAmplitude(u, mc);
+      LOG(ERROR) << "Testing around " << u << " and mc = " << mc
+                 << " starting with am = " << am << " (i = " << i << ")";
+      double u₊ = u;
+      double u₋ = u;
+      Angle previous_am₊ = am;
+      Angle previous_am₋ = am;
+      for (int j = 0; j < 10'000; ++j) {
+        u₊ = std::nextafter(u₊, std::numeric_limits<double>::infinity());
+        u₋ = std::nextafter(u₋, -std::numeric_limits<double>::infinity());
+        Angle const am₊ = JacobiAmplitude(u₊, mc);
+        Angle const am₋ = JacobiAmplitude(u₋, mc);
+        ASSERT_THAT(previous_am₊, Le(am₊)) << u₊ << " " << mc << " " << j;
+        ASSERT_THAT(am₋, Le(previous_am₋)) << u₋ << " " << mc << " " << j;
+        previous_am₋ = am₋;
+        previous_am₊ = am₊;
+      }
+    }
   }
 }
 
