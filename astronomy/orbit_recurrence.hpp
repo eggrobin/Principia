@@ -44,6 +44,10 @@ class OrbitRecurrence final {
   //   gcd(Dᴛₒ, Cᴛₒ) = 1.
   OrbitRecurrence(int νₒ, int Dᴛₒ, int Cᴛₒ);
 
+  // Returns the recurrence that mostly matches the given orbital
+  // characteristics, limiting the value of |Cᴛₒ|.
+  // The Nᴛₒ / Cᴛₒ of the result is the last convergent of the κ obtained from
+  // the given arguments whose denominator is less than |max_abs_Cᴛₒ|.
   template<typename Frame>
   static OrbitRecurrence ClosestRecurrence(
       Time const& nodal_period,
@@ -86,7 +90,11 @@ class OrbitRecurrence final {
   Angle grid_interval() const;
 
   // The subcycle Eᴛₒ*, see section 11.5.3.
-  // After Eᴛₒ* days, the ground track passes δ away from the origin.
+  // After about Eᴛₒ* days (n = round(Nᴛₒ Eᴛₒ* / Cᴛₒ) revolutions), the ground
+  // track passes δ away from the origin.
+  // In terms of continued fractions, Eᴛₒ* is the denominator of the penultimate
+  // convergent of Nᴛₒ / Cᴛₒ (it is the cycle that is closest to being exact
+  // before Cᴛₒ).
   // Note that Eᴛₒ* < 0 if the rotation of the primary is retrograde.
   int subcycle() const;
 

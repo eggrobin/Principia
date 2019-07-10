@@ -87,7 +87,7 @@ TEST_F(OrbitRecurrenceTest, EquatorialShift) {
   // Example 8.2: Метеор-3 № 7.
   OrbitRecurrence const метеор_3_7(13, +7, 71);
   EXPECT_THAT(AbsoluteError(-27.48 * Degree, метеор_3_7.equatorial_shift()),
-      Lt(0.01 * Degree));
+              Lt(0.01 * Degree));
 }
 
 TEST_F(OrbitRecurrenceTest, GridInterval) {
@@ -131,6 +131,7 @@ TEST_F(OrbitRecurrenceTest, RetrogradeRotation) {
               AllOf(Property(&OrbitRecurrence::νₒ, -3808),
                     Property(&OrbitRecurrence::Dᴛₒ, 1),
                     Property(&OrbitRecurrence::Cᴛₒ, -2)));
+  EXPECT_THAT(magellan.subcycle(), Eq(-1));
   // Example 16.9.
   auto const triton_orbiter =
       OrbitRecurrence::ClosestRecurrence(169.584671 * Minute,
@@ -143,6 +144,7 @@ TEST_F(OrbitRecurrenceTest, RetrogradeRotation) {
               AllOf(Property(&OrbitRecurrence::νₒ, -50),
                     Property(&OrbitRecurrence::Dᴛₒ, -1),
                     Property(&OrbitRecurrence::Cᴛₒ, -27)));
+  EXPECT_THAT(triton_orbiter.subcycle(), Eq(-1));
 }
 
 TEST_F(OrbitRecurrenceTest, OneDayRecurrenceCycle) {
