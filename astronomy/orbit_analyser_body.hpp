@@ -3,6 +3,7 @@
 #include "astronomy/orbit_analyser.hpp"
 
 #include "astronomy/orbit_recurrence.hpp"
+#include "astronomy/orbital_elements.hpp"
 #include "base/file.hpp"
 #include "base/mod.hpp"
 #include "integrators/embedded_explicit_generalized_runge_kutta_nyström_integrator.hpp"
@@ -127,7 +128,7 @@ std::vector<std::vector<double>> ElementsForLogging(
     std::vector<EquinoctialElements> const& elements_series) {
   std::vector<std::vector<double>> result;
   for (auto const& elements : elements_series) {
-    result.push_back({(elements.t - elements_series.front().t) / Second,
+    result.push_back({(elements.t - J2000) / Second,
                       elements.a / Metre,
                       elements.h,
                       elements.k,
@@ -548,13 +549,16 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   BodyCentredNonRotatingDynamicFrame<Frame, PrimaryCentred> primary_centred(
       ephemeris_, primary_);
 
-
   DiscreteTrajectory<PrimaryCentred> primary_centred_trajectory;
   for (auto it = trajectory_.Begin(); it != trajectory_.End(); ++it) {
     primary_centred_trajectory.Append(
         it.time(),
         primary_centred.ToThisFrameAtTime(it.time())(it.degrees_of_freedom()));
   }
+
+  auto orbital_elements = OrbitalElements::ForTrajectory(
+          primary_centred_trajectory, *primary_, MasslessBody{})
+          .ValueOrDie();
 
   auto const osculating_equinoctial_elements = OsculatingEquinoctialElements(
       primary_centred_trajectory, *primary_, MasslessBody{});
@@ -598,8 +602,7 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   std::vector<Angle> mean_solar_times_of_ascending_nodes;
   int k;
   int i = 0;
-  for (auto node = ascending_nodes.Begin();
-       node != ascending_nodes.End();
+  for (auto node = ascending_nodes.Begin(); node != ascending_nodes.End();
        ++node, ++i) {
     Angle const Ω =
         (node.degrees_of_freedom().position() - PrimaryCentred::origin)
@@ -654,14 +657,43 @@ void OrbitAnalyser<Frame>::RecomputeProperties() {
   LOG(ERROR) << u8"Ω′ = " << nodal_precession_ / (Degree / Day) << u8"°/d";
   LOG(ERROR) << u8"ω′ = " << apsidal_precession_ / (Degree / Day) << u8"°/d";
   LOG(ERROR) << "i = ";
+  LOG(ERROR) << "OrbitalElements";
+  LOG(ERROR) << orbital_elements.sidereal_period() / Second << " s";
+  LOG(ERROR) << orbital_elements.nodal_period() / Second << " s";
+  LOG(ERROR) << orbital_elements.anomalistic_period() / Second << " s";
+  LOG(ERROR) << u8"Ω′ = "
+             << orbital_elements.nodal_precession() / (Degree / Day) << u8"°/d";
+  LOG(ERROR) << u8"a = ["
+             << orbital_elements.mean_semimajor_axis().min / (Kilo(Metre))
+             << u8" km,";
+  LOG(ERROR) << u8"     "
+             << orbital_elements.mean_semimajor_axis().max / (Kilo(Metre))
+             << u8" km]";
+  LOG(ERROR) << u8"e = [" << orbital_elements.mean_eccentricity().min << ",";
+  LOG(ERROR) << u8"     " << orbital_elements.mean_eccentricity().max << "]";
+  LOG(ERROR) << u8"i = [" << orbital_elements.mean_inclination().min / Degree
+             << u8"°,";
+  LOG(ERROR) << u8"     " << orbital_elements.mean_inclination().max / Degree
+             << u8"°]";
+  LOG(ERROR) << u8"Ω = ["
+             << orbital_elements.mean_longitude_of_ascending_node().min / Degree
+             << u8"°,";
+  LOG(ERROR) << u8"     "
+             << orbital_elements.mean_longitude_of_ascending_node().max / Degree
+             << u8"°]";
+  LOG(ERROR) << u8"ω = ["
+             << orbital_elements.mean_argument_of_periapsis().min / Degree
+             << u8"°,";
+  LOG(ERROR) << u8"     "
+             << orbital_elements.mean_argument_of_periapsis().max / Degree
+             << u8"°]";
   LOG(ERROR) << "----";
   LOG(ERROR) << "--- Orbit with respect to the Earth ---";
   LOG(ERROR) << "- Phasing -";
   LOG(ERROR) << "N_To / C_To = " << recurrence.number_of_revolutions() << " / "
              << recurrence.Cᴛₒ();
   LOG(ERROR) << u8"[ν0 ; DTo ; CTo] = [" << recurrence.νₒ() << " ; "
-             << recurrence.Dᴛₒ() << " ; " << recurrence.Cᴛₒ()
-             << "]";
+             << recurrence.Dᴛₒ() << " ; " << recurrence.Cᴛₒ() << "]";
   LOG(ERROR) << u8"𝕃 = NTo Td = "
              << recurrence.number_of_revolutions() * nodal_period_ / Day
              << " d";
