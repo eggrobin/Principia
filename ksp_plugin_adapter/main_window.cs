@@ -5,10 +5,10 @@ namespace ksp_plugin_adapter {
 
 internal class MainWindow : SupervisedWindowRenderer {
   // Update this section before each release.
-  private const string next_release_name_ = "Ferrari";
-  private const int next_release_lunation_number_ = 242;
+  private const string next_release_name_ = "del Ferro";
+  private const int next_release_lunation_number_ = 243;
   private readonly DateTimeOffset next_release_date_ =
-      new DateTimeOffset(2019, 08, 01, 03, 12, 00, TimeSpan.Zero);
+      new DateTimeOffset(2019, 08, 30, 10, 37, 00, TimeSpan.Zero);
 
   public delegate Vessel PredictedVessel();
 
@@ -49,9 +49,6 @@ internal class MainWindow : SupervisedWindowRenderer {
   public bool display_patched_conics { get; private set; } = false;
 
   public double history_length => history_lengths_[history_length_index_];
-  public double prediction_length_tolerance =>
-      prediction_length_tolerances_[prediction_length_tolerance_index_];
-  public long prediction_steps => prediction_steps_[prediction_steps_index_];
 
   public void LoadCompatibilityDataIfNeeded(int history_length_index) {
     if (should_load_compatibility_data_) {
@@ -167,20 +164,22 @@ internal class MainWindow : SupervisedWindowRenderer {
             style : Style.Warning(UnityEngine.GUI.skin.label));
       }
       if (DateTimeOffset.Now > next_release_date_) {
-        if (Versioning.Revision <= 4) {
+        if (Versioning.version_minor <= 4) {
           UnityEngine.GUILayout.TextArea(
               "Announcement: the new moon of lunation number " +
               next_release_lunation_number_ +
               " has come; please update KSP to version 1.6.1 and download " +
               "the latest Principia release, " + next_release_name_ + ". " +
               "Note that RealismOverhaul and RealSolarSystem now support " +
-              "KSP 1.6.1.");
+              "KSP 1.6.1.",
+              style : Style.Multiline(UnityEngine.GUI.skin.textArea));
         } else {
           UnityEngine.GUILayout.TextArea(
               "Announcement: the new moon of lunation number " +
               next_release_lunation_number_ +
               " has come; please download the latest Principia release, " +
-              next_release_name_ + ".");
+              next_release_name_ + ".",
+              style: Style.Multiline(UnityEngine.GUI.skin.textArea));
         }
       }
       Interface.GetVersion(build_date : out string unused_build_date,
@@ -188,15 +187,14 @@ internal class MainWindow : SupervisedWindowRenderer {
       UnityEngine.GUILayout.Label(
           version,
           style : Style.Info(UnityEngine.GUI.skin.label));
-      bool changed_history_length = false;
       RenderSelector(history_lengths_,
                      ref history_length_index_,
                      "Max history length",
-                     ref changed_history_length,
-                     "{0:0.00e00} s");
+                     "{0:0.00e00} s",
+                     enabled: true);
       if (MapView.MapIsEnabled &&
           FlightGlobals.ActiveVessel?.orbitTargeter != null) {
-        show_selection_ui = true;
+        show_selection_ui_ = true;
         using (new UnityEngine.GUILayout.HorizontalScope()) {
           selecting_active_vessel_target = UnityEngine.GUILayout.Toggle(
               selecting_active_vessel_target, "Select target vessel...");
@@ -222,8 +220,8 @@ internal class MainWindow : SupervisedWindowRenderer {
         }
       } else {
         // This will remove the "Select" UI so it must shrink.
-        if (show_selection_ui) {
-          show_selection_ui = false;
+        if (show_selection_ui_) {
+          show_selection_ui_ = false;
           Shrink();
         }
         selecting_active_vessel_target = false;
@@ -378,67 +376,92 @@ internal class MainWindow : SupervisedWindowRenderer {
   private void RenderPredictionSettings() {
     if (vessel_ != predicted_vessel_()) {
       vessel_ = predicted_vessel_();
-      string vessel_guid = vessel_?.id.ToString();
-      if (vessel_guid != null && plugin.HasVessel(vessel_guid)) {
-        AdaptiveStepParameters adaptive_step_parameters =
-            plugin.VesselGetPredictionAdaptiveStepParameters(vessel_guid);
-        prediction_length_tolerance_index_ = Array.FindIndex(
-            prediction_length_tolerances_,
-            (double tolerance) =>
-                tolerance >=
-                    adaptive_step_parameters.length_integration_tolerance);
-        if (prediction_length_tolerance_index_ < 0) {
-          prediction_length_tolerance_index_ =
-              default_prediction_length_tolerance_index_;
-        }
-        prediction_steps_index_ = Array.FindIndex(
-            prediction_steps_,
-            (long step) => step >= adaptive_step_parameters.max_steps);
-        if (prediction_steps_index_ < 0) {
-          prediction_steps_index_ = default_prediction_steps_index_;
-        }
+    }
+    AdaptiveStepParameters? adaptive_step_parameters = null;
+    string vessel_guid = vessel_?.id.ToString();
+    if (vessel_guid != null && plugin.HasVessel(vessel_guid)) {
+      adaptive_step_parameters =
+          plugin.VesselGetPredictionAdaptiveStepParameters(vessel_guid);
+      prediction_length_tolerance_index_ = Array.FindIndex(
+          prediction_length_tolerances_,
+          (double tolerance) =>
+              tolerance >=
+                  adaptive_step_parameters.Value.length_integration_tolerance);
+      if (prediction_length_tolerance_index_ < 0) {
+        prediction_length_tolerance_index_ =
+            default_prediction_length_tolerance_index_;
+      }
+      prediction_steps_index_ = Array.FindIndex(
+          prediction_steps_,
+          (long step) => step >= adaptive_step_parameters.Value.max_steps);
+      if (prediction_steps_index_ < 0) {
+        prediction_steps_index_ = default_prediction_steps_index_;
       }
     }
 
-    bool changed_settings = false;
-    RenderSelector(prediction_length_tolerances_,
-                   ref prediction_length_tolerance_index_,
-                   "Tolerance",
-                   ref changed_settings,
-                   "{0:0.0e0} m");
-    RenderSelector(prediction_steps_,
-                   ref prediction_steps_index_,
-                   "Steps",
-                   ref changed_settings,
-                   "{0:0.00e0}");
+    // TODO(egg): make the speed tolerance independent.
+    if (RenderSelector(prediction_length_tolerances_,
+                       ref prediction_length_tolerance_index_,
+                       "Tolerance",
+                       "{0:0.0e0} m",
+                       enabled: adaptive_step_parameters.HasValue)) {
+      AdaptiveStepParameters new_adaptive_step_parameters =
+          new AdaptiveStepParameters{
+            integrator_kind = adaptive_step_parameters.Value.integrator_kind,
+            max_steps = prediction_steps,
+            length_integration_tolerance = prediction_length_tolerance,
+            speed_integration_tolerance = prediction_length_tolerance};
+      plugin.VesselSetPredictionAdaptiveStepParameters(
+          vessel_guid, new_adaptive_step_parameters);
+    }
+    if (RenderSelector(prediction_steps_,
+                       ref prediction_steps_index_,
+                       "Steps",
+                       "{0:0.00e0}",
+                       enabled: adaptive_step_parameters.HasValue)) {
+      AdaptiveStepParameters new_adaptive_step_parameters =
+          new AdaptiveStepParameters{
+            integrator_kind = adaptive_step_parameters.Value.integrator_kind,
+            max_steps = prediction_steps,
+            length_integration_tolerance = prediction_length_tolerance,
+            speed_integration_tolerance = prediction_length_tolerance};
+      plugin.VesselSetPredictionAdaptiveStepParameters(
+          vessel_guid, new_adaptive_step_parameters);
+    }
   }
 
-  private void RenderSelector<T>(T[] array,
+  private bool RenderSelector<T>(T[] array,
                                  ref int index,
                                  string label,
-                                 ref bool changed,
-                                 string format) {
+                                 string format,
+                                 bool enabled) {
+    bool changed = false;
     using (new UnityEngine.GUILayout.HorizontalScope()) {
       UnityEngine.GUILayout.Label(text    : label + ":",
                                   options : GUILayoutWidth(6));
       if (UnityEngine.GUILayout.Button(text    : index == 0 ? "min" : "-",
                                        options : GUILayoutWidth(2)) &&
+          enabled &&
           index != 0) {
         --index;
         changed = true;
       }
       UnityEngine.GUILayout.TextArea(
-          text    : string.Format(Culture.culture, format, array[index]),
+          text    : enabled
+                        ? string.Format(Culture.culture, format, array[index])
+                        : "",
           style   : Style.RightAligned(UnityEngine.GUI.skin.textArea),
           options : GUILayoutWidth(3));
       if (UnityEngine.GUILayout.Button(
               text    : index == array.Length - 1 ? "max" : "+",
               options : GUILayoutWidth(2)) &&
+          enabled &&
           index != array.Length - 1) {
         ++index;
         changed = true;
       }
     }
+    return changed;
   }
 
   private void RenderToggleableSection(string name,
@@ -458,6 +481,9 @@ internal class MainWindow : SupervisedWindowRenderer {
   }
 
   private IntPtr plugin => adapter_.Plugin();
+  private double prediction_length_tolerance =>
+      prediction_length_tolerances_[prediction_length_tolerance_index_];
+  private long prediction_steps => prediction_steps_[prediction_steps_index_];
 
   private static readonly double[] history_lengths_ =
       {1 << 10, 1 << 11, 1 << 12, 1 << 13, 1 << 14, 1 << 15, 1 << 16, 1 << 17,
@@ -483,7 +509,7 @@ internal class MainWindow : SupervisedWindowRenderer {
   private bool show_logging_settings_ = false;
   private bool show_prediction_settings_ = true;
 
-  private bool show_selection_ui = false;
+  private bool show_selection_ui_ = false;
 
   private bool should_load_compatibility_data_ = true;
   private int prediction_length_tolerance_index_ =
