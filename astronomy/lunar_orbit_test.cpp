@@ -367,6 +367,7 @@ TEST_P(LunarOrbitTest, NearCircularRepeatGroundTrackOrbit) {
 
   DiscreteTrajectory<ICRS> trajectory;
   trajectory.Append(J2000, initial_state);
+  trajectory.SetDownsampling(/*max_dense_intervals=*/10'000, /*tolerance=*/10 * Metre);
   auto const instance = ephemeris_->NewInstance(
       {&trajectory},
       Ephemeris<ICRS>::NoIntrinsicAccelerations,
@@ -376,6 +377,134 @@ TEST_P(LunarOrbitTest, NearCircularRepeatGroundTrackOrbit) {
           integration_step));
 
   ephemeris_->FlowWithFixedStep(J2000 + GetParam().periods * period, *instance);
+
+  std::vector<Time> ts;
+  std::vector<Displacement<ICRS>> qs;
+  LOG(ERROR) << "Trajectory has " << trajectory.Size() << " points, " << trajectory.Size() * 7 << " qwords";
+  for (auto t = trajectory.front().time; t < trajectory.back().time;
+       t += 5 * Minute) {
+    ts.push_back(t - Instant{});
+    qs.push_back(trajectory.EvaluatePosition(t) - ICRS::origin);
+  }
+  auto const tmid =  (ts.back() + ts.front()) / 2;
+  for (auto& t : ts) {
+    t -= tmid;
+  }
+  int const n = ts.size();
+  LOG(ERROR) << "n = " << n;
+  using quantities::Square;
+  struct Term {
+    AngularFrequency ω;
+    Displacement<ICRS> a1;
+    Displacement<ICRS> b1;
+    Displacement<ICRS> a01;
+  };
+  std::vector<Term> terms;
+  geometry::Interval<Time> period_range;
+  for (;;) {
+    terms.emplace_back();
+    Displacement<ICRS> ΣF;
+    Square<Length> ΣF²;
+    for (auto const& q : qs) {
+      ΣF += q;
+      ΣF² += q.Norm²();
+    }
+    auto min_ρ² = Infinity<Square<Length>>();
+    for (auto T = 20 * Minute; T < 1'000'000 * Day; T *= 1.1) {
+      auto const ω = 2 * π * Radian / T;
+      double Q1 = 0;
+      double Q2 = 0;
+      double Q = 0;
+      Displacement<ICRS> ΣFcos;
+      Displacement<ICRS> ΣFsin;
+      Square<Length> ΣF²;
+      for (int i = 0; i < n; ++i) {
+        ΣFcos += qs[i] * Cos(ω * ts[i]);
+        ΣFsin += qs[i] * Sin(ω * ts[i]);
+        ΣF² += qs[i].Norm²();
+        Q1 += Pow<2>(Cos(ω * ts[i]));
+        Q2 += Pow<2>(Sin(ω * ts[i]));
+        Q += Cos(ω * ts[i]);
+      }
+      Displacement<ICRS> a1 = (n * ΣFcos - Q * ΣF) / (n * Q1 - Pow<2>(Q));
+      Displacement<ICRS> b1 = ΣFsin / Q2;
+      Displacement<ICRS> a01 = (ΣF - a1 * Q) / n;
+      Square<Length> ρ² = ΣF² - InnerProduct(a01, ΣF) -
+                          InnerProduct(a1, ΣFcos) - InnerProduct(b1, ΣFsin);
+      if (ρ² < min_ρ²) {
+        min_ρ² = ρ²;
+        terms.back() = {ω, a1, b1, a01};
+      }
+    }
+    LOG(ERROR) << "Refining period near " << 2 * π * Radian / terms.back().ω / Day
+               << " d = " << 2 * π * Radian / terms.back().ω / Minute << " min";
+    auto ω_low = terms.back().ω / 1.1;
+    auto ω_high = terms.back().ω * 1.1;
+    while (ω_high / ω_low - 1 > 1e-7) {
+      auto const ω1 = (2 * ω_low + ω_high) / 3;
+      auto const ω2 = (ω_high + ω_low) / 2;
+      auto const ω3 = (ω_low + 2 * ω_high) / 3;
+      for (auto const ω : {ω1, ω3}) {
+        double Q1 = 0;
+        double Q2 = 0;
+        double Q = 0;
+        Displacement<ICRS> ΣFcos;
+        Displacement<ICRS> ΣFsin;
+        for (int i = 0; i < n; ++i) {
+          ΣFcos += qs[i] * Cos(ω * ts[i]);
+          ΣFsin += qs[i] * Sin(ω * ts[i]);
+          Q1 += Pow<2>(Cos(ω * ts[i]));
+          Q2 += Pow<2>(Sin(ω * ts[i]));
+          Q += Cos(ω * ts[i]);
+        }
+        Displacement<ICRS> a1 = (n * ΣFcos - Q * ΣF) / (n * Q1 - Pow<2>(Q));
+        Displacement<ICRS> b1 = ΣFsin / Q2;
+        Displacement<ICRS> a01 = (ΣF - a1 * Q) / n;
+        Square<Length> ρ² = ΣF² - InnerProduct(a01, ΣF) -
+                            InnerProduct(a1, ΣFcos) - InnerProduct(b1, ΣFsin);
+        if (ρ² < min_ρ²) {
+          min_ρ² = ρ²;
+          terms.back() = {ω, a1, b1, a01};
+        }
+      }
+      if (terms.back().ω == ω1) {
+        ω_high = ω2;
+      } else if (terms.back().ω == ω3) {
+        ω_low = ω2;
+      } else {
+        ω_low = ω1;
+        ω_high = ω3;
+      }
+    }
+    period_range.Include(2 * π * Radian / terms.back().ω);
+    LOG(ERROR) << "Found period " << 2 * π * Radian / terms.back().ω / Day
+               << " d = " << 2 * π * Radian / terms.back().ω / Minute << " min";
+    LOG(ERROR) << "With amplitude "
+               << Sqrt(terms.back().a1.Norm²() + terms.back().b1.Norm²());
+    Length max_residual;
+    quantities::Square<Length> mean_square_residual;
+    for (int i = 0; i < n; ++i) {
+      qs[i] -= terms.back().a01 +
+               terms.back().a1 * Cos(terms.back().ω * ts[i]) +
+               terms.back().b1 * Sin(terms.back().ω * ts[i]);
+      max_residual = std::max(max_residual, qs[i].Norm());
+      mean_square_residual += qs[i].Norm²();
+    }
+    mean_square_residual /= n;
+    LOG(ERROR) << terms.back().a01;
+    LOG(ERROR) << terms.back().a1;
+    LOG(ERROR) << terms.back().b1;
+    LOG(ERROR) << "Residual is " << Sqrt(mean_square_residual) << " (rms), " << max_residual << " (max distance)";
+    LOG(ERROR) << "with " << terms.size() << " terms (" << terms.size() * 10
+               << " qwords, compression ratio "
+               << trajectory.Size() * 7 / (1 + terms.size() * 10) << ")";
+    LOG(ERROR) << "(could be simplified to " << (1 + terms.size() * 7) << " qwords, "
+               << trajectory.Size() * 7 / (3 + terms.size() * 7) << ")";
+    LOG(ERROR) << "Periods range from " << period_range.min / Day
+               << "d = " << period_range.min / Minute << " min to "
+               << period_range.max / Day << " d";
+  }
+
 
   // To find the nodes, we need to convert the trajectory to a reference frame
   // whose xy plane is the Moon's equator.
