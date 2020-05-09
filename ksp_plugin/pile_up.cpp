@@ -453,7 +453,7 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
     CHECK(Contains(apparent_part_rigid_motion_, part));
   }
 
-  auto const angular_momentum_in_apparent_pile_up =
+  auto angular_momentum_in_apparent_pile_up =
       Identity<NonRotatingPileUp, ApparentPileUp>()(angular_momentum_);
 
   MechanicalSystem<ApparentBubble, ApparentPileUp> apparent_system;
@@ -464,13 +464,22 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
     apparent_system.AddRigidBody(
         apparent_part_rigid_motion, part->mass(), part->inertia_tensor());
   }
+
   auto const apparent_centre_of_mass = apparent_system.centre_of_mass();
-  auto const apparent_angular_momentum =
+  auto apparent_angular_momentum =
       angular_momentum_in_apparent_pile_up -
       apparent_angular_momentum_controller_.ComputeControlVariable(
           apparent_system.AngularMomentum(),
           angular_momentum_in_apparent_pile_up,
           t);
+
+  if (!in_space) {
+    apparent_angular_momentum = apparent_system.AngularMomentum();
+    angular_momentum_in_apparent_pile_up = apparent_angular_momentum;
+    angular_momentum_ = Identity<ApparentPileUp, NonRotatingPileUp>()(
+        apparent_angular_momentum);
+  }
+
   // Note that the inertia tensor is with respect to the centre of mass, so it
   // is unaffected by the apparent-bubble-to-pile-up correction, which is rigid
   // and involves no change in axes.
@@ -537,7 +546,7 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
       L̂_apparent == Bivector<double, ApparentPileUp>{} ||
       L̂_actual == Bivector<double, NonRotatingPileUp>{};
 
-  bool const trivial_rotations = !in_space || !correct_orientation ||
+  bool const trivial_rotations = !correct_orientation ||
                                  on_removable_singularity ||
                                  on_essential_singularity;
 
@@ -624,7 +633,7 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
               ApparentPileUp::origin,
               EquivalentRigidPileUp::origin,
               attitude_correction.Forget<OrthogonalMap>()),
-          in_space && correct_angular_velocity
+          correct_angular_velocity
               ? apparent_equivalent_angular_velocity
               : ApparentPileUp::nonrotating,
           ApparentPileUp::unmoving);
@@ -635,7 +644,7 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
               EquivalentRigidPileUp::origin,
               OrthogonalMap<NonRotatingPileUp,
                             EquivalentRigidPileUp>::Identity()),
-          in_space && correct_angular_velocity
+          correct_angular_velocity
               ? actual_equivalent_angular_velocity
               : NonRotatingPileUp::nonrotating,
           NonRotatingPileUp::unmoving);
@@ -654,11 +663,6 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
         part, apparent_bubble_to_pile_up_motion * apparent_part_rigid_motion);
   }
   apparent_part_rigid_motion_.clear();
-
-  if (!in_space) {
-    angular_momentum_ = Identity<ApparentPileUp, NonRotatingPileUp>()(
-        apparent_angular_momentum);
-  }
 
   std::stringstream s;
   s << "Apparent: " << apparent_angular_momentum << "\n"
