@@ -655,6 +655,11 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
   }
   apparent_part_rigid_motion_.clear();
 
+  if (!in_space) {
+    angular_momentum_ = Identity<ApparentPileUp, NonRotatingPileUp>()(
+        apparent_angular_momentum);
+  }
+
   std::stringstream s;
   s << "Apparent: " << apparent_angular_momentum << "\n"
     << "norm: " << apparent_angular_momentum.Norm() << "\n"
@@ -686,7 +691,8 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
     << " rpm\n"
     << u8"Δt: " << Δt / quantities::si::Milli(quantities::si::Second)
     << u8"ms\n"
-    << (in_space ? "correcting as instructed" : "not correcting in atmosphere");
+    << (in_space ? "correcting as instructed"
+                 : "not correcting in atmosphere, trusting KSP");
   trace = s.str();
 
   MakeEulerSolver(Identity<ApparentPileUp, NonRotatingPileUp>()(inertia_tensor),
