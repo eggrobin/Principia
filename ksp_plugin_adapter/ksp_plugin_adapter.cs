@@ -82,6 +82,12 @@ public partial class PrincipiaPluginAdapter
   [KSPField(isPersistant = true)]
   private string serialization_encoding_ = "hexadecimal";
 
+  [KSPField(isPersistant = true)]
+  internal bool show_2519_debugging_ui_ = true;
+  private bool avoid_2519_in_atmosphere =>
+      !(show_2519_debugging_ui_ &&
+        MainWindow.correct_angular_momentum_in_atmosphere);
+
   // Whether the plotting frame must be set to something convenient at the next
   // opportunity.
   private bool must_set_plotting_frame_ = false;
@@ -1108,7 +1114,7 @@ public partial class PrincipiaPluginAdapter
               (WXYZ)(UnityEngine.QuaternionD)part.rb.rotation,
               (XYZ)(Vector3d)part.rb.angularVelocity,
               Δt,
-              is_in_atmosphere: part.atmDensity > 0);
+              is_in_atmosphere: avoid_2519_in_atmosphere && part.atmDensity > 0);
           if (part_id_to_intrinsic_torque_.ContainsKey(part.flightID)) {
             plugin_.PartApplyIntrinsicTorque(
                 part.flightID,

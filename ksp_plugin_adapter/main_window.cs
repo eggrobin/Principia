@@ -238,7 +238,13 @@ internal class MainWindow : VesselSupervisedWindowRenderer {
   }
 
   private void RenderKSPFeatures() {
-    if (show_2519_debugging_ui) {
+    adapter_.show_2519_debugging_ui_ = UnityEngine.GUILayout.Toggle(
+        adapter_.show_2519_debugging_ui_,
+        "Help debug #2519 — CAUTION: makes vessels unflyable in the atmosphere");
+    if (adapter_.show_2519_debugging_ui_) {
+      correct_angular_momentum_in_atmosphere = UnityEngine.GUILayout.Toggle(
+          correct_angular_momentum_in_atmosphere,
+          "Correct angular momentum in atmosphere");
       correct_orientation = UnityEngine.GUILayout.Toggle(
           correct_orientation,
           "Correct orientation");
@@ -518,7 +524,7 @@ internal class MainWindow : VesselSupervisedWindowRenderer {
   private static bool correct_orientation = true;
   private static bool correct_angular_velocity = true;
   private static bool thresholding = false;
-  private static readonly bool show_2519_debugging_ui = true;
+  internal static bool correct_angular_momentum_in_atmosphere = true;
 
   private static readonly double[] prediction_length_tolerances_ =
       {1e-3, 1e-2, 1e0, 1e1, 1e2, 1e3, 1e4};

@@ -685,7 +685,8 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
            (2 * π * Radian / quantities::si::Minute)
     << " rpm\n"
     << u8"Δt: " << Δt / quantities::si::Milli(quantities::si::Second)
-    << u8"ms\n";
+    << u8"ms\n"
+    << (in_space ? "correcting as instructed" : "not correcting in atmosphere");
   trace = s.str();
 
   MakeEulerSolver(Identity<ApparentPileUp, NonRotatingPileUp>()(inertia_tensor),

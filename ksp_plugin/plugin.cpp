@@ -493,6 +493,7 @@ void Plugin::InsertOrKeepLoadedPart(
   part->set_mass(mass);
   part->set_is_solid_rocket_motor(is_solid_rocket_motor);
   part->set_inertia_tensor(inertia_tensor);
+  part->set_is_in_atmosphere(is_in_atmosphere);
 }
 
 void Plugin::ApplyPartIntrinsicForce(PartId const part_id,

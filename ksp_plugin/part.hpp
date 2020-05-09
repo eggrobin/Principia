@@ -81,7 +81,7 @@ class Part final {
   void set_is_solid_rocket_motor(bool is_solid_rocket_motor);
   bool is_solid_rocket_motor() const;
 
-  void set_is_in_atmoshpere(bool is_in_atmosphere);
+  void set_is_in_atmosphere(bool is_in_atmosphere);
   bool is_in_atmosphere() const;
 
   // The difference between successive values passed to |set_mass()|.
