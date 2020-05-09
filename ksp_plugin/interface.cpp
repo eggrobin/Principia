@@ -819,7 +819,8 @@ void __cdecl principia__InsertOrKeepLoadedPart(
     QP const part_world_degrees_of_freedom,
     WXYZ const part_rotation,
     XYZ const part_angular_velocity,
-    double const delta_t) {
+    double const delta_t,
+    bool const is_in_atmosphere) {
   journal::Method<journal::InsertOrKeepLoadedPart> m(
       {plugin,
        part_id,
@@ -834,7 +835,8 @@ void __cdecl principia__InsertOrKeepLoadedPart(
        part_world_degrees_of_freedom,
        part_rotation,
        part_angular_velocity,
-       delta_t});
+       delta_t,
+       is_in_atmosphere});
   CHECK_NOTNULL(plugin);
 
   // We build the inertia tensor in the principal axes and then transform it to
@@ -876,7 +878,8 @@ void __cdecl principia__InsertOrKeepLoadedPart(
       FromQP<DegreesOfFreedom<World>>(main_body_world_degrees_of_freedom),
       MakePartRigidMotion(
           part_world_degrees_of_freedom, part_rotation, part_angular_velocity),
-      delta_t * Second);
+      delta_t * Second,
+      is_in_atmosphere);
   return m.Return();
 }
 

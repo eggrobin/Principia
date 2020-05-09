@@ -105,6 +105,14 @@ bool Part::is_solid_rocket_motor() const {
   return is_solid_rocket_motor_;
 }
 
+void Part::set_is_in_atmoshpere(bool is_in_atmosphere) {
+  is_in_atmosphere_ = is_in_atmosphere;
+}
+
+bool Part::is_in_atmosphere() const {
+  return is_in_atmosphere_;
+}
+
 Mass const& Part::mass_change() const {
   return mass_change_;
 }

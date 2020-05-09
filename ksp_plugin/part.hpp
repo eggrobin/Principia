@@ -81,6 +81,9 @@ class Part final {
   void set_is_solid_rocket_motor(bool is_solid_rocket_motor);
   bool is_solid_rocket_motor() const;
 
+  void set_is_in_atmoshpere(bool is_in_atmosphere);
+  bool is_in_atmosphere() const;
+
   // The difference between successive values passed to |set_mass()|.
   Mass const& mass_change() const;
 
@@ -183,6 +186,8 @@ class Part final {
   InertiaTensor<RigidPart> inertia_tensor_;
   Vector<Force, Barycentric> intrinsic_force_;
   Bivector<Torque, Barycentric> intrinsic_torque_;
+
+  bool is_in_atmosphere_ = false;
 
   std::shared_ptr<PileUp> containing_pile_up_;
 

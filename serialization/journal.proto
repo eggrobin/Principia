@@ -1257,6 +1257,10 @@ message InsertOrKeepLoadedPart {
     required WXYZ part_rotation = 12;
     required XYZ part_angular_velocity = 13;
     required double delta_t = 9;
+    // TODO(#2519): Remove this flag if we ever manage to enforce the
+    // conservation of angular momentum in the atmosphere without
+    // inducing strange side-effects.
+    required bool is_in_atmosphere = 15;
   }
   optional In in = 1;
 }

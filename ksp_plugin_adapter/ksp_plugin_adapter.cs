@@ -1107,7 +1107,8 @@ public partial class PrincipiaPluginAdapter
               degrees_of_freedom,
               (WXYZ)(UnityEngine.QuaternionD)part.rb.rotation,
               (XYZ)(Vector3d)part.rb.angularVelocity,
-              Δt);
+              Δt,
+              is_in_atmosphere: part.atmDensity > 0);
           if (part_id_to_intrinsic_torque_.ContainsKey(part.flightID)) {
             plugin_.PartApplyIntrinsicTorque(
                 part.flightID,

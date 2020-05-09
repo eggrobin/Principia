@@ -443,7 +443,8 @@ void Plugin::InsertOrKeepLoadedPart(
     Index const main_body_index,
     DegreesOfFreedom<World> const& main_body_degrees_of_freedom,
     RigidMotion<RigidPart, World> const& part_rigid_motion,
-    Time const& Δt) {
+    Time const& Δt,
+    bool const is_in_atmosphere) {
   not_null<Vessel*> const vessel = FindOrDie(vessels_, vessel_guid).get();
   CHECK(is_loaded(vessel));
 

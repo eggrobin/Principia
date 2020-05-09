@@ -457,8 +457,10 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
       Identity<NonRotatingPileUp, ApparentPileUp>()(angular_momentum_);
 
   MechanicalSystem<ApparentBubble, ApparentPileUp> apparent_system;
+  bool in_space = true;
   for (auto const& [part, apparent_part_rigid_motion] :
        apparent_part_rigid_motion_) {
+    in_space &= !part->is_in_atmosphere();
     apparent_system.AddRigidBody(
         apparent_part_rigid_motion, part->mass(), part->inertia_tensor());
   }
@@ -535,7 +537,7 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
       L̂_apparent == Bivector<double, ApparentPileUp>{} ||
       L̂_actual == Bivector<double, NonRotatingPileUp>{};
 
-  bool const trivial_rotations = !correct_orientation ||
+  bool const trivial_rotations = !in_space || !correct_orientation ||
                                  on_removable_singularity ||
                                  on_essential_singularity;
 
@@ -622,8 +624,9 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
               ApparentPileUp::origin,
               EquivalentRigidPileUp::origin,
               attitude_correction.Forget<OrthogonalMap>()),
-          correct_angular_velocity ? apparent_equivalent_angular_velocity
-                                   : ApparentPileUp::nonrotating,
+          in_space && correct_angular_velocity
+              ? apparent_equivalent_angular_velocity
+              : ApparentPileUp::nonrotating,
           ApparentPileUp::unmoving);
   RigidMotion<NonRotatingPileUp, EquivalentRigidPileUp> const
       actual_pile_up_equivalent_motion(
@@ -632,8 +635,9 @@ void PileUp::DeformPileUpIfNeeded(Instant const& t) {
               EquivalentRigidPileUp::origin,
               OrthogonalMap<NonRotatingPileUp,
                             EquivalentRigidPileUp>::Identity()),
-          correct_angular_velocity ? actual_equivalent_angular_velocity
-                                   : NonRotatingPileUp::nonrotating,
+          in_space && correct_angular_velocity
+              ? actual_equivalent_angular_velocity
+              : NonRotatingPileUp::nonrotating,
           NonRotatingPileUp::unmoving);
   RigidMotion<ApparentBubble, NonRotatingPileUp> const
       apparent_bubble_to_pile_up_motion =

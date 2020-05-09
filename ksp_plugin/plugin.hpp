@@ -212,7 +212,8 @@ class Plugin {
       Index main_body_index,
       DegreesOfFreedom<World> const& main_body_degrees_of_freedom,
       RigidMotion<RigidPart, World> const& part_rigid_motion,
-      Time const& Δt);
+      Time const& Δt,
+      bool is_in_atmosphere);
 
   // Calls |apply_intrinsic_force| and |apply_intrinsic_torque| on the
   // relevant part, which must be in a loaded vessel.
