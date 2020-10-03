@@ -65,7 +65,7 @@ using quantities::Time;
 
 // The trigonometric functions are by default assumed to look like a polynomial
 // of this degree over an interval of a piecewise series.
-constexpr int estimated_trigonometric_degree = 1;
+constexpr int estimated_trigonometric_degree = 5;
 
 // A Poisson series is the sum of terms of the form:
 //   aₙtⁿ      aₙₖ tⁿ sin ωₖ t      aₙₖ tⁿ cos ωₖ t

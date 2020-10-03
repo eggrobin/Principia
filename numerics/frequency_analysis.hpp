@@ -2,6 +2,7 @@
 #pragma once
 
 #include <type_traits>
+#include <string_view>
 
 #include "geometry/interval.hpp"
 #include "geometry/named_quantities.hpp"
@@ -67,6 +68,7 @@ Projection(Function const& function,
 // If the calculator cannot find a suitable frequency, or if it wants to stop
 // the algorithm, it does so by returning std::nullopt.
 template<int degree_,
+         int periodic_degree,
          typename Function,
          typename AngularFrequencyCalculator, int wdegree_,
          template<typename, typename, int> class Evaluator>
@@ -75,7 +77,10 @@ IncrementalProjection(Function const& function,
                       AngularFrequencyCalculator const& calculator,
                       PoissonSeries<double, wdegree_, Evaluator> const& weight,
                       Instant const& t_min,
-                      Instant const& t_max);
+                      Instant const& t_max,
+                      mathematica::Logger* logger = nullptr,
+                      std::string_view celestial = "",
+                      int interval_index = 0);
 
 }  // namespace internal_frequency_analysis
 

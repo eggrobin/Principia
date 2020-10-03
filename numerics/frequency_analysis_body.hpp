@@ -75,6 +75,7 @@ Projection(Function const& function,
 }
 
 template<int degree_,
+         int periodic_degree,
          typename Function,
          typename AngularFrequencyCalculator, int wdegree_,
          template<typename, typename, int> class Evaluator>
@@ -83,7 +84,10 @@ IncrementalProjection(Function const& function,
                       AngularFrequencyCalculator const& calculator,
                       PoissonSeries<double, wdegree_, Evaluator> const& weight,
                       Instant const& t_min,
-                      Instant const& t_max) {
+                      Instant const& t_max,
+                      mathematica::Logger* logger,
+                      std::string_view celestial,
+                      int interval_index) {
   using Value = std::invoke_result_t<Function, Instant>;
   using Norm = typename Hilbert<Value>::NormType;
   using Norm² = typename Hilbert<Value>::InnerProductType;
@@ -111,8 +115,13 @@ IncrementalProjection(Function const& function,
     auto const ω_basis =
         PoissonSeriesBasisGenerator<Series, Hilbert<Value>::dimension>::Basis(
             ω.value(), t0);
-    basis_size = std::tuple_size_v<decltype(ω_basis)>;
-    std::move(ω_basis.begin(), ω_basis.end(), std::back_inserter(basis));
+    constexpr int periodic_basis_size =
+        2 * Hilbert<Value>::dimension * periodic_degree;
+    static_assert(periodic_basis_size < std::tuple_size_v<decltype(ω_basis)>);
+    basis_size = periodic_basis_size;
+    std::move(ω_basis.begin(),
+              ω_basis.begin() + periodic_basis_size,
+              std::back_inserter(basis));
   }
 
   UnboundedLowerTriangularMatrix<Inverse<Norm>> α(basis_size, uninitialized);
@@ -130,8 +139,10 @@ IncrementalProjection(Function const& function,
   auto f = function - A[0] * basis[0];
 
   int m_begin = 1;
+  int mm = 1;
+  std::vector<PoissonSeries<Normalized, degree_, Evaluator>> b;
   for (;;) {
-    for (int m = m_begin; m < basis_size; ++m) {
+    for (int m = m_begin; m < basis_size; ++m, ++mm) {
       // Contains Fₘ.
       Norm² const F = InnerProduct(f, basis[m], weight, t_min, t_max);
 
@@ -156,8 +167,8 @@ IncrementalProjection(Function const& function,
         for (int s = 0; s < m; ++s) {
           Σ_Bₛ⁽ᵐ⁾² += B[s] * B[s];
         }
-        if (Q[m] <= Σ_Bₛ⁽ᵐ⁾² ||
-            (Q[m] - Σ_Bₛ⁽ᵐ⁾²) / std::max(Q[m], Σ_Bₛ⁽ᵐ⁾²) < 0x1.0p-24) {
+        if (false && (Q[m] <= Σ_Bₛ⁽ᵐ⁾² ||
+            (Q[m] - Σ_Bₛ⁽ᵐ⁾²) / std::max(Q[m], Σ_Bₛ⁽ᵐ⁾²) < 0x1.0p-24)) {
           // We arrive here when the norm of Σₛ Bₛ⁽ᵐ⁾bₛ + eₘ is small (see
           // [SN97] for the notation) and, due to rounding errors, the computed
           // value of the square of that norm ends up negative, zero, or very
@@ -195,6 +206,45 @@ IncrementalProjection(Function const& function,
         α[m][j] = α[m][m] * Σ_Bₛ⁽ᵐ⁾_αₛⱼ;
       }
 
+        PoissonSeries<Normalized, degree_, Evaluator> Σ_αₘᵢ_eᵢ =
+          α[m][0] * basis[0];
+      for (int i = 1; i <= m; ++i) {
+        Σ_αₘᵢ_eᵢ += α[m][i] * basis[i];
+      }
+      {
+        b.push_back(Σ_αₘᵢ_eᵢ);
+        for (int i = 0; i < b.size(); ++i) {
+          logger->Append(absl::StrCat("bInnerProducts[",
+                                      celestial,
+                                      ",",
+                                      interval_index,
+                                      ",",
+                                      mm,
+                                      "]"),
+                         InnerProduct(b[i], b.back(), weight, t_min, t_max));
+        }
+        double error = 0;
+        for (int i = 0; i < b.size() - 1; ++i) {
+          error += quantities::Pow<2>(
+              InnerProduct(b[i], b.back(), weight, t_min, t_max));
+        }
+        error += quantities::Pow<2>(
+            1 - InnerProduct(b.back(), b.back(), weight, t_min, t_max));
+        if (Sqrt(error / m) > 0x1p-24) {
+          LOG(ERROR) << "DROP " << mm;
+          int const basis_remaining = basis_size - m - 1;
+          basis.erase(basis.begin() + m);
+          α.EraseToEnd(m);
+          α.Extend(basis_remaining, uninitialized);
+          A.EraseToEnd(m);
+          A.Extend(basis_remaining, uninitialized);
+          b.pop_back();
+          --basis_size;
+          --m;
+          continue;
+        }
+      }
+
       A[m] = α[m][m] * α[m][m] * F;
 
       for (int j = 0; j < m; ++j) {
@@ -202,12 +252,27 @@ IncrementalProjection(Function const& function,
       }
 
       {
-        PoissonSeries<Normalized, degree_, Evaluator> Σ_αₘᵢ_eᵢ =
-            α[m][0] * basis[0];
-        for (int i = 1; i <= m; ++i) {
-          Σ_αₘᵢ_eᵢ += α[m][i] * basis[i];
-        }
         f -= α[m][m] * F * Σ_αₘᵢ_eᵢ;
+      }
+      if (logger != nullptr) {
+        Norm max_residual{};
+        Norm² sum_of_square_residuals{};
+        for (int i = 0; i < 1 << 10; ++i) {
+          auto const residual = f(t_min + i * ((t_max - t_min) / (1 << 10)));
+          max_residual = std::max(max_residual, residual.Norm());
+          sum_of_square_residuals += residual.Norm²();
+        }
+        LOG(INFO) << "max_residual=" << max_residual;
+        logger->Set(
+            absl::StrCat(
+                "maxResidual[", celestial, ",", interval_index, ",", mm, "]"),
+            max_residual,
+            mathematica::ExpressIn(quantities::si::Unit<Norm>));
+        logger->Set(
+            absl::StrCat(
+                "rmsResidual[", celestial, ",", interval_index, ",", mm, "]"),
+            Sqrt(sum_of_square_residuals / (1 << 10)),
+            mathematica::ExpressIn(quantities::si::Unit<Norm>));
       }
     }
 
@@ -232,8 +297,13 @@ IncrementalProjection(Function const& function,
       auto const ω_basis =
           PoissonSeriesBasisGenerator<Series, Hilbert<Value>::dimension>::Basis(
               ω.value(), t0);
-      ω_basis_size = std::tuple_size_v<decltype(ω_basis)>;
-      std::move(ω_basis.begin(), ω_basis.end(), std::back_inserter(basis));
+      constexpr int periodic_basis_size =
+          2 * Hilbert<Value>::dimension * periodic_degree;
+      static_assert(periodic_basis_size < std::tuple_size_v<decltype(ω_basis)>);
+      std::move(ω_basis.begin(),
+                ω_basis.begin() + periodic_basis_size,
+                std::back_inserter(basis));
+      ω_basis_size = periodic_basis_size;
     }
     α.Extend(ω_basis_size, uninitialized);
     A.Extend(ω_basis_size, uninitialized);
