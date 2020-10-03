@@ -53,9 +53,9 @@ namespace apodization = numerics::apodization;
 namespace frequency_analysis = numerics::frequency_analysis;
 
 static constexpr int secular_degree = 5;
-static constexpr int periodic_degree = 2;
+static constexpr int periodic_degree = 5;
 static constexpr int log2_number_of_samples = 10;
-static constexpr int number_of_frequencies = 20;
+static constexpr int number_of_frequencies = 10;
 
 class AnalyticalSeriesTest : public ::testing::Test {
  protected:
