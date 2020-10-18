@@ -75,7 +75,10 @@ IncrementalProjection(Function const& function,
                       AngularFrequencyCalculator const& calculator,
                       PoissonSeries<double, wdegree_, Evaluator> const& weight,
                       Instant const& t_min,
-                      Instant const& t_max);
+                      Instant const& t_max,
+                      int periodic_degree,
+                      std::string const& tag,
+                      mathematica::Logger& logger);
 
 }  // namespace internal_frequency_analysis
 

@@ -83,9 +83,13 @@ IncrementalProjection(Function const& function,
                       AngularFrequencyCalculator const& calculator,
                       PoissonSeries<double, wdegree_, Evaluator> const& weight,
                       Instant const& t_min,
-                      Instant const& t_max) {
+                      Instant const& t_max,
+                      int const periodic_degree,
+                      std::string const& tag,
+                      mathematica::Logger& logger) {
   using Value = std::invoke_result_t<Function, Instant>;
   using Norm = typename Hilbert<Value>::NormType;
+  using Norm² = typename Hilbert<Value>::Norm²Type;
   using Normalized = typename Hilbert<Value>::NormalizedType;
   using Series = PoissonSeries<Value, degree_, Evaluator>;
 
@@ -110,8 +114,10 @@ IncrementalProjection(Function const& function,
     auto const ω_basis =
         PoissonSeriesBasisGenerator<Series, Hilbert<Value>::dimension>::Basis(
             ω.value(), t0);
-    basis_size = std::tuple_size_v<decltype(ω_basis)>;
-    std::move(ω_basis.begin(), ω_basis.end(), std::back_inserter(basis));
+    basis_size = (periodic_degree + 1) * Hilbert<Value>::dimension * 2;
+    std::move(ω_basis.begin(),
+              ω_basis.begin() + basis_size,
+              std::back_inserter(basis));
   }
 
   // This is logically Q in the QR decomposition of basis.
@@ -143,6 +149,22 @@ IncrementalProjection(Function const& function,
 
       f -= Aₘ * q[m];
       F += Aₘ * q[m];
+      Norm max_residual;
+      Norm² sum_of_squared_residuals;
+static constexpr int log2_number_of_samples = 10;
+auto const Δt = (t_max - t_min) / (1 << log2_number_of_samples);
+      for (int i = 0; i < 1 << log2_number_of_samples; ++i) {
+        max_residual =
+            std::max(max_residual, Hilbert<Value>::Norm(f(t_min + i * Δt)));
+        sum_of_squared_residuals += Hilbert<Value>::Norm²(f(t_min + i * Δt));
+      }
+      logger.Set(absl::StrCat("maxResidual[", tag, ",", m, "]"),
+                 max_residual,
+                 mathematica::ExpressIn(quantities::si::Metre));
+      logger.Set(absl::StrCat("rmsResidual[", tag, ",", m, "]"),
+                 quantities::Sqrt(sum_of_squared_residuals /
+                                  (1 << log2_number_of_samples)),
+                 mathematica::ExpressIn(quantities::si::Metre));
     }
 
     ω = calculator(f);
@@ -161,8 +183,10 @@ IncrementalProjection(Function const& function,
       auto const ω_basis =
           PoissonSeriesBasisGenerator<Series, Hilbert<Value>::dimension>::Basis(
               ω.value(), t0);
-      ω_basis_size = std::tuple_size_v<decltype(ω_basis)>;
-      std::move(ω_basis.begin(), ω_basis.end(), std::back_inserter(basis));
+      ω_basis_size = (periodic_degree + 1) * Hilbert<Value>::dimension * 2;
+      std::move(ω_basis.begin(),
+                ω_basis.begin() + ω_basis_size,
+                std::back_inserter(basis));
     }
     m_begin = basis_size;
     basis_size += ω_basis_size;

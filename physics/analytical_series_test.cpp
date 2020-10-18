@@ -50,9 +50,11 @@ using quantities::si::Second;
 namespace apodization = numerics::apodization;
 namespace frequency_analysis = numerics::frequency_analysis;
 
-static constexpr int approximation_degree = 5;
 static constexpr int log2_number_of_samples = 10;
-static constexpr int number_of_frequencies = 10;
+
+static constexpr int secular_degree = 5;
+static constexpr int periodic_degree = 5;
+static constexpr int number_of_frequencies = 15;
 
 class AnalyticalSeriesTest : public ::testing::Test {
  protected:
@@ -60,18 +62,22 @@ class AnalyticalSeriesTest : public ::testing::Test {
       : logger_(TEMP_DIR / "analytical_series.wl",
                /*make_unique=*/false) {
     google::LogToStderr();
+    logger_.Set("frequencies", number_of_frequencies);
+    logger_.Set("secularDegree", secular_degree);
+    logger_.Set("periodicDegree", periodic_degree);
   }
 
   template<int degree>
-  PoissonSeries<Displacement<ICRS>, approximation_degree, EstrinEvaluator>
-  ComputeCompactRepresentation(ContinuousTrajectory<ICRS> const& trajectory) {
+  std::unique_ptr<
+      PoissonSeries<Displacement<ICRS>, secular_degree, EstrinEvaluator>>
+  ComputeCompactRepresentation(ContinuousTrajectory<ICRS> const& trajectory,
+                               std::string const& body) {
     Instant const t_min = trajectory.t_min();
-    Instant const t_max = trajectory.t_max();
+    Instant t_max = t_min + 80 * Minute;
+    int interval_index = 1;
+    for (; t_max < trajectory.t_max(); t_max = t_min + 2 * (t_max - t_min), ++interval_index) {
     auto const piecewise_poisson_series =
         trajectory.ToPiecewisePoissonSeries<degree>(t_min, t_max);
-
-    logger_.Set("tMin", t_min, mathematica::ExpressIn(Second));
-    logger_.Set("tMax", t_max, mathematica::ExpressIn(Second));
 
     int step = 0;
 
@@ -85,13 +91,10 @@ class AnalyticalSeriesTest : public ::testing::Test {
         return AngularFrequency();
       } else if (step <= number_of_frequencies) {
         ++step;
-        Length max_residual;
         std::vector<Displacement<ICRS>> residuals;
         for (int i = 0; i < 1 << log2_number_of_samples; ++i) {
           residuals.push_back(residual(t_min + i * Δt));
-          max_residual = std::max(max_residual, residuals.back().Norm());
         }
-        LOG(INFO) << "max_residual=" << max_residual;
         auto fft =
             std::make_unique<FastFourierTransform<Displacement<ICRS>,
                                                   Instant,
@@ -109,35 +112,32 @@ class AnalyticalSeriesTest : public ::testing::Test {
             "precisePeriods", precise_period, mathematica::ExpressIn(Second));
         return precise_mode;
       } else {
-        Length max_residual;
-        for (int i = 0; i < 1 << log2_number_of_samples; ++i) {
-          max_residual =
-              std::max(max_residual, residual(t_min + i * Δt).Norm());
-        }
-        LOG(INFO) << "max_residual=" << max_residual;
         return std::nullopt;
       }
     };
 
-    return frequency_analysis::IncrementalProjection<approximation_degree>(
+    frequency_analysis::IncrementalProjection<secular_degree>(
         piecewise_poisson_series,
         angular_frequency_calculator,
         apodization::Dirichlet<EstrinEvaluator>(t_min, t_max),
         t_min,
-        t_max);
+        t_max,
+        periodic_degree,
+        absl::StrCat(body, ",", interval_index),
+        logger_);
+  }
+    logger_.Set("intervals", interval_index - 1);
+  return nullptr;
   }
 
   mathematica::Logger logger_;
 };
 
-#define PRINCIPIA_COMPUTE_COMPACT_REPRESENTATION_CASE(                   \
-    degree, approximation, trajectory)                                   \
-  case degree: {                                                         \
-    approximation = std::make_unique<PoissonSeries<Displacement<ICRS>,   \
-                                                   approximation_degree, \
-                                                   EstrinEvaluator>>(    \
-        ComputeCompactRepresentation<(degree)>(trajectory));             \
-    break;                                                               \
+#define PRINCIPIA_COMPUTE_COMPACT_REPRESENTATION_CASE(                        \
+    degree, approximation, trajectory)                                        \
+  case degree: {                                                              \
+    approximation = ComputeCompactRepresentation<(degree)>(trajectory, body); \
+    break;                                                                    \
   }
 
 #if !_DEBUG
@@ -156,15 +156,23 @@ TEST_F(AnalyticalSeriesTest, CompactRepresentation) {
           SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
                                              Position<ICRS>>(),
           /*step=*/10 * Minute));
-  ephemeris->Prolong(solar_system_at_j2000.epoch() + 0.25 * JulianYear);
+  ephemeris->Prolong(solar_system_at_j2000.epoch() + 1 * JulianYear);
 
+  for (auto const body : {"Moon",
+                          "Io",
+                          "Venus",
+                          "Jupiter",
+                          "Pluto",
+                          "Phobos",
+                          "Titan",
+                          "Ariel"}) {
   auto const& io_trajectory =
-      solar_system_at_j2000.trajectory(*ephemeris, "Moon");
+      solar_system_at_j2000.trajectory(*ephemeris, body);
   int const io_piecewise_poisson_series_degree =
       io_trajectory.PiecewisePoissonSeriesDegree(io_trajectory.t_min(),
                                                  io_trajectory.t_max());
   std::unique_ptr<
-      PoissonSeries<Displacement<ICRS>, approximation_degree, EstrinEvaluator>>
+      PoissonSeries<Displacement<ICRS>, secular_degree, EstrinEvaluator>>
       io_approximation;
 
   switch (io_piecewise_poisson_series_degree) {
@@ -201,10 +209,7 @@ TEST_F(AnalyticalSeriesTest, CompactRepresentation) {
     default:
       LOG(FATAL) << "Unexpected degree " << io_piecewise_poisson_series_degree;
   };
-
-  logger_.Set("approximation",
-              *io_approximation,
-              mathematica::ExpressIn(Metre, Second, Radian));
+  }
 }
 #endif
 
