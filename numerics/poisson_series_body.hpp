@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "numerics/double_precision.hpp"
 #include "numerics/quadrature.hpp"
 #include "numerics/ulp_distance.hpp"
 #include "quantities/elementary_functions.hpp"
@@ -23,18 +24,29 @@ namespace internal_poisson_series {
 using quantities::Abs;
 using quantities::Cos;
 using quantities::Infinity;
-using quantities::Primitive;
 using quantities::Sin;
 using quantities::Sqrt;
-using quantities::Time;
 using quantities::Variation;
 using quantities::si::Radian;
 namespace si = quantities::si;
 
 // These parameters have been tuned for approximation of the Moon over 3 months
 // with 10 periods.
+
+// In the fast/slow algorithms, specifies the maximum number of periods over the
+// time interval below which we use Clenshaw-Curtis integration.
+constexpr int clenshaw_curtis_max_periods_overall = 40;
+
+// The minimum value of the max_point parameter passed to Clenshaw-Curtis
+// integration, irrespective of the frequencies of the argument function.
 constexpr int clenshaw_curtis_min_points_overall = 33;
+
+// The maximum number of points use in Clenshaw-Curtis integration for each
+// period of the highest frequency of the argument function.
 constexpr int clenshaw_curtis_point_per_period = 4;
+
+// The desired relative error on Clenshaw-Curtis integration, as determined by
+// two successive computations with increasing number of points.
 constexpr double clenshaw_curtis_relative_error = 0x1p-32;
 
 template<typename Value, int degree_,
@@ -142,6 +154,29 @@ PoissonSeries<Value, degree_, Evaluator>::PoissonSeries(
 
 template<typename Value, int degree_,
          template<typename, typename, int> class Evaluator>
+template<int higher_degree_,
+         template<typename, typename, int> class HigherEvaluator>
+PoissonSeries<Value, degree_, Evaluator>::
+operator PoissonSeries<Value, higher_degree_, HigherEvaluator>() const {
+  static_assert(degree_ <= higher_degree_);
+  using Result = PoissonSeries<Value, higher_degree_, HigherEvaluator>;
+  auto aperiodic = typename Result::Polynomial(aperiodic_);
+  typename Result::PolynomialsByAngularFrequency periodic;
+  periodic.reserve(periodic_.size());
+  for (auto const& [ω, polynomials] : periodic_) {
+    periodic.emplace_back(
+        ω,
+        typename Result::Polynomials{
+            /*sin=*/typename Result::Polynomial(polynomials.sin),
+            /*cos=*/typename Result::Polynomial(polynomials.cos)});
+  }
+  return Result(typename Result::TrustedPrivateConstructor{},
+                std::move(aperiodic),
+                std::move(periodic));
+}
+
+template<typename Value, int degree_,
+         template<typename, typename, int> class Evaluator>
 Instant const& PoissonSeries<Value, degree_, Evaluator>::origin() const {
   return origin_;
 }
@@ -218,7 +253,9 @@ PoissonSeries<Value, degree_, Evaluator>::Integrate(Instant const& t1,
         {{ω,
           {/*sin=*/typename FirstPart::Polynomial(polynomials.cos),
            /*cos=*/typename FirstPart::Polynomial(-polynomials.sin)}}});
-    result += (first_part(t2) - first_part(t1)) / ω * Radian;
+    DoublePrecision<Value> sum;
+    sum += first_part(t2);
+    sum -= first_part(t1);
 
     if constexpr (degree_ != 0) {
       auto const sin_polynomial =
@@ -229,10 +266,75 @@ PoissonSeries<Value, degree_, Evaluator>::Integrate(Instant const& t1,
                                    {{ω,
                                      {/*sin=*/sin_polynomial,
                                       /*cos=*/cos_polynomial}}});
-      result += second_part.Integrate(t1, t2) / ω * Radian;
+      sum += second_part.Integrate(t1, t2);
     }
+    result += (sum.value + sum.error) / ω * Radian;
   }
   return result;
+}
+
+template<typename Value, int degree_,
+         template<typename, typename, int> class Evaluator>
+template<int wdegree_>
+typename Hilbert<Value>::NormType
+PoissonSeries<Value, degree_, Evaluator>::Norm(
+    PoissonSeries<double, wdegree_, Evaluator> const& weight,
+    Instant const& t_min,
+    Instant const& t_max) const {
+  AngularFrequency const ω_cutoff =
+      2 * π * Radian * clenshaw_curtis_max_periods_overall / (t_max - t_min);
+  auto const split = Split(ω_cutoff);
+
+  AngularFrequency const max_ω =
+      (split.slow.periodic_.empty() ? AngularFrequency{}
+                                     : 2 * split.slow.periodic_.back().first) +
+      (weight.periodic_.empty() ? AngularFrequency{}
+                                : weight.periodic_.back().first);
+  std::optional<int> max_points =
+      max_ω == AngularFrequency()
+          ? std::optional<int>{}
+          : std::max(
+                clenshaw_curtis_min_points_overall,
+                static_cast<int>(clenshaw_curtis_point_per_period *
+                                 (t_max - t_min) * max_ω / (2 * π * Radian)));
+
+  auto slow_integrand = [&split, &weight](Instant const& t) {
+    return Hilbert<Value>::Norm²(split.slow(t)) * weight(t);
+  };
+  auto const slow_quadrature = quadrature::AutomaticClenshawCurtis(
+      slow_integrand,
+      t_min, t_max,
+      /*max_relative_error=*/clenshaw_curtis_relative_error,
+      /*max_points=*/max_points);
+
+  auto const fast_integrand =
+      PointwiseInnerProduct(split.fast, split.fast + 2 * split.slow) *
+      weight;
+  auto const fast_quadrature = fast_integrand.Integrate(t_min, t_max);
+
+  return Sqrt((slow_quadrature + fast_quadrature) / (t_max - t_min));
+}
+
+template<typename Value, int degree_,
+         template<typename, typename, int> class Evaluator>
+template<int d>
+PoissonSeries<Value, degree_, Evaluator>&
+PoissonSeries<Value, degree_, Evaluator>::operator+=(
+    PoissonSeries<Value, d, Evaluator> const& right) {
+  static_assert(d <= degree);
+  *this = *this + right;
+  return *this;
+}
+
+template<typename Value, int degree_,
+         template<typename, typename, int> class Evaluator>
+template<int d>
+PoissonSeries<Value, degree_, Evaluator>&
+PoissonSeries<Value, degree_, Evaluator>::operator-=(
+    PoissonSeries<Value, d, Evaluator> const& right) {
+  static_assert(d <= degree);
+  *this = *this - right;
+  return *this;
 }
 
 template<typename Value, int degree_,
@@ -345,79 +447,45 @@ PoissonSeries<Value, degree_, Evaluator>::PoissonSeries(
 
 template<typename Value, int degree_,
          template<typename, typename, int> class Evaluator>
-template<int higher_degree_,
-         template<typename, typename, int> class HigherEvaluator>
-PoissonSeries<Value, degree_, Evaluator>::
-operator PoissonSeries<Value, higher_degree_, HigherEvaluator>() const {
-  static_assert(degree_ <= higher_degree_);
-  using Result = PoissonSeries<Value, higher_degree_, HigherEvaluator>;
-  auto aperiodic = typename Result::Polynomial(aperiodic_);
-  typename Result::PolynomialsByAngularFrequency periodic;
-  periodic.reserve(periodic_.size());
+typename PoissonSeries<Value, degree_, Evaluator>::SplitPoissonSeries
+PoissonSeries<Value, degree_, Evaluator>::Split(
+    AngularFrequency const& ω_cutoff) const {
+  // TODO(phl): Should we try to avoid a linear search and copies?
+  typename PoissonSeries::PolynomialsByAngularFrequency slow_periodic;
+  typename PoissonSeries::PolynomialsByAngularFrequency fast_periodic;
   for (auto const& [ω, polynomials] : periodic_) {
-    periodic.emplace_back(
-        ω,
-        typename Result::Polynomials{
-            /*sin=*/typename Result::Polynomial(polynomials.sin),
-            /*cos=*/typename Result::Polynomial(polynomials.cos)});
+    if (ω <= ω_cutoff) {
+      slow_periodic.emplace_back(ω, polynomials);
+    } else {
+      fast_periodic.emplace_back(ω, polynomials);
+    }
   }
-  return Result(typename Result::TrustedPrivateConstructor{},
-                std::move(aperiodic),
-                std::move(periodic));
-}
 
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-template<int wdegree_>
-typename Hilbert<Value>::NormType
-PoissonSeries<Value, degree_, Evaluator>::Norm(
-    PoissonSeries<double, wdegree_, Evaluator> const& weight,
-    Instant const& t_min,
-    Instant const& t_max) const {
-  AngularFrequency const max_ω =
-      (periodic_.empty() ? AngularFrequency{}
-                         : 2 * periodic_.back().first) +
-      (weight.periodic_.empty() ? AngularFrequency{}
-                                : weight.periodic_.back().first);
-  std::optional<int> max_points =
-      max_ω == AngularFrequency()
-          ? std::optional<int>{}
-          : std::max(
-                clenshaw_curtis_min_points_overall,
-                static_cast<int>(clenshaw_curtis_point_per_period *
-                                 (t_max - t_min) * max_ω / (2 * π * Radian)));
-
-  auto integrand = [this, &weight](Instant const& t) {
-    return Hilbert<Value>::Norm²((*this)(t)) * weight(t);
-  };
-  return Sqrt(quadrature::AutomaticClenshawCurtis(
-                  integrand,
-                  t_min, t_max,
-                  /*max_relative_error=*/clenshaw_curtis_relative_error,
-                  /*max_points=*/max_points) /
-              (t_max - t_min));
-}
-
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-template<int d>
-PoissonSeries<Value, degree_, Evaluator>&
-PoissonSeries<Value, degree_, Evaluator>::operator+=(
-    PoissonSeries<Value, d, Evaluator> const& right) {
-  static_assert(d <= degree);
-  *this = *this + right;
-  return *this;
-}
-
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-template<int d>
-PoissonSeries<Value, degree_, Evaluator>&
-PoissonSeries<Value, degree_, Evaluator>::operator-=(
-    PoissonSeries<Value, d, Evaluator> const& right) {
-  static_assert(d <= degree);
-  *this = *this - right;
-  return *this;
+  // The reason for having the slow/fast split is to handle cancellations that
+  // occurs between the aperiodic component and the components with low
+  // frequencies.  If there are no low frequencies, we might as well put the
+  // aperiodic component in the high-frequencies half.
+  if (slow_periodic.empty()) {
+    PoissonSeries slow(TrustedPrivateConstructor{},
+                       typename PoissonSeries::Polynomial(
+                           typename PoissonSeries::Polynomial::Coefficients{},
+                           aperiodic_.origin()),
+                       std::move(slow_periodic));
+    PoissonSeries fast(TrustedPrivateConstructor{},
+                       aperiodic_,
+                       std::move(fast_periodic));
+    return {/*slow=*/std::move(slow), /*fast=*/std::move(fast)};
+  } else {
+    PoissonSeries slow(TrustedPrivateConstructor{},
+                       aperiodic_,
+                       std::move(slow_periodic));
+    PoissonSeries fast(TrustedPrivateConstructor{},
+                       typename PoissonSeries::Polynomial(
+                           typename PoissonSeries::Polynomial::Coefficients{},
+                           aperiodic_.origin()),
+                       std::move(fast_periodic));
+    return {/*slow=*/std::move(slow), /*fast=*/std::move(fast)};
+  }
 }
 
 template<typename Value, int rdegree_,
@@ -694,11 +762,18 @@ typename Hilbert<LValue, RValue>::InnerProductType InnerProduct(
     PoissonSeries<double, wdegree_, Evaluator> const& weight,
     Instant const& t_min,
     Instant const& t_max) {
+  AngularFrequency const ω_cutoff =
+      2 * π * Radian * clenshaw_curtis_max_periods_overall / (t_max - t_min);
+  auto const left_split = left.Split(ω_cutoff);
+  auto const right_split = right.Split(ω_cutoff);
+
   AngularFrequency const max_ω =
-      (left.periodic_.empty() ? AngularFrequency{}
-                              : left.periodic_.back().first) +
-      (right.periodic_.empty() ? AngularFrequency{}
-                               : right.periodic_.back().first) +
+      (left_split.slow.periodic_.empty()
+           ? AngularFrequency{}
+           : left_split.slow.periodic_.back().first) +
+      (right_split.slow.periodic_.empty()
+           ? AngularFrequency{}
+           : right_split.slow.periodic_.back().first) +
       (weight.periodic_.empty() ? AngularFrequency{}
                                 : weight.periodic_.back().first);
   std::optional<int> max_points =
@@ -709,461 +784,25 @@ typename Hilbert<LValue, RValue>::InnerProductType InnerProduct(
                 static_cast<int>(clenshaw_curtis_point_per_period *
                                  (t_max - t_min) * max_ω / (2 * π * Radian)));
 
-  auto integrand = [&left, &right, &weight](Instant const& t) {
-    return Hilbert<LValue, RValue>::InnerProduct(left(t), right(t)) * weight(t);
+  auto slow_integrand = [&left_split, &right_split, &weight](Instant const& t) {
+    return Hilbert<LValue, RValue>::InnerProduct(left_split.slow(t),
+                                                 right_split.slow(t)) *
+           weight(t);
   };
-  return quadrature::AutomaticClenshawCurtis(
-             integrand,
-             t_min, t_max,
-             /*max_relative_error=*/clenshaw_curtis_relative_error,
-             /*max_points=*/max_points) /
-         (t_max - t_min);
-}
+  auto const slow_quadrature = quadrature::AutomaticClenshawCurtis(
+      slow_integrand,
+      t_min, t_max,
+      /*max_relative_error=*/clenshaw_curtis_relative_error,
+      /*max_points=*/max_points);
 
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Value, degree_, Evaluator>::PiecewisePoissonSeries(
-    Interval<Instant> const& interval,
-    Series const& series)
-    : bounds_({interval.min, interval.max}),
-      series_(/*count=*/1, series) {
-  CHECK_LT(Time{}, interval.measure());
-}
+  auto const fast_integrand =
+      (PointwiseInnerProduct(left_split.fast, right_split.slow) +
+       PointwiseInnerProduct(left_split.slow, right_split.fast) +
+       PointwiseInnerProduct(left_split.fast, right_split.fast)) *
+      weight;
+  auto const fast_quadrature = fast_integrand.Integrate(t_min, t_max);
 
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-void PiecewisePoissonSeries<Value, degree_, Evaluator>::Append(
-    Interval<Instant> const& interval,
-    Series const& series) {
-  CHECK_LT(Time{}, interval.measure());
-  CHECK_EQ(bounds_.back(), interval.min);
-  bounds_.push_back(interval.max);
-  series_.push_back(series);
-}
-
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-Instant PiecewisePoissonSeries<Value, degree_, Evaluator>::t_min() const {
-  return bounds_.front();
-}
-
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-Instant PiecewisePoissonSeries<Value, degree_, Evaluator>::t_max() const {
-  return bounds_.back();
-}
-
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-Value PiecewisePoissonSeries<Value, degree_, Evaluator>::operator()(
-    Instant const& t) const {
-  Value const addend = EvaluateAddend(t);
-  if (t == bounds_.back()) {
-    return series_.back()(t) + addend;
-  }
-
-  // If t is an element of bounds_, the returned iterator points to the next
-  // element.  Otherwise it points to the upper bound of the interval to which
-  // t belongs.
-  auto const it = std::upper_bound(bounds_.cbegin(), bounds_.cend(), t);
-  CHECK(it != bounds_.cbegin())
-      << "Unexpected result looking up " << t << " in "
-      << bounds_.front() << " .. " << bounds_.back();
-  CHECK(it != bounds_.cend())
-      << t << " is outside of " << bounds_.front() << " .. " << bounds_.back();
-  return series_[it - bounds_.cbegin() - 1](t) + addend;
-}
-
-template<typename Value,
-         int degree_,
-         template<typename, typename, int> class Evaluator>
-auto PiecewisePoissonSeries<Value, degree_, Evaluator>::FourierTransform() const
-    -> Spectrum {
-  // TODO(egg): consider pre-evaluating |*this| at all points used by the
-  // Gaussian quadratures, removing the lifetime requirement on |*this| and
-  // potentially speeding up repeated evaluations of the Fourier transform.
-  return [this](AngularFrequency const& ω) {
-    Interval<Instant> const time_domain{t_min(), t_max()};
-    Instant const t0 = time_domain.midpoint();
-    Primitive<Complexification<Value>, Instant> integral;
-    for (int k = 0; k < series_.size(); ++k) {
-      integral += quadrature::GaussLegendre<std::max(1, (degree_ + 1) / 2)>(
-          [this, &f = series_[k], t0, ω](
-              Instant const& t) -> Complexification<Value> {
-            return (f(t) + EvaluateAddend(t)) *
-                   Complexification<double>{Cos(ω * (t - t0)),
-                                            -Sin(ω * (t - t0))};
-          },
-          bounds_[k],
-          bounds_[k + 1]);
-    }
-    return integral;
-  };
-}
-
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-template<int d>
-PiecewisePoissonSeries<Value, degree_, Evaluator>&
-PiecewisePoissonSeries<Value, degree_, Evaluator>::operator+=(
-    PoissonSeries<Value, d, Evaluator> const& right) {
-  static_assert(d <= degree);
-  if (addend_.has_value()) {
-    addend_.value() += right;
-  } else {
-    addend_ = Series(right);
-  }
-  return *this;
-}
-
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-template<int d>
-PiecewisePoissonSeries<Value, degree_, Evaluator>&
-PiecewisePoissonSeries<Value, degree_, Evaluator>::operator-=(
-    PoissonSeries<Value, d, Evaluator> const& right) {
-  static_assert(d <= degree);
-  if (addend_.has_value()) {
-    addend_.value() -= right;
-  } else {
-    addend_ = Series(-right);
-  }
-  return *this;
-}
-
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-void PiecewisePoissonSeries<Value, degree_, Evaluator>::WriteToMessage(
-    not_null<serialization::PiecewisePoissonSeries*> message) const {
-  for (Instant const& bound : bounds_) {
-    bound.WriteToMessage(message->add_bounds());
-  }
-  for (Series const& series : series_) {
-    series.WriteToMessage(message->add_series());
-  }
-  if (addend_.has_value()) {
-    addend_->WriteToMessage(message->mutable_addend());
-  }
-}
-
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Value, degree_, Evaluator>
-PiecewisePoissonSeries<Value, degree_, Evaluator>::ReadFromMessage(
-    serialization::PiecewisePoissonSeries const& message) {
-  CHECK_NE(0, message.series_size());
-  CHECK_EQ(message.bounds_size(), message.series_size() + 1);
-  Interval<Instant> const first_interval{
-      Instant::ReadFromMessage(message.bounds(0)),
-      Instant::ReadFromMessage(message.bounds(1))};
-  PiecewisePoissonSeries series(first_interval,
-                                Series::ReadFromMessage(message.series(0)));
-  for (int i = 1; i < message.series_size(); ++i) {
-    Interval<Instant> const interval{
-        Instant::ReadFromMessage(message.bounds(i)),
-        Instant::ReadFromMessage(message.bounds(i + 1))};
-    series.Append(interval, Series::ReadFromMessage(message.series(i)));
-  }
-  if (message.has_addend()) {
-    series.addend_ = Series::ReadFromMessage(message.addend());
-  }
-  return series;
-}
-
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Value, degree_, Evaluator>::PiecewisePoissonSeries(
-    std::vector<Instant> const& bounds,
-    std::vector<PoissonSeries<Value, degree_, Evaluator>> const& series,
-    std::optional<Series> const& addend)
-    : bounds_(bounds),
-      series_(series),
-      addend_(addend) {}
-
-template<typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-Value PiecewisePoissonSeries<Value, degree_, Evaluator>::EvaluateAddend(
-    Instant const& t) const {
-  return addend_.has_value() ? addend_.value()(t) : Value{};
-}
-
-template<typename Value, int rdegree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Value, rdegree_, Evaluator> operator+(
-    PiecewisePoissonSeries<Value, rdegree_, Evaluator> const& right) {
-  return right;
-}
-
-template<typename Value, int rdegree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Value, rdegree_, Evaluator> operator-(
-    PiecewisePoissonSeries<Value, rdegree_, Evaluator> const& right) {
-  using Result = PiecewisePoissonSeries<Value, rdegree_, Evaluator>;
-  std::vector<typename Result::Series> series;
-  series.reserve(right.series_.size());
-  for (int i = 0; i < right.series_.size(); ++i) {
-    series.push_back(-right.series_[i]);
-  }
-  std::optional<typename Result::Series> addend;
-  if (right.addend_.has_value()) {
-    addend = -right.addend_.value();
-  }
-  return Result(right.bounds_, series, addend);
-}
-
-template<typename Scalar, typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Product<Scalar, Value>, degree_, Evaluator> operator*(
-    Scalar const& left,
-    PiecewisePoissonSeries<Value, degree_, Evaluator> const& right) {
-  using Result =
-      PiecewisePoissonSeries<Product<Scalar, Value>, degree_, Evaluator>;
-  std::vector<typename Result::Series> series;
-  series.reserve(right.series_.size());
-  for (int i = 0; i < right.series_.size(); ++i) {
-    series.push_back(left * right.series_[i]);
-  }
-  std::optional<typename Result::Series> addend;
-  if (right.addend_.has_value()) {
-    addend = left * right.addend_.value();
-  }
-  return Result(right.bounds_, series, addend);
-}
-
-template<typename Scalar, typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Product<Value, Scalar>, degree_, Evaluator> operator*(
-    PiecewisePoissonSeries<Value, degree_, Evaluator> const& left,
-    Scalar const& right) {
-  using Result =
-      PiecewisePoissonSeries<Product<Value, Scalar>, degree_, Evaluator>;
-  std::vector<typename Result::Series> series;
-  series.reserve(left.series_.size());
-  for (int i = 0; i < left.series_.size(); ++i) {
-    series.push_back(left.series_[i] * right);
-  }
-  std::optional<typename Result::Series> addend;
-  if (left.addend_.has_value()) {
-    addend = left.addend_.value() * right;
-  }
-  return Result(left.bounds_, series, addend);
-}
-
-template<typename Scalar, typename Value, int degree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Quotient<Value, Scalar>, degree_, Evaluator> operator/(
-    PiecewisePoissonSeries<Value, degree_, Evaluator> const& left,
-    Scalar const& right) {
-  using Result =
-      PiecewisePoissonSeries<Quotient<Value, Scalar>, degree_, Evaluator>;
-  std::vector<typename Result::Series> series;
-  series.reserve(left.series_.size());
-  for (int i = 0; i < left.series_.size(); ++i) {
-    series.push_back(left.series_[i] / right);
-  }
-  std::optional<typename Result::Series> addend;
-  if (left.addend_.has_value()) {
-    addend = left.addend_.value() / right;
-  }
-  return Result(left.bounds_, series, addend);
-}
-
-template<typename Value, int ldegree_, int rdegree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Value, std::max(ldegree_, rdegree_), Evaluator>
-operator+(PoissonSeries<Value, ldegree_, Evaluator> const& left,
-          PiecewisePoissonSeries<Value, rdegree_, Evaluator> const& right) {
-  using Result =
-      PiecewisePoissonSeries<Value, std::max(ldegree_, rdegree_), Evaluator>;
-  std::optional<typename Result::Series> addend;
-  if (right.addend_.has_value()) {
-    addend = left + right.addend_.value();
-  } else {
-    addend = typename Result::Series(left);
-  }
-  return Result(right.bounds_, right.series_, addend);
-}
-
-template<typename Value, int ldegree_, int rdegree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Value, std::max(ldegree_, rdegree_), Evaluator>
-operator+(PiecewisePoissonSeries<Value, ldegree_, Evaluator> const& left,
-          PoissonSeries<Value, rdegree_, Evaluator> const& right) {
-  using Result =
-      PiecewisePoissonSeries<Value, std::max(ldegree_, rdegree_), Evaluator>;
-  std::optional<typename Result::Series> addend;
-  if (left.addend_.has_value()) {
-    addend = left.addend_.value() + right;
-  } else {
-    addend = typename Result::Series(right);
-  }
-  return Result(left.bounds_, left.series_, addend);
-}
-
-template<typename Value, int ldegree_, int rdegree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Value, std::max(ldegree_, rdegree_), Evaluator>
-operator-(PoissonSeries<Value, ldegree_, Evaluator> const& left,
-          PiecewisePoissonSeries<Value, rdegree_, Evaluator> const& right) {
-  using Result =
-      PiecewisePoissonSeries<Value, std::max(ldegree_, rdegree_), Evaluator>;
-  std::vector<typename Result::Series> series;
-  series.reserve(right.series_.size());
-  for (int i = 0; i < right.series_.size(); ++i) {
-    series.push_back(-right.series_[i]);
-  }
-  std::optional<typename Result::Series> addend;
-  if (right.addend_.has_value()) {
-    addend = left - right.addend_.value();
-  } else {
-    addend = typename Result::Series(left);
-  }
-  return Result(right.bounds_, series, addend);
-}
-
-template<typename Value, int ldegree_, int rdegree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Value, std::max(ldegree_, rdegree_), Evaluator>
-operator-(PiecewisePoissonSeries<Value, ldegree_, Evaluator> const& left,
-          PoissonSeries<Value, rdegree_, Evaluator> const& right) {
-  using Result =
-      PiecewisePoissonSeries<Value, std::max(ldegree_, rdegree_), Evaluator>;
-  std::vector<typename Result::Series> series;
-  series.reserve(left.series_.size());
-  for (int i = 0; i < left.series_.size(); ++i) {
-    series.push_back(typename Result::Series(left.series_[i]));
-  }
-  std::optional<typename Result::Series> addend;
-  if (left.addend_.has_value()) {
-    addend = left.addend_.value() - right;
-  } else {
-    addend = typename Result::Series(-right);
-  }
-  return Result(left.bounds_, series, addend);
-}
-
-template<typename LValue, typename RValue, int ldegree_, int rdegree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Product<LValue, RValue>, ldegree_ + rdegree_, Evaluator>
-operator*(PoissonSeries<LValue, ldegree_, Evaluator> const& left,
-          PiecewisePoissonSeries<RValue, rdegree_, Evaluator> const& right) {
-  using Result = PiecewisePoissonSeries<Product<LValue, RValue>,
-                                        ldegree_ + rdegree_,
-                                        Evaluator>;
-  std::vector<typename Result::Series> series;
-  series.reserve(right.series_.size());
-  for (int i = 0; i < right.series_.size(); ++i) {
-    Instant const origin = right.series_[i].origin();
-    series.push_back(left.AtOrigin(origin) * right.series_[i]);
-  }
-  std::optional<typename Result::Series> addend;
-  if (right.addend_.has_value()) {
-    addend = left * right.addend_.value();
-  }
-  return Result(right.bounds_, series, addend);
-}
-
-template<typename LValue, typename RValue, int ldegree_, int rdegree_,
-         template<typename, typename, int> class Evaluator>
-PiecewisePoissonSeries<Product<LValue, RValue>, ldegree_ + rdegree_, Evaluator>
-operator*(PiecewisePoissonSeries<LValue, ldegree_, Evaluator> const& left,
-          PoissonSeries<RValue, rdegree_, Evaluator> const& right) {
-  using Result = PiecewisePoissonSeries<Product<LValue, RValue>,
-                                        ldegree_ + rdegree_,
-                                        Evaluator>;
-  std::vector<typename Result::Series> series;
-  series.reserve(left.series_.size());
-  for (int i = 0; i < left.series_.size(); ++i) {
-    Instant const origin = left.series_[i].origin();
-    series.push_back(left.series_[i] * right.AtOrigin(origin));
-  }
-  std::optional<typename Result::Series> addend;
-  if (left.addend_.has_value()) {
-    addend = left.addend_.value() * right;
-  }
-  return Result(left.bounds_, series, addend);
-}
-
-template<typename LValue, typename RValue,
-         int ldegree_, int rdegree_, int wdegree_,
-         template<typename, typename, int> class Evaluator,
-         int points>
-typename Hilbert<LValue, RValue>::InnerProductType
-InnerProduct(PoissonSeries<LValue, ldegree_, Evaluator> const& left,
-             PiecewisePoissonSeries<RValue, rdegree_, Evaluator> const& right,
-             PoissonSeries<double, wdegree_, Evaluator> const& weight) {
-  return InnerProduct<LValue, RValue,
-                      ldegree_, rdegree_, wdegree_,
-                      Evaluator,
-                      points>(
-      left, right, weight, right.t_min(), right.t_max());
-}
-
-template<typename LValue, typename RValue,
-         int ldegree_, int rdegree_, int wdegree_,
-         template<typename, typename, int> class Evaluator,
-         int points>
-typename Hilbert<LValue, RValue>::InnerProductType
-InnerProduct(PoissonSeries<LValue, ldegree_, Evaluator> const& left,
-             PiecewisePoissonSeries<RValue, rdegree_, Evaluator> const& right,
-             PoissonSeries<double, wdegree_, Evaluator> const& weight,
-             Instant const& t_min,
-             Instant const& t_max) {
-  using Result =
-      Primitive<typename Hilbert<LValue, RValue>::InnerProductType, Time>;
-  Result result{};
-  for (int i = 0; i < right.series_.size(); ++i) {
-    auto integrand = [i, &left, &right, &weight](Instant const& t) {
-      return Hilbert<LValue, RValue>::InnerProduct(
-          left(t) * weight(t),
-          right.series_[i](t) + right.EvaluateAddend(t));
-    };
-    auto const integral = quadrature::GaussLegendre<points>(
-        integrand, right.bounds_[i], right.bounds_[i + 1]);
-    result += integral;
-  }
-  return result / (t_max - t_min);
-}
-
-template<typename LValue, typename RValue,
-         int ldegree_, int rdegree_, int wdegree_,
-         template<typename, typename, int> class Evaluator,
-         int points>
-typename Hilbert<LValue, RValue>::InnerProductType
-InnerProduct(PiecewisePoissonSeries<LValue, ldegree_, Evaluator> const& left,
-             PoissonSeries<RValue, rdegree_, Evaluator> const& right,
-             PoissonSeries<double, wdegree_, Evaluator> const& weight) {
-  return InnerProduct<LValue, RValue,
-                      ldegree_, rdegree_, wdegree_,
-                      Evaluator,
-                      points>(
-       left, right, weight, left.t_min(), left.t_max());
-}
-
-template<typename LValue, typename RValue,
-         int ldegree_, int rdegree_, int wdegree_,
-         template<typename, typename, int> class Evaluator,
-         int points>
-typename Hilbert<LValue, RValue>::InnerProductType
-InnerProduct(PiecewisePoissonSeries<LValue, ldegree_, Evaluator> const& left,
-             PoissonSeries<RValue, rdegree_, Evaluator> const& right,
-             PoissonSeries<double, wdegree_, Evaluator> const& weight,
-             Instant const& t_min,
-             Instant const& t_max) {
-  using Result =
-      Primitive<typename Hilbert<LValue, RValue>::InnerProductType, Time>;
-  Result result{};
-  for (int i = 0; i < left.series_.size(); ++i) {
-    auto integrand = [i, &left, &right, &weight](Instant const& t) {
-      return Hilbert<LValue, RValue>::InnerProduct(
-          left.series_[i](t) + left.EvaluateAddend(t),
-          right(t) * weight(t));
-    };
-    auto const integral = quadrature::GaussLegendre<points>(
-        integrand, left.bounds_[i], left.bounds_[i + 1]);
-    result += integral;
-  }
-  return result / (t_max - t_min);
+  return (slow_quadrature + fast_quadrature) / (t_max - t_min);
 }
 
 }  // namespace internal_poisson_series

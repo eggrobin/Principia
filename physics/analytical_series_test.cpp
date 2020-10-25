@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "absl/strings/str_cat.h"
 #include "astronomy/frames.hpp"
 #include "geometry/interval.hpp"
 #include "geometry/named_quantities.hpp"
@@ -53,8 +54,8 @@ namespace frequency_analysis = numerics::frequency_analysis;
 static constexpr int log2_number_of_samples = 10;
 
 static constexpr int secular_degree = 5;
-static constexpr int periodic_degree = 5;
-static constexpr int number_of_frequencies = 15;
+static constexpr int periodic_degree = 1;
+static constexpr int number_of_frequencies = 30;
 
 class AnalyticalSeriesTest : public ::testing::Test {
  protected:
@@ -69,7 +70,8 @@ class AnalyticalSeriesTest : public ::testing::Test {
 
   template<int degree>
   std::unique_ptr<
-      PoissonSeries<Displacement<ICRS>, secular_degree, EstrinEvaluator>>
+      PoissonSeries<Displacement<ICRS>, std::max(secular_degree,
+                         periodic_degree), EstrinEvaluator>>
   ComputeCompactRepresentation(ContinuousTrajectory<ICRS> const& trajectory,
                                std::string const& body) {
     Instant const t_min = trajectory.t_min();
@@ -116,13 +118,12 @@ class AnalyticalSeriesTest : public ::testing::Test {
       }
     };
 
-    frequency_analysis::IncrementalProjection<secular_degree>(
+    frequency_analysis::IncrementalProjection<secular_degree, periodic_degree>(
         piecewise_poisson_series,
         angular_frequency_calculator,
         apodization::Dirichlet<EstrinEvaluator>(t_min, t_max),
         t_min,
         t_max,
-        periodic_degree,
         absl::StrCat(body, ",", interval_index),
         logger_);
   }
