@@ -52,26 +52,27 @@ class PiecewisePoissonSeriesTest : public ::testing::Test {
                       Handedness::Right,
                       serialization::Frame::TEST>;
 
-  using Degree0 = PiecewisePoissonSeries<double, 0, HornerEvaluator>;
+  using Degree0 = PiecewisePoissonSeries<double, 0, 0, HornerEvaluator>;
 
   PiecewisePoissonSeriesTest()
       : ω_(π / 2 * Radian / Second),
-        p_(Degree0::Series::Polynomial({1.5}, t0_),
+        p_(Degree0::Series::AperiodicPolynomial({1.5}, t0_),
            {{ω_,
-             {/*sin=*/Degree0::Series::Polynomial({0.5}, t0_),
-              /*cos=*/Degree0::Series::Polynomial({-1}, t0_)}}}),
+             {/*sin=*/Degree0::Series::PeriodicPolynomial({0.5}, t0_),
+              /*cos=*/Degree0::Series::PeriodicPolynomial({-1}, t0_)}}}),
         pp_({t0_, t0_ + 1 * Second},
             Degree0::Series(
-                Degree0::Series::Polynomial({1}, t0_),
+                Degree0::Series::AperiodicPolynomial({1}, t0_),
                 {{ω_,
-                  {/*sin=*/Degree0::Series::Polynomial({-1}, t0_),
-                   /*cos=*/Degree0::Series::Polynomial({0}, t0_)}}})) {
+                  {/*sin=*/Degree0::Series::PeriodicPolynomial({-1}, t0_),
+                   /*cos=*/Degree0::Series::PeriodicPolynomial({0}, t0_)}}})) {
     pp_.Append(
         {t0_ + 1 * Second, t0_ + 2 * Second},
-        Degree0::Series(Degree0::Series::Polynomial({0}, t0_),
-                        {{ω_,
-                          {/*sin=*/Degree0::Series::Polynomial({0}, t0_),
-                           /*cos=*/Degree0::Series::Polynomial({1}, t0_)}}}));
+        Degree0::Series(
+            Degree0::Series::AperiodicPolynomial({0}, t0_),
+            {{ω_,
+              {/*sin=*/Degree0::Series::PeriodicPolynomial({0}, t0_),
+               /*cos=*/Degree0::Series::PeriodicPolynomial({1}, t0_)}}}));
   }
 
   Instant const t0_;
@@ -202,38 +203,47 @@ TEST_F(PiecewisePoissonSeriesTest, ActionMultiorigin) {
 }
 
 TEST_F(PiecewisePoissonSeriesTest, InnerProduct) {
-  double const d1 = InnerProduct<double, double, 0, 0, 0, HornerEvaluator, 8>(
-      pp_, p_, apodization::Dirichlet<HornerEvaluator>(t0_, t0_ + 2 * Second));
-  double const d2 = InnerProduct<double, double, 0, 0, 0, HornerEvaluator, 8>(
-      p_, pp_, apodization::Dirichlet<HornerEvaluator>(t0_, t0_ + 2 * Second));
+  double const d1 =
+      InnerProduct<double, double, 0, 0, 0, 0, 0, 0, HornerEvaluator, 8>(
+          pp_, p_,
+          apodization::Dirichlet<HornerEvaluator>(t0_, t0_ + 2 * Second));
+  double const d2 =
+      InnerProduct<double, double, 0, 0, 0, 0, 0, 0, HornerEvaluator, 8>(
+          p_, pp_,
+          apodization::Dirichlet<HornerEvaluator>(t0_, t0_ + 2 * Second));
   EXPECT_THAT(d1, AlmostEquals((3 * π - 26) / (8 * π), 0));
   EXPECT_THAT(d2, AlmostEquals((3 * π - 26) / (8 * π), 0));
 }
 
 TEST_F(PiecewisePoissonSeriesTest, InnerProductMultiorigin) {
   auto const p = p_.AtOrigin(t0_ + 2 * Second);
-  double const d1 = InnerProduct<double, double, 0, 0, 0, HornerEvaluator, 8>(
-      pp_, p, apodization::Dirichlet<HornerEvaluator>(t0_, t0_ + 2 * Second));
-  double const d2 = InnerProduct<double, double, 0, 0, 0, HornerEvaluator, 8>(
-      p, pp_, apodization::Dirichlet<HornerEvaluator>(t0_, t0_ + 2 * Second));
+  double const d1 =
+      InnerProduct<double, double, 0, 0, 0, 0, 0, 0, HornerEvaluator, 8>(
+          pp_, p,
+          apodization::Dirichlet<HornerEvaluator>(t0_, t0_ + 2 * Second));
+  double const d2 =
+      InnerProduct<double, double, 0, 0, 0, 0, 0, 0, HornerEvaluator, 8>(
+          p, pp_,
+          apodization::Dirichlet<HornerEvaluator>(t0_, t0_ + 2 * Second));
   EXPECT_THAT(d1, AlmostEquals((3 * π - 26) / (8 * π), 0));
   EXPECT_THAT(d2, AlmostEquals((3 * π - 26) / (8 * π), 0));
 }
 
 TEST_F(PiecewisePoissonSeriesTest, Fourier) {
-  Degree0::Series::Polynomial constant({1.0}, t0_);
+  Degree0::Series::AperiodicPolynomial aperiodic_constant({1.0}, t0_);
+  Degree0::Series::PeriodicPolynomial periodic_constant({1.0}, t0_);
   AngularFrequency const ω = 4 * Radian / Second;
-  PoissonSeries<Displacement<World>, 0, HornerEvaluator> signal(
-      constant * Displacement<World>{},
+  PoissonSeries<Displacement<World>, 0, 0, HornerEvaluator> signal(
+      aperiodic_constant * Displacement<World>{},
       {{ω,
-        {/*sin=*/constant *
+        {/*sin=*/periodic_constant *
              Displacement<World>({2 * Metre, -3 * Metre, 5 * Metre}),
-         /*cos=*/constant *
+         /*cos=*/periodic_constant *
              Displacement<World>({-7 * Metre, 11 * Metre, -13 * Metre})}}});
   // Slice our signal into segments short enough that one-point Gauss-Legendre
   // (also known as midpoint) does the job.
   constexpr int segments = 100;
-  PiecewisePoissonSeries<Displacement<World>, 0, HornerEvaluator> f(
+  PiecewisePoissonSeries<Displacement<World>, 0, 0, HornerEvaluator> f(
       {t0_, t0_ + π * Second / segments}, signal);
   for (int k = 1; k < segments; ++k) {
     f.Append({t0_ + k * π * Second / segments,

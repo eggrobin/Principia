@@ -70,8 +70,8 @@ class AnalyticalSeriesTest : public ::testing::Test {
 
   template<int degree>
   std::unique_ptr<
-      PoissonSeries<Displacement<ICRS>, std::max(secular_degree,
-                         periodic_degree), EstrinEvaluator>>
+    PoissonSeries<Displacement<ICRS>, secular_degree,
+    periodic_degree, EstrinEvaluator>>
   ComputeCompactRepresentation(ContinuousTrajectory<ICRS> const& trajectory,
                                std::string const& body) {
     Instant const t_min = trajectory.t_min();
@@ -79,7 +79,7 @@ class AnalyticalSeriesTest : public ::testing::Test {
     int interval_index = 1;
     for (; t_max < trajectory.t_max(); t_max = t_min + 2 * (t_max - t_min), ++interval_index) {
     auto const piecewise_poisson_series =
-        trajectory.ToPiecewisePoissonSeries<degree>(t_min, t_max);
+        trajectory.ToPiecewisePoissonSeries<degree, 0>(t_min, t_max);
 
     int step = 0;
 
@@ -173,8 +173,8 @@ TEST_F(AnalyticalSeriesTest, CompactRepresentation) {
       io_trajectory.PiecewisePoissonSeriesDegree(io_trajectory.t_min(),
                                                  io_trajectory.t_max());
   std::unique_ptr<
-      PoissonSeries<Displacement<ICRS>, secular_degree, EstrinEvaluator>>
-      io_approximation;
+    PoissonSeries<Displacement<ICRS>, secular_degree, periodic_degree, EstrinEvaluator>>
+    io_approximation;
 
   switch (io_piecewise_poisson_series_degree) {
     PRINCIPIA_COMPUTE_COMPACT_REPRESENTATION_CASE(

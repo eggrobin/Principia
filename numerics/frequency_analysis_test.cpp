@@ -82,8 +82,9 @@ class FrequencyAnalysisTest : public ::testing::Test {
                       Handedness::Right,
                       serialization::Frame::TEST>;
 
-  using Series0 = PoissonSeries<Length, 0, HornerEvaluator>;
-  using Series4 = PoissonSeries<Length, 4, HornerEvaluator>;
+  using Series0 = PoissonSeries<Length, 0, 0, HornerEvaluator>;
+  using Series4 = PoissonSeries<Length, 4, 4, HornerEvaluator>;
+  using Polynomial4 = Series4::AperiodicPolynomial;
 
   FrequencyAnalysisTest()
       : random_polynomial4_([](Instant const& t0,
@@ -95,11 +96,11 @@ class FrequencyAnalysisTest : public ::testing::Test {
           auto const c3 = distribution(random) * Metre / Pow<3>(Second);
           auto const c4 = distribution(random) * Metre / Pow<4>(Second);
 
-          return Series4::Polynomial({c0, c1, c2, c3, c4}, t0);
+          return Polynomial4({c0, c1, c2, c3, c4}, t0);
         }) {}
 
   Instant const t0_;
-  std::function<Series4::Polynomial(
+  std::function<Polynomial4(
       Instant const& t0,
       std::mt19937_64& random,
       std::uniform_real_distribution<>& distribution)>
@@ -114,15 +115,17 @@ TEST_F(FrequencyAnalysisTest, PreciseModeScalar) {
   std::uniform_real_distribution<> amplitude_distribution(-0.1, 0.1);
   std::uniform_real_distribution<> frequency_distribution(-100.0, 100.0);
 
-  using PiecewiseSeries0 = PiecewisePoissonSeries<Length, 0, HornerEvaluator>;
+  using PiecewiseSeries0 =
+      PiecewisePoissonSeries<Length, 0, 0, HornerEvaluator>;
   using Series0 = PiecewiseSeries0::Series;
   Series0::PolynomialsByAngularFrequency polynomials;
 
   // Main harmonic.
   polynomials.emplace_back(
       ω,
-      Series0::Polynomials{/*sin=*/Series0::Polynomial({1 * Metre}, t0_),
-                           /*cos=*/Series0::Polynomial({0 * Metre}, t0_)});
+      Series0::Polynomials{
+          /*sin=*/Series0::PeriodicPolynomial({1 * Metre}, t0_),
+          /*cos=*/Series0::PeriodicPolynomial({0 * Metre}, t0_)});
 
   // Noise with lower amplitude and higher frequency.
   for (int i = 0; i < 10; ++i) {
@@ -131,12 +134,12 @@ TEST_F(FrequencyAnalysisTest, PreciseModeScalar) {
     polynomials.emplace_back(
         ω * frequency_distribution(random),
         Series0::Polynomials{
-            /*sin=*/Series0::Polynomial({sin_amplitude}, t0_),
-            /*cos=*/Series0::Polynomial({cos_amplitude}, t0_)});
+            /*sin=*/Series0::PeriodicPolynomial({sin_amplitude}, t0_),
+            /*cos=*/Series0::PeriodicPolynomial({cos_amplitude}, t0_)});
   }
-  Series0 const sin(
-      Series0::Polynomial({amplitude_distribution(random) * Metre}, t0_),
-      polynomials);
+  Series0 const sin(Series0::AperiodicPolynomial(
+                        {amplitude_distribution(random) * Metre}, t0_),
+                    polynomials);
 
   Instant const t_min = t0_;
   Instant const t_max = t0_ + (FFT::size - 1) * Δt;
@@ -170,7 +173,7 @@ TEST_F(FrequencyAnalysisTest, PreciseModeVector) {
   Time const Δt = 1 * Second;
 
   using PiecewiseSeries0 =
-      PiecewisePoissonSeries<Displacement<World>, 0, HornerEvaluator>;
+      PiecewisePoissonSeries<Displacement<World>, 0, 0, HornerEvaluator>;
   using Series0 = PiecewiseSeries0::Series;
   Series0::PolynomialsByAngularFrequency polynomials;
 
@@ -178,12 +181,12 @@ TEST_F(FrequencyAnalysisTest, PreciseModeVector) {
   polynomials.emplace_back(
       ω,
       Series0::Polynomials{
-          /*sin=*/Series0::Polynomial(
+          /*sin=*/Series0::PeriodicPolynomial(
               {Displacement<World>({1 * Metre, 2 * Metre, 3 * Metre})}, t0_),
-          /*cos=*/Series0::Polynomial(
+          /*cos=*/Series0::PeriodicPolynomial(
               {Displacement<World>({-5 * Metre, 7 * Metre, 11 * Metre})},
               t0_)});
-  Series0 const sin(Series0::Polynomial(Displacement<World>(), t0_),
+  Series0 const sin(Series0::AperiodicPolynomial(Displacement<World>(), t0_),
                     polynomials);
 
   Instant const t_min = t0_;
@@ -220,7 +223,7 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesScalarProjection) {
   auto const sin = random_polynomial4_(t0_, random, amplitude_distribution);
   auto const cos = random_polynomial4_(t0_, random, amplitude_distribution);
   Series4 const series(
-      Series4::Polynomial(Series4::Polynomial::Coefficients{}, t0_),
+      Series4::AperiodicPolynomial({}, t0_),
       {{ω, Series4::Polynomials{sin, cos}}});
 
   Instant const t_min = t0_;
@@ -228,10 +231,10 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesScalarProjection) {
 
   // Projection on a 4th degree basis accurately reconstructs the function.
   auto const projection4 =
-      Projection<4>(series,
-                    ω,
-                    apodization::Hann<HornerEvaluator>(t_min, t_max),
-                    t_min, t_max);
+      Projection<4, 4>(series,
+                       ω,
+                       apodization::Hann<HornerEvaluator>(t_min, t_max),
+                       t_min, t_max);
   for (int i = 0; i <= 100; ++i) {
     EXPECT_THAT(projection4(t0_ + i * Radian / ω),
                 AlmostEquals(series(t0_ + i * Radian / ω), 0, 1536));
@@ -239,10 +242,10 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesScalarProjection) {
 
   // Projection on a 5th degree basis is also accurate.
   auto const projection5 =
-      Projection<5>(series,
-                    ω,
-                    apodization::Hann<HornerEvaluator>(t_min, t_max),
-                    t_min, t_max);
+      Projection<5, 5>(series,
+                       ω,
+                       apodization::Hann<HornerEvaluator>(t_min, t_max),
+                       t_min, t_max);
   for (int i = 0; i <= 100; ++i) {
     EXPECT_THAT(projection5(t0_ + i * Radian / ω),
                 AlmostEquals(series(t0_ + i * Radian / ω), 0, 1536));
@@ -250,10 +253,10 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesScalarProjection) {
 
   // Projection on a 3rd degree basis introduces significant errors.
   auto const projection3 =
-      Projection<3>(series,
-                    ω,
-                    apodization::Hann<HornerEvaluator>(t_min, t_max),
-                    t_min, t_max);
+      Projection<3, 3>(series,
+                       ω,
+                       apodization::Hann<HornerEvaluator>(t_min, t_max),
+                       t_min, t_max);
   for (int i = 0; i <= 100; ++i) {
     EXPECT_THAT(projection3(t0_ + i * Radian / ω),
                 RelativeErrorFrom(series(t0_ + i * Radian / ω),
@@ -266,7 +269,8 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesVectorProjection) {
   std::mt19937_64 random(42);
   std::uniform_real_distribution<> amplitude_distribution(-10.0, 10.0);
   using VectorSeries4 =
-      PoissonSeries<Vector<Length, World>, 4, HornerEvaluator>;
+      PoissonSeries<Vector<Length, World>, 4, 4, HornerEvaluator>;
+  using Polynomial4 = VectorSeries4::AperiodicPolynomial;
 
   auto random_polynomial4 = [](Instant const& t0,
                                std::mt19937_64& random,
@@ -292,13 +296,13 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesVectorProjection) {
     Vector<Jerk, World> const v3({c3x, c3y, c3z});
     Vector<Snap, World> const v4({c4x, c4y, c4z});
 
-    return VectorSeries4::Polynomial({v0, v1, v2, v3, v4}, t0);
+    return Polynomial4({v0, v1, v2, v3, v4}, t0);
   };
 
   auto const sin = random_polynomial4(t0_, random, amplitude_distribution);
   auto const cos = random_polynomial4(t0_, random, amplitude_distribution);
   VectorSeries4 const series(
-      VectorSeries4::Polynomial(VectorSeries4::Polynomial::Coefficients{}, t0_),
+      VectorSeries4::AperiodicPolynomial({}, t0_),
       {{ω, VectorSeries4::Polynomials{sin, cos}}});
 
   Instant const t_min = t0_;
@@ -306,10 +310,10 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesVectorProjection) {
 
   // Projection on a 4th degree basis accurately reconstructs the function.
   auto const projection4 =
-      Projection<4>(series,
-                    ω,
-                    apodization::Hann<HornerEvaluator>(t_min, t_max),
-                    t_min, t_max);
+      Projection<4, 4>(series,
+                       ω,
+                       apodization::Hann<HornerEvaluator>(t_min, t_max),
+                       t_min, t_max);
   for (int i = 0; i <= 100; ++i) {
     EXPECT_THAT(projection4(t0_ + i * Radian / ω),
                 AlmostEquals(series(t0_ + i * Radian / ω), 0, 1024));
@@ -317,10 +321,10 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesVectorProjection) {
 
   // Projection on a 5th degree basis is also accurate.
   auto const projection5 =
-      Projection<5>(series,
-                    ω,
-                    apodization::Hann<HornerEvaluator>(t_min, t_max),
-                    t_min, t_max);
+      Projection<5, 5>(series,
+                       ω,
+                       apodization::Hann<HornerEvaluator>(t_min, t_max),
+                       t_min, t_max);
   for (int i = 0; i <= 100; ++i) {
     EXPECT_THAT(projection5(t0_ + i * Radian / ω),
                 AlmostEquals(series(t0_ + i * Radian / ω), 0, 1024));
@@ -328,10 +332,10 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesVectorProjection) {
 
   // Projection on a 3rd degree basis introduces significant errors.
   auto const projection3 =
-      Projection<3>(series,
-                    ω,
-                    apodization::Hann<HornerEvaluator>(t_min, t_max),
-                    t_min, t_max);
+      Projection<3, 3>(series,
+                       ω,
+                       apodization::Hann<HornerEvaluator>(t_min, t_max),
+                       t_min, t_max);
   for (int i = 0; i <= 100; ++i) {
     EXPECT_THAT(projection3(t0_ + i * Radian / ω),
                 RelativeErrorFrom(series(t0_ + i * Radian / ω),
@@ -345,12 +349,13 @@ TEST_F(FrequencyAnalysisTest, PiecewisePoissonSeriesProjection) {
   std::uniform_real_distribution<> amplitude_distribution(-10.0, 10.0);
   std::uniform_real_distribution<> perturbation_distribution(-1e-6, 1e-6);
 
-  using PiecewiseSeries4 = PiecewisePoissonSeries<Length, 4, HornerEvaluator>;
+  using PiecewiseSeries4 =
+      PiecewisePoissonSeries<Length, 4, 4, HornerEvaluator>;
 
   auto const sin = random_polynomial4_(t0_, random, amplitude_distribution);
   auto const cos = random_polynomial4_(t0_, random, amplitude_distribution);
   Series4 const series(
-      Series4::Polynomial(Series4::Polynomial::Coefficients{}, t0_),
+      Series4::AperiodicPolynomial({}, t0_),
       {{ω, Series4::Polynomials{sin, cos}}});
 
   // Build a series that is based on |series| with different perturbations over
@@ -362,7 +367,7 @@ TEST_F(FrequencyAnalysisTest, PiecewisePoissonSeriesProjection) {
     auto const perturbation_cos =
         random_polynomial4_(t0_, random, perturbation_distribution);
     Series4 const perturbation_series(
-        Series4::Polynomial(Series4::Polynomial::Coefficients{}, t0_),
+        Series4::AperiodicPolynomial({}, t0_),
         {{ω, Series4::Polynomials{perturbation_sin, perturbation_cos}}});
     piecewise_series.Append({t0_ + i * Second, t0_ + (i + 1) * Second},
                             series + perturbation_series);
@@ -374,10 +379,10 @@ TEST_F(FrequencyAnalysisTest, PiecewisePoissonSeriesProjection) {
   // Projection on a 4th degree basis.  The approximation is reasonably
   // accurate.
   auto const projection4 =
-      Projection<4>(piecewise_series,
-                    ω,
-                    apodization::Dirichlet<HornerEvaluator>(t_min, t_max),
-                    t_min, t_max);
+      Projection<4, 4>(piecewise_series,
+                       ω,
+                       apodization::Dirichlet<HornerEvaluator>(t_min, t_max),
+                       t_min, t_max);
   for (int i = 0; i <= 100; ++i) {
     EXPECT_THAT(
         projection4(t_min + i * (t_max - t_min) / 100),
@@ -399,7 +404,7 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesIncrementalProjectionNoSecular) {
     auto const sin = random_polynomial4_(t0_, random, amplitude_distribution);
     auto const cos = random_polynomial4_(t0_, random, amplitude_distribution);
     Series4 const s(
-        Series4::Polynomial(Series4::Polynomial::Coefficients{}, t0_),
+        Series4::AperiodicPolynomial({}, t0_),
         {{ωs.back(), Series4::Polynomials{sin, cos}}});
     if (series.has_value()) {
       series.value() += s;
@@ -439,10 +444,11 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesIncrementalProjectionNoSecular) {
   // Projection on a 4th degree basis reconstructs the function with a decent
   // accuracy.
   auto const projection4 =
-      IncrementalProjection<4>(series.value(),
-                               angular_frequency_calculator,
-                               apodization::Hann<HornerEvaluator>(t_min, t_max),
-                               t_min, t_max);
+      IncrementalProjection<4, 4>(
+          series.value(),
+          angular_frequency_calculator,
+          apodization::Hann<HornerEvaluator>(t_min, t_max),
+          t_min, t_max);
   for (int i = 0; i <= 100; ++i) {
     EXPECT_THAT(
         projection4(t_min + i * (t_max - t_min) / 100),
@@ -466,7 +472,7 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesIncrementalProjectionSecular) {
     auto const sin = random_polynomial4_(t0_, random, amplitude_distribution);
     auto const cos = random_polynomial4_(t0_, random, amplitude_distribution);
     series += Series4(
-        Series4::Polynomial(Series4::Polynomial::Coefficients{}, t0_),
+        Series4::AperiodicPolynomial({}, t0_),
         {{ωs.back(), Series4::Polynomials{sin, cos}}});
   }
 
@@ -490,8 +496,8 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesIncrementalProjectionSecular) {
                           ? AllOf(Gt(3.3e-2 * Metre), Lt(3.6 * Metre))
                           : ω_index == 3
                                 ? AllOf(Gt(7.5e-3 * Metre), Lt(5.4 * Metre))
-                                : AllOf(Gt(1.5e-16 * Metre),
-                                        Lt(9.7e-14 * Metre)))
+                                : AllOf(Gt(9.6e-17 * Metre),
+                                        Lt(8.7e-14 * Metre)))
           << ω_index;
     }
     if (ω_index == ωs.size()) {
@@ -504,15 +510,16 @@ TEST_F(FrequencyAnalysisTest, PoissonSeriesIncrementalProjectionSecular) {
   // Projection on a 4th degree basis reconstructs the function with a decent
   // accuracy.
   auto const projection4 =
-      IncrementalProjection<4>(series,
-                               angular_frequency_calculator,
-                               apodization::Hann<HornerEvaluator>(t_min, t_max),
-                               t_min, t_max);
+      IncrementalProjection<4, 4>(
+          series,
+          angular_frequency_calculator,
+          apodization::Hann<HornerEvaluator>(t_min, t_max),
+          t_min, t_max);
   for (int i = 0; i <= 100; ++i) {
     EXPECT_THAT(
         projection4(t_min + i * (t_max - t_min) / 100),
         RelativeErrorFrom(series(t_min + i * (t_max - t_min) / 100),
-                          AllOf(Ge(0), Lt(5.9e-15))));
+                          AllOf(Ge(0), Lt(5.4e-15))));
   }
 }
 

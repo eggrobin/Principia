@@ -120,10 +120,10 @@ std::string ToMathematicaExpression(
   return Apply("Plus", monomials);
 }
 
-template<typename V, int d,
+template<typename V, int ad, int pd,
          template<typename, typename, int> class E,
          typename OptionalExpressIn>
-std::string ToMathematicaExpression(PoissonSeries<V, d, E> const& series,
+std::string ToMathematicaExpression(PoissonSeries<V, ad, pd, E> const& series,
                                     OptionalExpressIn express_in) {
   std::vector<std::string> components = {
       ToMathematicaExpression(series.aperiodic_, express_in)};
@@ -145,11 +145,11 @@ std::string ToMathematicaExpression(PoissonSeries<V, d, E> const& series,
   return Apply("Plus", components);
 }
 
-template<typename V, int d,
+template<typename V, int ad, int pd,
          template<typename, typename, int> class E,
          typename OptionalExpressIn>
 std::string ToMathematicaExpression(
-    PiecewisePoissonSeries<V, d, E> const& series,
+    PiecewisePoissonSeries<V, ad, pd, E> const& series,
     OptionalExpressIn express_in) {
   std::vector<std::string> conditions_and_functions;
   for (int i = 0; i < series.series_.size(); ++i) {
@@ -386,18 +386,18 @@ std::string ToMathematica(
   return Apply("Function", {ToMathematicaExpression(polynomial, express_in)});
 }
 
-template<typename V, int d,
+template<typename V, int ad, int pd,
          template<typename, typename, int> class E,
          typename OptionalExpressIn>
-std::string ToMathematica(PoissonSeries<V, d, E> const& series,
+std::string ToMathematica(PoissonSeries<V, ad, pd, E> const& series,
                           OptionalExpressIn express_in) {
   return Apply("Function", {ToMathematicaExpression(series, express_in)});
 }
 
-template<typename V, int d,
+template<typename V, int ad, int pd,
          template<typename, typename, int> class E,
          typename OptionalExpressIn>
-std::string ToMathematica(PiecewisePoissonSeries<V, d, E> const& series,
+std::string ToMathematica(PiecewisePoissonSeries<V, ad, pd, E> const& series,
                           OptionalExpressIn express_in) {
   return Apply("Function", {ToMathematicaExpression(series, express_in)});
 }
