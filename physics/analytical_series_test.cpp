@@ -51,17 +51,21 @@ using quantities::si::Second;
 namespace apodization = numerics::apodization;
 namespace frequency_analysis = numerics::frequency_analysis;
 
-static constexpr int log2_number_of_samples = 10;
-
 static constexpr int secular_degree = 5;
 static constexpr int periodic_degree = 1;
-static constexpr int number_of_frequencies = 30;
+static constexpr int number_of_frequencies = 50;
 
 class AnalyticalSeriesTest : public ::testing::Test {
  protected:
   AnalyticalSeriesTest()
-      : logger_(TEMP_DIR / "analytical_series.wl",
-               /*make_unique=*/false) {
+      : logger_(TEMP_DIR / absl::StrCat("analytical_series.",
+                                        secular_degree,
+                                        ".",
+                                        periodic_degree,
+                                        ".",
+                                        number_of_frequencies,
+                                        ".wl"),
+                /*make_unique=*/false) {
     google::LogToStderr();
     logger_.Set("frequencies", number_of_frequencies);
     logger_.Set("secularDegree", secular_degree);
@@ -76,17 +80,20 @@ class AnalyticalSeriesTest : public ::testing::Test {
                                std::string const& body) {
     Instant const t_min = trajectory.t_min();
     Instant t_max = t_min + 80 * Minute;
+    int fft_samples = 1 << 5;
     int interval_index = 1;
-    for (; t_max < trajectory.t_max(); t_max = t_min + 2 * (t_max - t_min), ++interval_index) {
+    for (; t_max < trajectory.t_max(); t_max = t_min + 2 * (t_max - t_min),
+                                       fft_samples *= 2,
+                                       ++interval_index) {
     auto const piecewise_poisson_series =
         trajectory.ToPiecewisePoissonSeries<degree, 0>(t_min, t_max);
 
     int step = 0;
 
     auto angular_frequency_calculator =
-        [this, &step, t_min, t_max](
+        [this, &step, t_min, t_max, fft_samples](
             auto const& residual) -> std::optional<AngularFrequency> {
-      Time const Δt = (t_max - t_min) / (1 << log2_number_of_samples);
+      Time const Δt = (t_max - t_min) / fft_samples;
       LOG(INFO) << "step=" << step;
       if (step == 0) {
         ++step;
@@ -94,15 +101,110 @@ class AnalyticalSeriesTest : public ::testing::Test {
       } else if (step <= number_of_frequencies) {
         ++step;
         std::vector<Displacement<ICRS>> residuals;
-        for (int i = 0; i < 1 << log2_number_of_samples; ++i) {
+        for (int i = 0; i < fft_samples; ++i) {
           residuals.push_back(residual(t_min + i * Δt));
         }
-        auto fft =
-            std::make_unique<FastFourierTransform<Displacement<ICRS>,
-                                                  Instant,
-                                                  1 << log2_number_of_samples>>(
-                residuals, Δt);
-        auto const mode = fft->Mode();
+        Interval<AngularFrequency> mode;
+        switch (fft_samples) {
+          case 1 << 5:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 5>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 6:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 6>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 7:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 7>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 8:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 8>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 9:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 9>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 10:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 10>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 11:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 11>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 12:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 12>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 13:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 13>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 14:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 14>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 15:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 15>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 16:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 16>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 17:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 17>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+          case 1 << 18:
+            mode =
+                std::make_unique<
+                    FastFourierTransform<Displacement<ICRS>, Instant, 1 << 18>>(
+                    residuals, Δt)
+                    ->Mode();
+            break;
+        }
         Interval<Time> const period{2 * π * Radian / mode.max,
                                     2 * π * Radian / mode.min};
         LOG(INFO) << "period=" << period;
@@ -166,9 +268,12 @@ TEST_F(AnalyticalSeriesTest, CompactRepresentation) {
                           "Pluto",
                           "Phobos",
                           "Titan",
-                          "Ariel"}) {
+                          "Ariel",
+                          "Uranus"}) {
   auto const& io_trajectory =
       solar_system_at_j2000.trajectory(*ephemeris, body);
+  logger_.Set(absl::StrCat("polynomialDegree[", body, "]"),
+              io_trajectory.average_degree());
   int const io_piecewise_poisson_series_degree =
       io_trajectory.PiecewisePoissonSeriesDegree(io_trajectory.t_min(),
                                                  io_trajectory.t_max());
