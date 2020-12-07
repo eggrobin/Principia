@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "base/hexadecimal.hpp"
 #include "base/jthread.hpp"
 #include "physics/kepler_orbit.hpp"
 #include "quantities/elementary_functions.hpp"
@@ -76,6 +77,31 @@ StatusOr<OrbitalElements> OrbitalElements::ForTrajectory(
       std::move(mean_classical_elements).ValueOrDie();
   RETURN_IF_ERROR(orbital_elements.ComputePeriodsAndPrecession());
   RETURN_IF_ERROR(orbital_elements.ComputeIntervals());
+  if (!IsFinite(orbital_elements.nodal_period())) {
+    for (auto const& elts : orbital_elements.osculating_equinoctial_elements_) {
+      LOG(ERROR) << elts.h;
+      LOG(ERROR) << elts.k;
+    }
+    for (auto const& elts : orbital_elements.mean_equinoctial_elements_) {
+      LOG(ERROR) << elts.h;
+      LOG(ERROR) << elts.k;
+    }
+    for (auto const& elts : orbital_elements.mean_classical_elements_) {
+      LOG(ERROR) << elts.argument_of_periapsis;
+      LOG(ERROR) << elts.mean_anomaly;
+      LOG(ERROR) << elts.longitude_of_ascending_node;
+    }
+    serialization::DiscreteTrajectory m;
+    trajectory.WriteToMessage(&m, {});
+    std::string out;
+    m.SerializeToString(&out);
+    std::cout << base::HexadecimalEncoder<true>{}
+                     .Encode({reinterpret_cast<std::uint8_t const*>(out.data()),
+                              out.size()}).data
+              << "\n";
+  }
+  LOG(ERROR) << orbital_elements.nodal_period();
+  LOG(ERROR) << orbital_elements.nodal_precession();
   return orbital_elements;
 }
 
