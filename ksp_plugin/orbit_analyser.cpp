@@ -157,9 +157,12 @@ Status OrbitAnalyser::RepeatedlyAnalyseOrbit() {
       // statuses.
       RETURN_IF_STOPPED;
       if (elements.ok()) {
-        analysis.elements_ = std::move(elements).ValueOrDie();
+        analysis.elements_ = std::move(elements.ValueOrDie());
         // TODO(egg): max_abs_Cᴛₒ should probably depend on the number of
         // revolutions.
+        //LOG(ERROR) << primary->name();
+        //LOG(ERROR) << analysis.elements_->mean_periapsis_distance_interval();
+        //LOG(ERROR) << analysis.elements_->mean_apoapsis_distance_interval();
         analysis.closest_recurrence_ = OrbitRecurrence::ClosestRecurrence(
             analysis.elements_->nodal_period(),
             analysis.elements_->nodal_precession(),

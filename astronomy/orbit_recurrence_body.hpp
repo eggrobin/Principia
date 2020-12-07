@@ -52,6 +52,8 @@ OrbitRecurrence OrbitRecurrence::ClosestRecurrence(
     int max_abs_Cᴛₒ) {
   AngularFrequency const& Ωʹ = nodal_precession;
   AngularFrequency const& Ωʹᴛ = primary.angular_frequency();
+  //LOG(ERROR)<<u8"Ωʹ="<<Ωʹ;
+  //LOG(ERROR)<<u8"T nodal="<<nodal_period;
 
   // Nodal mean motion.
   AngularFrequency const& nd = 2 * π * Radian / nodal_period;
@@ -70,8 +72,9 @@ OrbitRecurrence OrbitRecurrence::ClosestRecurrence(
       Cᴛₒ = Sign(κ) * J;
     }
   }
-
+  LOG(ERROR)<<u8"κ="<<κ;
   int const νₒ = std::nearbyint(κ);
+  LOG(ERROR)<<u8"νₒ="<<νₒ;
   int const Dᴛₒ = std::nearbyint((κ - νₒ) * Cᴛₒ);
   return OrbitRecurrence(νₒ, Dᴛₒ, Cᴛₒ);
 }

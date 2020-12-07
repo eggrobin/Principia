@@ -33,7 +33,7 @@ void Delete(std::uint64_t const address,
             Player::PointerMap& pointer_map) {
   if (reinterpret_cast<void*>(address) != nullptr) {
     auto const it = pointer_map.find(address);
-    CHECK(it != pointer_map.end()) << address;
+    if (it == pointer_map.end()) { LOG(ERROR) << "unexpected deletion " << address; return; }
     pointer_map.erase(it);
   }
 }
@@ -42,7 +42,7 @@ template<typename T,
          typename = typename std::enable_if<std::is_pointer<T>::value>::type>
 T DeserializePointer(std::uint64_t const address,
                      Player::PointerMap const& pointer_map) {
-  if (reinterpret_cast<T>(address) == nullptr) {
+  if (reinterpret_cast<T>(address) == nullptr || pointer_map.find(address) == pointer_map.end()) {
     return nullptr;
   } else {
     return reinterpret_cast<T>(FindOrDie(pointer_map, address));
@@ -78,7 +78,7 @@ std::uint64_t SerializePointer(T* t) {
 
 // To remove the check, define this macro to be:
 //   auto aa = (a); auto bb = (b);
-#define PRINCIPIA_CHECK_EQ(a, b) CHECK((a) == (b))
+#define PRINCIPIA_CHECK_EQ(a, b) auto aa = (a); auto bb = (b);
 #define PRINCIPIA_SET_VERBOSE_LOGGING 1
 
 #include "journal/profiles.generated.cc"

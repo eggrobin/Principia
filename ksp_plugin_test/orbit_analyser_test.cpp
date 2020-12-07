@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <random>
 
 #include "astronomy/standard_product_3.hpp"
 #include "gmock/gmock.h"
@@ -135,6 +136,28 @@ TEST_F(OrbitAnalyserTest, TOPEXPoséidon) {
               Optional(AllOf(Property(&OrbitRecurrence::νₒ, 13),
                              Property(&OrbitRecurrence::Dᴛₒ, -3),
                              Property(&OrbitRecurrence::Cᴛₒ, 10))));
+}
+
+TEST_F(OrbitAnalyserTest, RepeatedlyAnalyse) {
+  OrbitAnalyser analyser(ephemeris_.get(), DefaultHistoryParameters());
+  EXPECT_THAT(analyser.analysis(), IsNull());
+  EXPECT_THAT(analyser.progress_of_next_analysis(), Eq(0));
+  auto const& arc =
+      *topex_poséidon_.orbit(
+          {StandardProduct3::SatelliteGroup::General, 1}).front();
+  ephemeris_->Prolong(arc.begin()->time);
+  std::mt19937_64 r;
+  std::uniform_real_distribution d(0.0, 2.0);
+  for (;;) {
+    absl::SleepFor(absl::Milliseconds(10));
+    analyser.RequestAnalysis(
+        {.first_time = arc.begin()->time,
+         .first_degrees_of_freedom =
+             itrs_.FromThisFrameAtTime(arc.begin()->time)(
+                 {arc.begin()->degrees_of_freedom.position(),
+                  d(r) * arc.begin()->degrees_of_freedom.velocity()}),
+         .mission_duration = 7 * 24 * Hour});
+  }
 }
 
 }  // namespace ksp_plugin
