@@ -127,7 +127,7 @@ class OrbitalElementsTest : public ::testing::Test {
   }
 };
 
-#if !defined(_DEBUG)
+#if 1
 
 TEST_F(OrbitalElementsTest, KeplerOrbit) {
   // The satellite is under the influence of an isotropic Earth and no third

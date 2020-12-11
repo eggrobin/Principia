@@ -9,6 +9,7 @@
 #include "base/jthread.hpp"
 #include "physics/kepler_orbit.hpp"
 #include "quantities/elementary_functions.hpp"
+#include "mathematica/mathematica.hpp"
 
 namespace principia {
 namespace astronomy {
@@ -48,6 +49,16 @@ StatusOr<OrbitalElements> OrbitalElements::ForTrajectory(
   auto const sidereal_period =
       SiderealPeriod(orbital_elements.osculating_equinoctial_elements_);
   RETURN_IF_ERROR(sidereal_period);
+  if (sidereal_period.ValueOrDie() <= Time{}) {
+    std::vector<geometry::Position<PrimaryCentred>> positions;
+    for (auto const& [t, dof] : trajectory) {
+      positions.push_back(dof.position());
+    }
+    std::cout << mathematica::ToMathematica(
+        positions, mathematica::ExpressIn(quantities::si::Metre));
+    LOG(ERROR) << primary.min_radius();
+    LOG(FATAL) << sidereal_period.ValueOrDie();
+  }
   orbital_elements.sidereal_period_ = sidereal_period.ValueOrDie();
   if (!IsFinite(orbital_elements.sidereal_period_)) {
     // Guard against NaN sidereal periods (from hyperbolic orbits).
@@ -55,6 +66,7 @@ StatusOr<OrbitalElements> OrbitalElements::ForTrajectory(
         Error::OUT_OF_RANGE,
         "sidereal period is " + DebugString(orbital_elements.sidereal_period_));
   }
+  CHECK_GT(orbital_elements.sidereal_period_, Time{});
   auto mean_equinoctial_elements =
       MeanEquinoctialElements(orbital_elements.osculating_equinoctial_elements_,
                               orbital_elements.sidereal_period_);
@@ -85,6 +97,11 @@ StatusOr<OrbitalElements> OrbitalElements::ForTrajectory(
     for (auto const& elts : orbital_elements.mean_equinoctial_elements_) {
       LOG(ERROR) << elts.h;
       LOG(ERROR) << elts.k;
+    }
+    for (auto const& elts : mean_classical_elements.ValueOrDie()) {
+      LOG(ERROR) << elts.argument_of_periapsis;
+      LOG(ERROR) << elts.mean_anomaly;
+      LOG(ERROR) << elts.longitude_of_ascending_node;
     }
     for (auto const& elts : orbital_elements.mean_classical_elements_) {
       LOG(ERROR) << elts.argument_of_periapsis;
@@ -227,6 +244,7 @@ inline StatusOr<Time> OrbitalElements::SiderealPeriod(
     std::vector<EquinoctialElements> const& equinoctial_elements) {
   Time const Δt =
       equinoctial_elements.back().t - equinoctial_elements.front().t;
+  CHECK_GT(Δt, Time{});
   Instant const t0 = equinoctial_elements.front().t + Δt / 2;
   Product<Angle, Square<Time>> ʃ_λt_dt;
 
@@ -240,6 +258,7 @@ inline StatusOr<Time> OrbitalElements::SiderealPeriod(
     Time const t = it->t - t0;
     auto const λt = it->λ * t;
     Time const dt = it->t - previous->t;
+    CHECK_GT(dt, Time{});
     ʃ_λt_dt += (λt + previous_λt) / 2 * dt;
     previous_λt = λt;
   }
@@ -293,6 +312,9 @@ OrbitalElements::MeanEquinoctialElements(
     integrals.back().ʃ_a_dt += (it->a + previous->a) / 2 * dt;
     integrals.back().ʃ_h_dt += (it->h + previous->h) / 2 * dt;
     integrals.back().ʃ_k_dt += (it->k + previous->k) / 2 * dt;
+    if (!IsFinite(integrals.back().ʃ_k_dt)) {
+      LOG(ERROR) << integrals.size();
+    }
     integrals.back().ʃ_λ_dt += (it->λ + previous->λ) / 2 * dt;
     integrals.back().ʃ_p_dt += (it->p + previous->p) / 2 * dt;
     integrals.back().ʃ_q_dt += (it->q + previous->q) / 2 * dt;
@@ -312,8 +334,14 @@ OrbitalElements::MeanEquinoctialElements(
         return mean_elements;
       }
     }
+    if (j == 0) {
+      LOG(ERROR) << integrals[j].t_max << " < " << tᵢ << " + " << period;
+    }
     // We have tⱼ₋₁ < tᵢ + period ≤ tⱼ.
     auto const& tⱼ = osculating[j].t;
+    CHECK(IsFinite(period)) << period;
+    CHECK_GT(period, Time{});
+    CHECK_GE(j - 1, 0);
     auto const& tⱼ₋₁ = osculating[j - 1].t;
 
     auto const& up_to_tⱼ₋₁ = integrals[j - 1];
@@ -338,6 +366,12 @@ OrbitalElements::MeanEquinoctialElements(
     mean_elements.back().k =
         (up_to_tⱼ₋₁.ʃ_k_dt - up_to_tᵢ.ʃ_k_dt + ʃ(&EquinoctialElements::k)) /
         period;
+    if (!quantities::IsFinite(mean_elements.back().k)) {
+      LOG(ERROR) << j;
+      LOG(ERROR) << up_to_tⱼ₋₁.ʃ_k_dt;
+      LOG(ERROR) << up_to_tᵢ.ʃ_k_dt;
+      LOG(ERROR) << mean_elements.size();
+    }
     mean_elements.back().λ =
         (up_to_tⱼ₋₁.ʃ_λ_dt - up_to_tᵢ.ʃ_λ_dt + ʃ(&EquinoctialElements::λ)) /
         period;
