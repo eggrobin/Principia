@@ -476,9 +476,8 @@ double cbrt(double const IACA_VOLATILE input) {
   double const q = to_double(Q);
   constexpr double sqrt_one_twelfth = 0.28867513459481288225457439025097872782380087563506;
   double const q² = q * q;
-  double const q⁴ = q² * q²;
   // An approximation of ∛y with a relative error below 2⁻¹⁵.
-  __m128d const ρ_0 = _mm_set_sd(4 * abs_y * q  - q⁴);
+  __m128d const ρ_0 = _mm_fnmadd_sd(_mm_set_sd(q²), _mm_set_sd(q²), _mm_set_sd(4 * abs_y * q));
   double const ξ = _mm_cvtsd_f64(_mm_fmadd_sd(_mm_set_sd(sqrt_one_twelfth / q), _mm_sqrt_sd(ρ_0, ρ_0), _mm_set_sd(0.5 * q)));
   double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
   // One round of 6th order Householder.
