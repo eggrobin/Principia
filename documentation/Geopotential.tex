@@ -1,0 +1,602 @@
+\documentclass[10pt, a4paper, twoside]{basestyle}
+
+\usepackage[Mathematics]{semtex}
+\usepackage{chngcntr}
+\counterwithout{equation}{section}
+
+%%%% Shorthands.
+
+\newcommand{\p}{\AssociatedLegendreFunctionAstro}
+
+%%%% Title and authors.
+
+\title{Geopotential}
+\date{\printdate{2019-01-27}}
+\author{Pascal~Leroy (phl) and Robin~Leroy (egg)}
+\begin{document}
+\maketitle
+\begin{sloppypar}
+\noindent
+This document describes the computations that are performed by the method \texttt{GeneralSphericalHarmonicsAcceleration} of class \texttt{Geopotential} to determine the acceleration exerted by a non-spherical celestial on a point mass.
+\end{sloppypar}
+
+\subsection*{Notation}
+Let $\vr$ be the vector going from the centre of the celestial to the point mass.  Let $\tuple{\hat{\vx}, \hat{\vy}, \hat{\vz}}$ be a (direct) base whose $\hat{\vz}$ axis is along the axis of rotation of the celestial and whose $\hat{\vx}$ axis points toward a reference point on the celestial.  In this base $\vr$ has coordinates $\tuple{x, y, z}$ which can be expressed in terms of the latitude $\gb \in \intclos{\frac{\Pi}{2}}{\frac{\Pi}{2}}$ and the longitude
+$\gl \in \intclos{0}{2 \Pi}$:
+\[
+\vr=\begin{pmatrix}
+x \\ y \\ z
+\end{pmatrix}
+=\begin{pmatrix}
+r \cos \gb \cos \gl\\
+r \cos \gb \sin \gl\\
+r \sin \gb
+\end{pmatrix}
+\]
+where $r$ is the norm of $\vr$.  Note that $\cos \gb > 0$, which will come handy when simplifying expressions like $\sqrt{1 - \sin^2 \gb}$.
+
+\subsection*{Potential and acceleration}
+The gravitational potential due to the celestial has the form\cite{IERSConventions2010}:
+\[
+U\of\vr = -\frac{\gm}{r}\pa{1 + \sum{n = 1}[\infty] \sum{m = 0}[n] 
+\pa{\frac{R}{r}}^n \p{n}{m}\of{\sin \gb}
+\pa{C_{n m} \cos m \gl + S_{n m} \sin m \gl}
+}
+\]
+where $\p{n}{m}$ is the associated Legendre function defined as\cite[appendix]{RiesBettadpurEanesKangKoMcCulloughNagelPiePooleRichterSaveTapley2016}:
+\[
+\p{n}{m} = \pa{1 - t^2}^{\frac{m}{2}} \deriv[m] t {\LegendrePolynomial n\of t}
+\]
+The terms that are relevant for evaluating the acceleration exerted by the spherical harmonics on the point mass have the form:
+\[
+V_{n m}\of\vr = \frac{1}{r}\pa{\frac{R}{r}}^n \p{n}{m}\of{\sin \gb}
+\pa{C_{n m} \cos m \gl + S_{n m} \sin m \gl}
+\]
+and the acceleration itself is proportional to $\grad V_{n m}\of\vr$.
+
+$V_{n m}\of\vr$ can be written as the product of a radial term, a latitudinal term and a longitudinal term, dependent of $r$, $\gb$, and $\gl$, respectively:
+\[
+V_{n m}\of\vr = {\mathfrak R\of r}\,{\mathfrak B\of \gb}\,{\mathfrak L\of \gl}
+\]
+where:
+\[
+\begin{dcases}
+\mathfrak R\of r &= \frac{1}{r}\pa{\frac{R}{r}}^n\\
+\mathfrak B\of \gb &= \p{n}{m}\of{\sin \gb}\\
+\mathfrak L\of \gl &= C_{n m} \cos m \gl + S_{n m} \sin m \gl
+\end{dcases}
+\]
+The overall gradient can then be written as:
+\[
+\grad V_{n m}\of\vr = 
+{\grad \mathfrak R\of r}\,{\mathfrak B\of \gb}\,{\mathfrak L\of \gl} +
+{\mathfrak R\of r}\,{\grad \mathfrak B\of \gb}\,{\mathfrak L\of \gl} +
+{\mathfrak R\of r}\,{\mathfrak B\of \gb}\,{\grad \mathfrak L\of \gl}
+\]
+\subsection*{Lemmata}
+To compute the acceleration, we first determine the gradient of various elements appearing in the potential.  The following lemma determines the gradient of the $\mathfrak R$ term:
+\begin{lemma}
+\[
+\grad r^n = n r^{n - 2} \vr\text.
+\]
+\begin{proof}
+We have trivially:
+\[
+\grad r = \grad \sqrt{x^2 + y^2 + z^2} = \frac{\vr}{r}
+\]
+from which we deduce:
+\[
+\grad r^n = n r^{n - 1} \grad r = n r^{n - 2} \vr
+\]
+\end{proof}
+\end{lemma}
+The following lemma is useful for computing the gradient of the $\mathfrak B$ term:
+\begin{lemma}
+\[
+\grad \sin \gb =\frac{\cos \gb}{r}\begin{pmatrix}
+-\sin \gb \cos \gl \\
+-\sin \gb \sin \gl \\
+\cos \gb
+\end{pmatrix}\text.
+\]
+\begin{proof}
+Noting that $\grad z = \hat{\vz}$ we have:
+\[
+\grad \sin \gb = \grad \frac{z}{r}
+= \frac{r \hat{\vz} - z r^{-1} \vr}{r^2} = \frac{r^2 \hat{\vz} - z \vr}{r^3}
+\]
+which can be written, in coordinates:
+\[
+\grad \sin \gb =\frac{1}{r^3}\begin{pmatrix}
+-x z \\ -y z \\ x^2 + y^2
+\end{pmatrix}
+=\frac{1}{r^3}\begin{pmatrix}
+-r^2 \sin \gb \cos \gb \cos \gl \\
+-r^2 \sin \gb \cos \gb \sin \gl \\
+r^2 \cos^2 \gb
+\end{pmatrix}
+=\frac{\cos \gb}{r}\begin{pmatrix}
+-\sin \gb \cos \gl \\
+-\sin \gb \sin \gl \\
+\cos \gb
+\end{pmatrix}
+\]
+\end{proof}
+\end{lemma}
+For the $\mathfrak L$ term, we will need to evaluate the quantities:
+\[
+\begin{cases}
+\grad \cos m \gl &= -m \sin m \gl \, \grad \gl \\
+\grad \sin m \gl &= m \cos m \gl \, \grad \gl
+\end{cases}
+\]
+The following lemma helps with that computation:
+\begin{lemma}
+\[
+\grad \gl = \frac{1}{r \cos \gb}\begin{pmatrix}
+-\sin \gl \\
+\cos \gl \\
+0
+\end{pmatrix}\text.
+\]
+\begin{proof}
+The angle $\gl$ is $\arctan\frac{y}{x}$ thus:
+\[
+\grad \gl = \frac{1}{1 + \pa{\frac{y}{x}}^2} \grad\of{\frac{y}{x}}
+= \frac{1}{1 + \pa{\frac{y}{x}}^2}\frac{x \hat{\vy} - y \hat{\vx}}{x^2}
+= \frac{x \hat{\vy} - y \hat{\vx}}{x^2 + y^2}
+\]
+which can be written, in coordinates:
+\[
+\grad \gl = \frac{1}{x^2 + y^2}\begin{pmatrix}
+-y \\
+x \\
+0
+\end{pmatrix}
+= \frac{1}{r^2 \cos^2 \gb}\begin{pmatrix}
+-r \cos \gb \sin \gl \\
+r \cos \gb \cos \gl \\
+0
+\end{pmatrix}
+= \frac{1}{r \cos \gb}\begin{pmatrix}
+-\sin \gl \\
+\cos \gl \\
+0
+\end{pmatrix}
+\]
+\end{proof}
+\end{lemma}
+Finally, we will need the gradient of the associated Legendre polynomial, given by the following lemma:
+\begin{lemma}
+\[
+\p{n}{m}'\of{t} 
+= \pa{1 - t^2}^{\frac{m}{2}}\deriv[m + 1]{t}{\LegendrePolynomial{n}\of t} - 
+m t \pa{1 - t^2}^{\frac{m - 2}{2}} \deriv[m]{t}{\LegendrePolynomial{n}\of t}\text.
+\]
+\begin{proof}
+This follows trivially from the definition:
+\[
+\p{n}{m}'\of{t} = \frac{m}{2} \pa{1 - t^2}^{\frac{m}{2} - 1}
+\pa{-2 t} \deriv[m]{t}{\LegendrePolynomial{n}\of t} +
+\pa{1 - t^2}^{\frac{m}{2}} \deriv[m + 1]{t}{\LegendrePolynomial{n}\of t}
+\]
+\end{proof}
+\end{lemma}
+\subsection*{Gradients}
+We can now compute the gradient of the three terms that make up $V_{n m}\of\vr$.  First, the radial term:
+\[
+\grad \mathfrak R\of r = R^n \grad r^{-\pa{n + 1}} = -\pa{n + 1} R^n r^{-\pa{n + 3}} \vr
+=-\pa{n + 1}\frac{\mathfrak R\of r}{r^2} \vr
+\]
+For the latitudinal term, the chain rule yields:
+\[
+\grad \mathfrak B\of \gb = \p{n}{m}\of{\sin \gb} \, \grad \sin \gb
+= \p{n}{m}'\of{\sin \gb} \frac{\cos \gb}{r}\begin{pmatrix}
+-\sin \gb \cos \gl \\
+-\sin \gb \sin \gl \\
+\cos \gb
+\end{pmatrix}
+\]
+Substituting $\sin \gb$ for the argument of $\p{n}{m}$ and its derivative we obtain:
+\[
+\begin{dcases}
+\p{n}{m}\of{\sin \gb} = {\cos^m \gb}
+\Evaluate{\deriv[m]{t}{\LegendrePolynomial{n}\of t}}{t = \sin \gb} \\
+\p{n}{m}'\of{\sin \gb} 
+= {\cos^m \gb} \Evaluate{\deriv[m + 1]{t}{\LegendrePolynomial{n}\of t}}{t = \sin \gb} -
+m \sin \gb \pa{\cos \gb}^{m - 2}
+\Evaluate{\deriv[m]{t}{\LegendrePolynomial{n}\of t}}{t = \sin \gb}
+\end{dcases}
+\]
+and thus:
+\[
+\begin{dcases}
+\mathfrak B\of \gb = {\cos^m \gb}
+\Evaluate{\deriv[m]{t}{\LegendrePolynomial{n}\of t}}{t = \sin \gb} \\
+\grad \mathfrak B\of \gb = \frac{1}{r}
+\pa{\pa{\cos \gb}^{m + 1}
+\Evaluate{\deriv[m + 1]{t}{\LegendrePolynomial{n}\of t}}{t = \sin \gb} -
+m \sin \gb \pa{\cos \gb}^{m - 1}
+\Evaluate{\deriv[m]{t}{\LegendrePolynomial{n}\of t}}{t = \sin \gb}\qquad\ \,}
+\begin{pmatrix}
+-\sin \gb \cos \gl \\
+-\sin \gb \sin \gl \\
+\cos \gb
+\end{pmatrix}
+\end{dcases}
+\]
+For the longitudinal term we have:
+\[
+\grad \mathfrak L\of \gl = \pa{-m C_{n m} \sin m \gl + m S_{n m} \cos m \gl} \grad \gl
+= \frac{m}{r \cos \gb} \pa{S_{n m} \cos m \gl - C_{n m} \sin m \gl} \begin{pmatrix}
+-\sin \gl \\
+\cos \gl \\
+0
+\end{pmatrix}
+\]
+\subsection*{Singularities}
+While the above formulæ are all we need to compute the gradient of the geopotential, they present a number of singularities that require some care for implementation purposes.
+
+There is obviously a pole when $r = 0$.  This one is not very interesting as we are never going to compute the acceleration at the centre of the celestial.
+
+There are however removable singularities that arise when $\cos \gb$ appears at the denominator: any point on the axis of rotation of the celestial has $\cos \gb = 0$, but clearly the acceleration there is finite.
+
+Consider $\grad \mathfrak B\of \gb$.  When $m = 0$ it includes a term in $\pa{\cos \gb}^{-1}$.  However, that term is multiplied by $m$, so it vanishes.  Thus, for $m = 0$ we must use the special formula:
+\[
+{\grad \mathfrak B\of \gb}_{m = 0} =  \frac{\cos \gb}{r}
+\Evaluate{\deriv{t}{\LegendrePolynomial{n}\of t}}{t = \sin \gb}\qquad\begin{pmatrix}
+-\sin \gb \cos \gl \\
+-\sin \gb \sin \gl \\
+\cos \gb
+\end{pmatrix}
+\]
+Similarly $\grad \mathfrak L\of \gl$ has $\cos \gb$ as its denominator.  To eliminate this term we note that $\grad \mathfrak L\of \gl$ always occurs in a product involving $\mathfrak B\of \gb$.  Let's write this product:
+\[
+{\mathfrak B\of \gb}{\grad \mathfrak L\of \gl} = \frac{m \pa{\cos \gb}^{m - 1}}{r}
+\Evaluate{\deriv[m]{t}{\LegendrePolynomial{n}\of t}}{t = \sin \gb}
+\pa{S_{n m} \cos m \gl - C_{n m} \sin m \gl}\begin{pmatrix}
+-\sin \gl \\
+\cos \gl \\
+0
+\end{pmatrix}
+\]
+When $m = 0$ this expression has a term in $\pa{\cos \gb}^{-1}$ so we need to special-case it:
+\[
+{\mathfrak B\of \gb}{\grad \mathfrak L\of \gl}_{m = 0} = 0
+\]
+\subsection*{Implementation considerations}
+A naïve implementation of the preceding formulæ yields poor performance because of the computation of trigonometric functions, powers and polynomials.  It is advantageous
+to use simple geometric identities and recurrence formulæ to avoid these computations, at the expense of a small amount of storage.  First, we note that:
+\[
+x^2 + y^2 = r^2 \cos^2 \gb
+\]
+and therefore we obtain the trigonometric functions for $\gb$:
+\[
+\begin{dcases}
+\cos \gb = \frac{\sqrt{x^2 + y^2}}{r} \\
+\sin \gb = \frac{z}{r}
+\end{dcases}
+\]
+and for $\gl$:
+\[
+\begin{dcases}
+\cos \gl = \frac{x}{\sqrt{x^2 + y^2}} \\
+\sin \gl = \frac{y}{\sqrt{x^2 + y^2}}
+\end{dcases}
+\]
+In the case where $\sqrt{x^2 + y^2}$ is $0$, any value will do for $\gl$, so we can for instance pick $\cos \gl = 1$ and $\sin \gl = 0$.
+
+The value of $\cos^m \gb$ may be computed by recurrence with a relative error growing like $\BigO\of m$.  If $m$ is even, we have:
+\[
+\begin{dcases}
+h = \frac m 2 \\
+\cos^m \gb = \pa{\cos^h \gb}^2
+\end{dcases}
+\]
+and if $m$ is odd:
+\[
+\begin{dcases}
+h_1 = \Floor{\frac m 2} \\
+h_2 = m - h_1 \\
+\cos^m \gb = \pa{\cos^{h_1} \gb}\pa{\cos^{h_2} \gb}
+\end{dcases}
+\]
+The value of $\cos m \gl$ and $\sin m \gl$ may similarly be computed using elementary trigonometric identities with an absolute error growing like $\BigO\of {m^2}$.  If $m$ is even, we have:
+\[
+\begin{dcases}
+h = \frac m 2 \\
+\cos m \gl = \pa{\cos h \gl + \sin h \gl}\pa{\cos h \gl - \sin h \gl} \\
+\sin m \gl = 2 \sin h \gl \cos h \gl
+\end{dcases}
+\]
+and if $m$ is odd:
+\[
+\begin{dcases}
+h_1 = \Floor{\frac m 2} \\
+h_2 = m - h_1 \\
+\sin m \gl = \sin h_1 \gl \cos h_2 \gl + \cos h_1 \gl \sin h_2 \gl \\
+\cos m \gl = \cos h_1 \gl \cos h_2 \gl - \sin h_1 \gl \sin h_2 \gl
+\end{dcases}
+\]
+For the Legendre polynomials, we are looking for a recurrence relationship among terms of the form $\deriv[m]{t}{\LegendrePolynomial{n}\of t}$.  First note that these terms are $0$ when $m > n$.  We start with the recurrence defining the polynomials themselves:
+\[
+n \LegendrePolynomial{n}\of t = \pa{2 n - 1} t \LegendrePolynomial{n - 1}\of t - \pa{n - 1} \LegendrePolynomial{n - 2}\of t
+\]
+and we derive $m$ times:
+\[
+n \deriv[m]{t}{\LegendrePolynomial{n}\of t} = \pa{2 n - 1} \deriv[m]{t}{\pa{t \LegendrePolynomial{n - 1}\of t}} - \pa{n - 1} \deriv[m]{t}{\LegendrePolynomial{n - 2}\of t}
+\]
+It's easy to verify, by recurrence, that:
+\[
+\deriv[m]{t}{\pa{t \LegendrePolynomial{n}\of t}} = t \deriv[m]{t}{\LegendrePolynomial{n}\of t} + m \deriv[m - 1]{t}{\LegendrePolynomial{n}\of t}
+\]
+so we end up with:
+\[
+n \deriv[m]{t}{\LegendrePolynomial{n}\of t} =
+\pa{2 n - 1}\pa{t \deriv[m]{t}{\LegendrePolynomial{n - 1}\of t} + m \deriv[m - 1]{t}{\LegendrePolynomial{n - 1}\of t}} -
+\pa{n - 1} \deriv[m]{t}{\LegendrePolynomial{n - 2}\of t}
+\]
+This recurrence starts with ${\LegendrePolynomial{0}\of t} = 1$, ${\LegendrePolynomial{1}\of t} = t$ and ${\deriv{t}{\LegendrePolynomial{1}\of t}} = 1$.  It is similar to \cite[eqn. (12)]{Westra2017} and makes it possible to efficiently evaluate $\Evaluate{\deriv[m]{t}{\LegendrePolynomial{n}\of t}}{t = \sin \gb}$ for increasing values of $n$ and $m$.
+
+\section*{Damping}
+In order to reduce the computational cost, we ignore high degree and order terms at long range.
+This is done by replacing $\mathfrak R\of{r}$ by $\gs\of r \mathfrak R\of r$ in $V_{nm}$, where
+$\gs\of r = 0$ for all $r>s_1$, and $\gs\of r = 1$ for all $r<s_0$, so that the $V_{nm}$ term
+vanishes at long range and is unaffected at short range.
+
+In the force computations, this means that $\grad\mathfrak R$ is replaced by\[
+\grad \pa{\gs\mathfrak R} = \pa{\gs'\mathfrak R + \gs\mathfrak R'} \frac \vr r\text.
+\]
+
+\subsection*{Sigmoid}
+Since we want the force to remain continuous, we need $\gs$ to be $\Cont[1]$; we achieve this by
+making $\gs$ the cubic Hermite interpolation on the non-constant interval $\intclos {s_0} {s_1}$,
+\[
+\gs\of r=
+\begin{cases}
+1 &\text{for }r \leq s_0\text, \\
+\frac{\pa{r-s_1}^2\pa{2r-3s_0+s_1}}{\pa{s_1-s_0}^3} &\text{for }r \in \intclos {s_0} {s_1}\text, \\
+0 &\text{for }r \geq s_1\text.
+\end{cases}
+\]
+The radial component of the acceleration resulting from $V_{nm}$ is 
+\[
+\gm\InnerProduct {\grad V_{nm}}{\frac \vr r} = \gm \deriv r {{\gs\of r \mathfrak R\of r}}{\mathfrak B\of \gb}\,{\mathfrak L\of \gl}\text.
+\]
+We require that it and all its derivatives be monotone, \idest, that
+\[
+\forall k \in \Positives, \deriv[k+1] r {\gs\of r \mathfrak R\of r}{\mathfrak B\of \gb}\,{\mathfrak L\of \gl}
+\]
+have constant sign for $r \in \intclos {s_0} {s_1}$.
+
+Removing those factors that do not depend on $r$, this means that we must have
+\begin{equation}
+\forall r \in \intopen{s_0} {s_1}, \deriv[k+1] r {\gs\of r r^{-\pa{n+1}}} \neq 0\label{eqnderiv}\text.
+\end{equation}
+
+\begin{proposition}
+The smallest value of $s_1$ such that (\ref{eqnderiv}) holds for all $k>0$ and $n≥2$ is $s_1 = 3s_0$.
+\begin{proof}
+We start by writing:
+\[
+\gs\of{r} = \sum{m = 0}[3] a_m r^m
+\]
+where:
+\[
+\begin{dcases}
+a_0 &= \frac{\pa{s_1-3s_0}{s_1}^2}{\pa{s_1-s_0}^3} \\
+a_1 &= \frac{6s_0 s_1}{\pa{s_1-s_0}^3} \\
+a_2 &= \frac{-3\pa{s_0+s_1}}{\pa{s_1-s_0}^3} \\
+a_3 &= \frac{2}{\pa{s_1-s_0}^3}
+\end{dcases}
+\]
+The function being derived in (\ref{eqnderiv}) is:
+\[
+\gs\of{r} r^{-\pa{n+1}} = \sum{m = 0}[3] a_m r^{-\pa{n-m+1}}
+\]
+The p-th derivative of $r^{-q}$ for $q > 0$ is:
+\[
+\deriv[p] r {r^{-q}} = \pa{-1}^p \frac{\Factorial{\pa{q+p-1}}}{\Factorial{\pa{q-1}}} r^{-\pa{q+p}}
+\]
+Whence:
+\begin{align*}
+\deriv[k+1] r {\gs\of r r^{-\pa{n+1}}} &= \pa{-1}^{\pa{k+1}} \sum{m = 0}[3] a_m \frac{\Factorial{\pa{n+k-m+1}}}{\Factorial{\pa{n-m}}} r^{-\pa{n+k-m+2}} \\
+&= \pa{-1}^{\pa{k+1}} r^{-\pa{n+k+2}} \frac{\Factorial{\pa{n+k-2}}}{\Factorial{n}}
+\begin{aligned}[t]
+&\;\Bigl[a_0 \pa{n+k+1}\pa{n+k}\pa{n+k-1} \\
+&+a_1 \pa{n+k}\pa{n+k-1} n r \\
+&+a_2 \pa{n+k-1} n \pa{n-1} r^2 \\
+&+a_3 n \pa{n-1}\pa{n-2} r^3\Bigr]
+\end{aligned}
+\end{align*}
+Substituting the values of the $\pa{a_i}$, we see that the zeroes of $\deriv[k+1] r {\gs\of r r^{-\pa{n+1}}}$ are those of the polynomial:
+\begin{align*}
+d_{n k}\of{s_0, s_1; r} &= \pa{s_1-3s_0}{s_1}^2 \pa{n+k+1}\pa{n+k}\pa{n+k-1} \\
+&\quad + 6s_0 s_1 \pa{n+k}\pa{n+k-1} n r \\
+&\quad -3\pa{s_0+s_1}\pa{n+k-1} n \pa{n-1} r^2 \\
+&\quad + 2 n \pa{n-1}\pa{n-2} r^3
+\end{align*}
+The following three lemmata establish properties of the roots of $d_{n k}\of{s_0, s_1; r}$:
+\begin{lemma}[necessary condition, general case]
+If $\frac{9}{7}s_0<s_1<3s_0$ then there exist $k$ and $n$ such that $d_{n k}\of{s_0, s_1; r}$ has a zero in $\intopen{s_0} {s_1}$.
+\end{lemma}
+\begin{lemma}[necessary condition, special case]
+If $s_0<s_1<\pa{1+\frac{\sqrt{2}}{2}}s_0$ then there exist $k$ and $n$ such that $d_{n k}\of{s_0, s_1; r}$ has a zero in $\intopen{s_0} {s_1}$.
+\end{lemma}
+\begin{lemma}[sufficient condition]
+If $s_1 = 3s_0$ then the positive roots of $d_{n k}\of{s_0, s_1; r}$ are greater than $s_1$.
+\end{lemma}
+These lemmata trivially constitute necessary and sufficient conditions, respectively, for the proposition.
+\end{proof}
+\end{proposition}
+\begin{proof}[of necessary condition, general case]
+In this proof we set $n=2$, which causes the term in $r^3$ of $d_{n k}\of{s_0, s_1; r}$ to vanish:
+\begin{multline*}
+d_{2,k}\of{s_0, s_1; r} = \pa{s_1-3s_0}s_1^2\pa{k+3}\pa{k+2}\pa{k+1} \\+ 12s_0 s_1\pa{k+2}\pa{k+1}r - 6\pa{s_0+s_1}\pa{k+1}r^2
+\end{multline*}
+The roots of $d_{2,k}\of{s_0, s_1; r}$ can be computed by solving:
+\[
+\pa{s_1-3s_0}s_1^2\pa{k+3}\pa{k+2} + 12s_0 s_1\pa{k+2}r - 6\pa{s_0+s_1}r^2 = 0
+\]
+The reduced discriminant of this equation is:
+\begin{align*}
+\gD' &= 36 s_0^2 s_1^2 \pa{k+2}^2 + 6\pa{s_0+s_1}\pa{s_1-3s_0}s_1^2\pa{k+2}\pa{k+3}\\
+&= 6 s_1^2\pa{k+2}\pa{6 s_0^2\pa{k+2}+\pa{s_1^2-2 s_0 s_1-3s_0^2}\pa{k+3}}\\
+&= 6 s_1^2\pa{k+2}\pa{k\pa{s_1^2-2 s_0 s_1 + 3s_0^2} + 3\pa{s_1-s_0}^2}
+\end{align*}
+and its solutions are:
+\[
+r_± = s_1\frac{6 s_0\pa{k+2} ± \sqrt{6\pa{k+2}\pa{k\pa{s_1^2-2 s_0 s_1 + 3s_0^2} + 3\pa{s_1-s_0}^2}}}{6\pa{s_0+s_1}}
+\]
+We will now define $k_1$ and $k_2$ such that the following claim holds:
+\begin{claim}
+For every $k \in \intopen{k_2}{k_1}\Intersection\intclop{2}{+\infty}\Intersection{\Naturals}$, $r_- \in \intopen{s_0}{s_1}$.
+\begin{proof}
+First, consider the inequality $r_-<s_1$.  It can be rewritten as follows:
+\begin{align*}
+&6 s_0\pa{k+2} - 6\pa{s_0+s_1} < \sqrt{6\pa{k+2}\pa{k\pa{s_1^2-2 s_0 s_1 + 3s_0^2} + 3\pa{s_1-s_0}^2}}
+\end{align*}
+If $k≥2$ the left-hand side is positive and we can further rewrite the inequality:
+\begin{align*}
+&6\pa{k s_0 + \pa{s_0-s_1}}^2 < \pa{k+2}\pa{k\pa{s_1^2-2 s_0 s_1 + 3s_0^2} + 3\pa{s_1-s_0}^2} \\
+\iff &6\pa{k^2 s_0^2 + 2 k s_0 \pa{s_0 - s_1} + \pa{s_0 - s_1}^2} < \\
+&\qquad k^2 \pa{s_1^2-2 s_0 s_1 + 3s_0^2} + k \pa{3\pa{s_1-s_0}^2 + 2\pa{s_1^2-2 s_0 s_1 + 3s_0^2}} + 6\pa{s_0 - s_1}^2 \\
+\iff &k^2\pa{3s_0^2 + 2 s_0 s_1 - s_1^2} + k\pa{12 s_0\pa{s_0-s_1} - 3\pa{s_1-s_0}^2 - 2\pa{s_1^2-2 s_0 s_1 + 3s_0^2}} < 0 \\
+\iff &k\pa{3s_0^2 + 2 s_0 s_1 - s_1^2} + \pa{3s_0^2 -2 s_0 s_1 - 5 s_1^2} < 0 \\
+\iff &k\pa{3s_0-s_1}\pa{s_0+s_1} + \pa{3s_0 - 5s_1}\pa{s_0+s_1} < 0 \\
+\iff &k < \frac{5s_1-3s_0}{3s_0-s_1}=:k_1
+\end{align*}
+Similarly, the inequality $s_0<r_-$ can be rewritten as follows:
+\begin{align*}
+&6 s_0 s_1\pa{k+2} - 6\pa{s_0+s_1}s_0 > s_1 \sqrt{6\pa{k+2}\pa{k\pa{s_1^2-2 s_0 s_1 + 3s_0^2} + 3\pa{s_1-s_0}^2}} \\
+\iff &6 s_0^2\pa{k s_1 + \pa{s_1-s_0}}^2 > s_1^2\pa{k+2}\pa{k\pa{s_1^2-2 s_0 s_1 + 3s_0^2} + 3\pa{s_1-s_0}^2} \\
+\iff &6 s_0^2\pa{k^2 s_1^2 + 2 k s_1\pa{s_1-s_0} + \pa{s_1-s_0}^2} > \\
+&\qquad k^2 s_1^2\pa{s_1^2-2 s_0 s_1 + 3s_0^2} + k s_1^2\pa{3\pa{s_1-s_0}^2 + 2\pa{s_1^2-2 s_0 s_1 + 3s_0^2}} + 6 s_1^2\pa{s_0 - s_1}^2 \\
+\iff &k^2 s_1^2\pa{3s_0^2 + 2 s_0 s_1 - s_1^2} + k s_1\pa{-5s_1^3 + 10 s_0 s_1^2 + 3 s_0^2 s_1 - 12 s_0^3} + 6\pa{s_0-s_1}^3\pa{s_0+s_1} > 0 \\
+\iff &k^2 s_1^2\pa{3s_0-s_1}\pa{s_0+s_1} + k s_1\pa{-5s_1^2 + 15 s_0 s_1 - 12s_0^2}\pa{s_0+s_1} + 6\pa{s_0-s_1}^3\pa{s_0+s_1} > 0 \\
+\iff &k^2 s_1^2\pa{3s_0-s_1} + k s_1\pa{-5s_1^2 + 15 s_0 s_1 - 12s_0^2} + 6\pa{s_0-s_1}^3 > 0
+\end{align*}
+When $s_1<3s_0$, the coefficient of $k^2$ in the polynomial above is positive.  The constant term is negative, therefore the product of the roots is negative.  For the inequality to be true, $k$ must be greater than the largest root the polynomial.  The discriminant of the polynomial is:
+\[
+\gD = s_1^2\pa{\pa{-5s_1^2 + 15 s_0 s_1 - 12s_0^2}^2 - 24\pa{3s_0-s_1}\pa{s_0-s_1}^3}
+\]
+And the largest root is:
+\[
+k_2 = \frac{-s_1\pa{-5s_1^2 + 15 s_0 s_1 - 12s_0^2} + \sqrt{\gD}}{2s_1^2\pa{3s_0-s_1}}
+\]
+\end{proof}
+\end{claim}
+\begin{claim}
+$\intopen{k_2}{k_1}\Intersection\intclop{2}{+\infty}\Intersection{\Naturals}$ is nonempty when $s_1>\frac{9}{7}s_0 \approx 1.286s_0$.
+\begin{proof}
+For this set to be nonempty we must have $k_1>2$ which is equivalent to $s_1>\frac{9}{7}s_0$.  Given $k_1>2$, a sufficient condition for the interval $\intopen{k_2}{k_1}$ to contain an integer greater than $1$ is $k_1-k_2>1$.  This inequality can be rewritten as follows:
+\begin{align*}
+&2s_1^2\pa{5s_1-3s_0} + s_1\pa{-5s_1^2 + 15 s_0 s_1 - 12s_0^2} - 2s_1^2\pa{3s_0-s_1} - \sqrt{\gD} > 0 \\
+\iff &s_1\pa{7s_1^2 + 3 s_0 s_1 - 12s_0^2} > \sqrt{\gD}
+\end{align*}
+This inequality can only be true if the left-hand side is positive, that is, if $s_1 ≥ \frac{\sqrt{345}-3}{14}s_0 \approx 1.112s_0$.  Assuming that this condition is met we can further rewrite the inequality:
+\begin{align*}
+&\pa{7s_1^2 + 3 s_0 s_1 - 12s_0^2}^2 > \pa{-5s_1^2 + 15 s_0 s_1 - 12s_0^2}^2 - 24\pa{3s_0-s_1}\pa{s_0-s_1}^3 \\
+\iff &49s_1^4 + 42 s_0 s_1^3 - 159 s_0^2 s_1^2 - 72 s_0^3 s_1 + 144 s_0^4 > \\
+&\qquad s_1^4 - 6 s_0 s_1^3 + 57 s_0^2 s_1^2 - 120 s_0^3 s_1 + 72 s_0^4 \\
+\iff &24\pa{s_1-s_0}\pa{2s_1^3 + 4 s_0 s_1^2 - 5 s_0^2 s_1 - 3s_0^3} > 0
+\end{align*}
+The sum of the roots of $2s_1^3 + 4 s_0 s_1^2 - 5 s_0^2 s_1 - 3s_0^3$ is $-2s_0$ and the product is $3s_0/2$.  This means that this polynomial has a single positive root in $s_1$ and that when $s_1$ is greater than this root the inequality above holds.  Solving the cubic using $\emph{Mathematica}$ yields this root:
+\begin{align*}
+\hat\gq &= \frac{1}{3} \arctan\of{\frac{3 \sqrt{2517}}{41}} \\
+\hat{s}_1 &= \frac{s_0}{6}\pa{-4+\sqrt{138}\sin\hat\gq + \sqrt{46}\cos\hat\gq} \approx 1.183s_0
+\end{align*}
+Noting that $\hat{s}_1<\frac{9}{7}s_0$, we conclude that, if $s_1 \in \intopen{\frac{9}{7}s_0}{3s_0}$ it is possible to find an integer $k≥2$ such that the smallest root of $d_{2,k}\of{s_0, s_1; r}$ is in $\intopen{s_0} {s_1}$.
+\end{proof}
+\end{claim}
+\end{proof}
+
+\begin{proof}[of necessary condition, special case]
+In this proof we set $n=2$ and $k=1$.
+\begin{claim}
+If $s_1<2s_0$, then for every $k \in \intopen{k_2}{k_1}\Intersection{\Positives}$, $r_- \in \intopen{s_0}{s_1}$.
+\begin{proof}
+The inequality $r_-<s_1$ can be rewritten as in the previous proof, with the caveat that since the condition $k≥2$ does not hold anymore, we have to require $s_1<2s_0$ for the quantity $s_0\pa{k+2}-\pa{s_0+s_1}$ to be positive.  This is acceptable since we are looking for a proof when $s_1$ is close to $s_0$.  The inequality $s_0<r_-$ is unaffected by any condition on $k$ so the definition of $k_2$ remains valid.
+\end{proof}
+\end{claim}
+\begin{claim}
+$1 \in \intopen{k_2}{k_1}$ when $s_1<\pa{1+\frac{\sqrt{2}}{2}}s_0 \approx 1.707s_0$.
+\begin{proof}
+The inequality $1<k_1$ can be rewritten:
+\[
+1 < \frac{5s_1-3s_0}{3s_0-s_1} \iff s_0 > s_1 \qquad\text{which is trivially true.}
+\]
+The inequality $s_0<r_-$ can be rewritten as in the previous proof and becomes, substituting $k$:
+\begin{align*}
+&k^2 s_1^2\pa{3s_0-s_1} + k s_1\pa{-5s_1^2 + 15 s_0 s_1 - 12s_0^2} + 6\pa{s_0-s_1}^3 > 0 \\
+\iff &s_1\pa{-6s_1^2 + 18 s_0 s_1 - 12 s_0^2} + 6\pa{s_0-s_1}^3 > 0 \\
+\iff &-2s_1^3 + 6 s_0 s_1^2 - 5 s_0^2 s_1 + s_0^3 > 0 \\
+\iff &\pa{s_1 - s_0}\pa{-2 s_1^2 + 4 s_0 s_1 - s_0^2} > 0
+\end{align*}
+The quadratic term in the above condition is positive between its roots, and its only root greater than $s_0$ is $\pa{1+\frac{\sqrt{2}}{2}}s_0$.  Thus, if $s_1 \in \intopen{s_0}{\pa{1+\frac{\sqrt{2}}{2}}s_0}$ the smallest root of $d_{2,1}\of{s_0, s_1; r}$ is in $\intopen{s_0} {s_1}$.
+\end{proof}
+\end{claim}
+\end{proof}
+
+\begin{proof}[of sufficient condition]
+With the choice $s_1=3s_0$ the constant term of the polynomial $d_{n k}\of{s_0, s_1; r}$ vanishes and $r=0$ is a trivial root.  We are left with the equation:
+\[
+6s_0 s_1 \pa{n+k}\pa{n+k-1} - 3\pa{s_0+s_1}\pa{n+k-1} \pa{n-1} r + 2 \pa{n-1}\pa{n-2} r^2 = 0
+\]
+or, substituting $s_1$:
+\begin{equation}
+9{s_0}^2 \pa{n+k}\pa{n+k-1} - 6 s_0 \pa{n+k-1} \pa{n-1} r + \pa{n-1}\pa{n-2} r^2 = 0 \label{eqn3s0}
+\end{equation}
+The reduced discriminant of equation (\ref{eqn3s0}) is:
+\begin{align*}
+\gD' &= 9 {s_0}^2 \pa{n+k-1}^2 \pa{n-1}^2 - 9 {s_0}^2 \pa{n+k}\pa{n+k-1}\pa{n-1}\pa{n-2}\\
+&=9 {s_0}^2\pa{n+k-1}\pa{n-1}\pa{k+1}
+\end{align*}
+and its solutions are, when $n>2$:
+\[
+r_± = 3 s_0\frac{\pa{n+k-1}\pa{n-1} ± \sqrt{\pa{n+k-1}\pa{n-1}\pa{k+1}}}{\pa{n-1}\pa{n-2}}
+\]
+We want to prove that the smallest root, $r_-$ verifies $r_{-}>3s_0$.  This inequality can be rewritten:
+\begin{align*}
+&\pa{n+k-1}\pa{n-1} - \pa{n-1}\pa{n-2} > \sqrt{\pa{n+k-1}\pa{n-1}\pa{k+1}} \\
+\iff &\pa{n-1}\pa{k+1} > \sqrt{\pa{n+k-1}\pa{n-1}\pa{k+1}} \\
+\iff &\pa{n-1}\pa{k+1} > n+k-1 \\
+\iff &k\pa{n-2} > 0 \quad \text{which is trivally true.}
+\end{align*}
+When $n=2$ equation (\ref{eqn3s0}) further reduces to a first-degree equation with root $r = \frac{3}{2} s_0 \pa{k+2}$ which verifies $r≥3s_0$.  Note however that the latter inequality is not strict, \idest, the value $3s_0$ may be reached if $k=0$ and $n=2$.
+\end{proof}
+Accordingly, we pick $s_1=3s_0$.
+The expression for $\gs$ on $\intclos {s_0} {s_1}$ simplifies to\[
+\gs\of r = \frac{r \pa{r-3s_0}^2} {4 s_0^3} = \frac{r^3}{4 s_0^3} - \frac{3 r^2}{2s_0^2} + \frac{9r}{4s_0}\text.
+\]
+
+\subsection*{Threshold}
+For a tolerance $\gce$, we choose $s_0$ as the smallest distance such that the radial component of the force at $s_0$
+does not exceed $\gce$ times the magnitude of the central force,
+\[
+\max_{\gl,\gb} \abs{s_0^2\mathfrak R' \of {s_0} \mathfrak B \of \gb \mathfrak L\of\gl}
+= \gce\text.
+\]
+This maximum decomposes to
+\[
+\max_{\gl,\gb} \abs{s_0^2\mathfrak R' \of {s_0} \mathfrak B \of \gb \mathfrak L\of\gl}
+= \abs{s_0^2\mathfrak R' \of {s_0}} \max_\gb\abs{\mathfrak B \of \gb} \max_\gl \abs{\mathfrak L\of\gl}\text.
+\]
+The first factor is
+\[
+\abs{s_0^2\mathfrak R' \of {s_0}}=s_0^2\frac{\pa{n+1}\mathfrak R\of{s_0}}{s_0}=\pa{n+1}\frac{R^n}{s_0^n}\text.
+\]
+We have \begin{align*}
+\max_\gl \abs{\mathfrak L\of\gl}
+&= \max_\gl \abs{C_{nm}\cos m\gl + S_{nm} \sin m\gl}\\
+&= \max_\gl \abs{\operatorname{Re}\of{\pa{C_{nm} + \I S_{nm}}\E^{-\I m\gl}}}\\
+&= \abs{C_{nm} + \I S_{nm}} = \sqrt{C_{nm}^2 + S_{nm}^2}\text,
+\end{align*}
+and we numerically compute and tabulate \[
+\max_\gb\abs{\mathfrak B \of \gb} = \max_\gb\abs{\p nm\of{\sin \gb}}\text.
+\]
+Thus we can compute the desired $s_0$ as
+\[
+s_0 = R \pa{\frac{\max_\gb\abs{\p nm\of{\sin \gb}}\pa{n+1}\sqrt{C_{nm}^2 + S_{nm}^2}}{\gce}}^{\frac 1 n}\text.
+\]
+\end{document}

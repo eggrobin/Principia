@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "base/array.hpp"
-#include "geometry/named_quantities.hpp"
+#include "geometry/hilbert.hpp"
 #include "quantities/named_quantities.hpp"
 
 namespace principia {
@@ -16,7 +16,7 @@ namespace internal_hermite3 {
 using base::BoundedArray;
 using quantities::Derivative;
 using quantities::Difference;
-using geometry::Normed;
+using geometry::Hilbert;
 
 // A 3rd degree Hermite polynomial defined by its values and derivatives at the
 // bounds of some interval.
@@ -26,7 +26,7 @@ class Hermite3 final {
  public:
   using Derivative1 = Derivative<Value, Argument>;
 
-  Hermite3(std::pair<Argument, Argument> const& arguments,
+  Hermite3(std::pair<Argument, Argument> arguments,
            std::pair<Value, Value> const& values,
            std::pair<Derivative1, Derivative1> const& derivatives);
 
@@ -44,7 +44,7 @@ class Hermite3 final {
   // Returns the largest error (in the given |norm|) between this polynomial and
   // the given |samples|.
   template<typename Samples>
-  typename Normed<Difference<Value>>::NormType LInfinityError(
+  typename Hilbert<Difference<Value>>::NormType LInfinityError(
       Samples const& samples,
       std::function<Argument const&(typename Samples::value_type const&)> const&
           get_argument,

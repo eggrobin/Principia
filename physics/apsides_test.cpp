@@ -22,7 +22,9 @@ namespace internal_apsides {
 
 using base::not_null;
 using geometry::Displacement;
+using geometry::Inertial;
 using geometry::Frame;
+using geometry::Inertial;
 using geometry::Velocity;
 using integrators::EmbeddedExplicitRungeKuttaNyströmIntegrator;
 using integrators::SymmetricLinearMultistepIntegrator;
@@ -34,10 +36,9 @@ using quantities::Sin;
 using quantities::Speed;
 using quantities::Sqrt;
 using quantities::Time;
+using quantities::astronomy::AstronomicalUnit;
 using quantities::astronomy::JulianYear;
-using quantities::astronomy::SolarMass;
-using quantities::constants::GravitationalConstant;
-using quantities::si::AstronomicalUnit;
+using quantities::astronomy::SolarGravitationalParameter;
 using quantities::si::Degree;
 using quantities::si::Kilo;
 using quantities::si::Milli;
@@ -50,27 +51,27 @@ using ::testing::Eq;
 
 class ApsidesTest : public ::testing::Test {
  protected:
-  using World =
-      Frame<serialization::Frame::TestTag, serialization::Frame::TEST1, true>;
+  using World = Frame<enum class WorldTag, Inertial>;
 };
 
 #if !defined(_DEBUG)
 
 TEST_F(ApsidesTest, ComputeApsidesDiscreteTrajectory) {
   Instant const t0;
-  GravitationalParameter const μ = GravitationalConstant * SolarMass;
+  GravitationalParameter const μ = SolarGravitationalParameter;
   auto const b = new MassiveBody(μ);
 
   std::vector<not_null<std::unique_ptr<MassiveBody const>>> bodies;
   std::vector<DegreesOfFreedom<World>> initial_state;
   bodies.emplace_back(std::unique_ptr<MassiveBody const>(b));
-  initial_state.emplace_back(World::origin, Velocity<World>());
+  initial_state.emplace_back(World::origin, World::unmoving);
 
   Ephemeris<World> ephemeris(
       std::move(bodies),
       initial_state,
       t0,
-      5 * Milli(Metre),
+      /*accuracy_parameters=*/{/*fitting_tolerance=*/1 * Metre,
+                               /*geopotential_tolerance=*/0x1p-24},
       Ephemeris<World>::FixedStepParameters(
           SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
                                              Position<World>>(),
@@ -102,34 +103,32 @@ TEST_F(ApsidesTest, ComputeApsidesDiscreteTrajectory) {
           std::numeric_limits<std::int64_t>::max(),
           1e-3 * Metre,
           1e-3 * Metre / Second),
-      Ephemeris<World>::unlimited_max_ephemeris_steps,
-      /*last_point_only=*/false);
+      Ephemeris<World>::unlimited_max_ephemeris_steps);
 
   DiscreteTrajectory<World> apoapsides;
   DiscreteTrajectory<World> periapsides;
   ComputeApsides(*ephemeris.trajectory(b),
-                 trajectory.Begin(),
-                 trajectory.End(),
+                 trajectory.begin(),
+                 trajectory.end(),
+                 /*max_points=*/std::numeric_limits<int>::max(),
                  apoapsides,
                  periapsides);
 
   std::optional<Instant> previous_time;
   std::map<Instant, DegreesOfFreedom<World>> all_apsides;
-  for (auto it = apoapsides.Begin(); it != apoapsides.End(); ++it) {
-    Instant const time = it.time();
-    all_apsides.emplace(time, it.degrees_of_freedom());
+  for (auto const& [time, degrees_of_freedom] : apoapsides) {
+    all_apsides.emplace(time, degrees_of_freedom);
     if (previous_time) {
-      EXPECT_THAT(time - *previous_time, AlmostEquals(T, 118, 2079));
+      EXPECT_THAT(time - *previous_time, AlmostEquals(T, 118, 2824));
     }
     previous_time = time;
   }
 
   previous_time = std::nullopt;
-  for (auto it = periapsides.Begin(); it != periapsides.End(); ++it) {
-    Instant const time = it.time();
-    all_apsides.emplace(time, it.degrees_of_freedom());
+  for (auto const& [time, degrees_of_freedom] : periapsides) {
+    all_apsides.emplace(time, degrees_of_freedom);
     if (previous_time) {
-      EXPECT_THAT(time - *previous_time, AlmostEquals(T, 143, 257));
+      EXPECT_THAT(time - *previous_time, AlmostEquals(T, 134, 257));
     }
     previous_time = time;
   }
@@ -138,12 +137,11 @@ TEST_F(ApsidesTest, ComputeApsidesDiscreteTrajectory) {
 
   previous_time = std::nullopt;
   std::optional<Position<World>> previous_position;
-  for (auto const& pair : all_apsides) {
-    Instant const time = pair.first;
-    Position<World> const position = pair.second.position();
+  for (auto const& [time, degrees_of_freedom] : all_apsides) {
+    Position<World> const position = degrees_of_freedom.position();
     if (previous_time) {
       EXPECT_THAT(time - *previous_time,
-                  AlmostEquals(0.5 * T, 103, 3567));
+                  AlmostEquals(0.5 * T, 103, 5098));
       EXPECT_THAT((position - *previous_position).Norm(),
                   AlmostEquals(2.0 * a, 0, 176));
     }
@@ -154,19 +152,20 @@ TEST_F(ApsidesTest, ComputeApsidesDiscreteTrajectory) {
 
 TEST_F(ApsidesTest, ComputeNodes) {
   Instant const t0;
-  GravitationalParameter const μ = GravitationalConstant * SolarMass;
+  GravitationalParameter const μ = SolarGravitationalParameter;
   auto const b = new MassiveBody(μ);
 
   std::vector<not_null<std::unique_ptr<MassiveBody const>>> bodies;
   std::vector<DegreesOfFreedom<World>> initial_state;
   bodies.emplace_back(std::unique_ptr<MassiveBody const>(b));
-  initial_state.emplace_back(World::origin, Velocity<World>());
+  initial_state.emplace_back(World::origin, World::unmoving);
 
   Ephemeris<World> ephemeris(
       std::move(bodies),
       initial_state,
       t0,
-      5 * Milli(Metre),
+      /*accuracy_parameters=*/{/*fitting_tolerance=*/1 * Metre,
+                               /*geopotential_tolerance=*/0x1p-24},
       Ephemeris<World>::FixedStepParameters(
           SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
                                              Position<World>>(),
@@ -197,27 +196,26 @@ TEST_F(ApsidesTest, ComputeNodes) {
           std::numeric_limits<std::int64_t>::max(),
           1e-3 * Metre,
           1e-3 * Metre / Second),
-      Ephemeris<World>::unlimited_max_ephemeris_steps,
-      /*last_point_only=*/false);
+      Ephemeris<World>::unlimited_max_ephemeris_steps);
 
   Vector<double, World> const north({0, 0, 1});
 
   DiscreteTrajectory<World> ascending_nodes;
   DiscreteTrajectory<World> descending_nodes;
-  ComputeNodes(trajectory.Begin(),
-               trajectory.End(),
+  ComputeNodes(trajectory.begin(),
+               trajectory.end(),
                north,
+               /*max_points=*/std::numeric_limits<int>::max(),
                ascending_nodes,
                descending_nodes);
 
   std::optional<Instant> previous_time;
-  for (auto it = ascending_nodes.Begin(); it != ascending_nodes.End(); ++it) {
-    Instant const time = it.time();
-    EXPECT_THAT((it.degrees_of_freedom().position() - World::origin)
+  for (auto const& [time, degrees_of_freedom] : ascending_nodes) {
+    EXPECT_THAT((degrees_of_freedom.position() - World::origin)
                     .coordinates()
                     .ToSpherical()
                     .longitude,
-                AlmostEquals(elements.longitude_of_ascending_node, 2, 100));
+                AlmostEquals(elements.longitude_of_ascending_node, 0, 104));
     if (previous_time) {
       EXPECT_THAT(time - *previous_time, AlmostEquals(*elements.period, 0, 20));
     }
@@ -225,14 +223,13 @@ TEST_F(ApsidesTest, ComputeNodes) {
   }
 
   previous_time = std::nullopt;
-  for (auto it = descending_nodes.Begin(); it != descending_nodes.End(); ++it) {
-    Instant const time = it.time();
+  for (auto const& [time, degrees_of_freedom] : descending_nodes) {
     EXPECT_THAT(
-        (it.degrees_of_freedom().position() - World::origin)
+        (degrees_of_freedom.position() - World::origin)
                 .coordinates()
                 .ToSpherical()
                 .longitude,
-        AlmostEquals(elements.longitude_of_ascending_node - π * Radian, 0, 25));
+        AlmostEquals(elements.longitude_of_ascending_node - π * Radian, 0, 29));
     if (previous_time) {
       EXPECT_THAT(time - *previous_time, AlmostEquals(*elements.period, 0, 29));
     }
@@ -245,29 +242,30 @@ TEST_F(ApsidesTest, ComputeNodes) {
   DiscreteTrajectory<World> south_ascending_nodes;
   DiscreteTrajectory<World> south_descending_nodes;
   Vector<double, World> const mostly_south({1, 1, -1});
-  ComputeNodes(trajectory.Begin(),
-               trajectory.End(),
+  ComputeNodes(trajectory.begin(),
+               trajectory.end(),
                mostly_south,
+               /*max_points=*/std::numeric_limits<int>::max(),
                south_ascending_nodes,
                south_descending_nodes);
   EXPECT_THAT(south_ascending_nodes.Size(), Eq(10));
   EXPECT_THAT(south_descending_nodes.Size(), Eq(10));
 
-  for (auto south_ascending_it  = south_ascending_nodes.Begin(),
-            ascending_it        = ascending_nodes.Begin(),
-            south_descending_it = south_descending_nodes.Begin(),
-            descending_it       = descending_nodes.Begin();
-       south_ascending_it != south_ascending_nodes.End();
+  for (auto south_ascending_it  = south_ascending_nodes.begin(),
+            ascending_it        = ascending_nodes.begin(),
+            south_descending_it = south_descending_nodes.begin(),
+            descending_it       = descending_nodes.begin();
+       south_ascending_it != south_ascending_nodes.end();
        ++south_ascending_it,
        ++ascending_it,
        ++south_descending_it,
        ++descending_it) {
-    EXPECT_THAT(south_ascending_it.degrees_of_freedom(),
-                Eq(descending_it.degrees_of_freedom()));
-    EXPECT_THAT(south_ascending_it.time(), Eq(descending_it.time()));
-    EXPECT_THAT(south_descending_it.degrees_of_freedom(),
-                Eq(ascending_it.degrees_of_freedom()));
-    EXPECT_THAT(south_descending_it.time(), Eq(ascending_it.time()));
+    EXPECT_THAT(south_ascending_it->degrees_of_freedom,
+                Eq(descending_it->degrees_of_freedom));
+    EXPECT_THAT(south_ascending_it->time, Eq(descending_it->time));
+    EXPECT_THAT(south_descending_it->degrees_of_freedom,
+                Eq(ascending_it->degrees_of_freedom));
+    EXPECT_THAT(south_descending_it->time, Eq(ascending_it->time));
   }
 }
 

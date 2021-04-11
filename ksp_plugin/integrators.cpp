@@ -4,6 +4,7 @@
 #include <limits>
 
 #include "geometry/named_quantities.hpp"
+#include "integrators/embedded_explicit_generalized_runge_kutta_nyström_integrator.hpp"
 #include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
 #include "integrators/methods.hpp"
 #include "integrators/symmetric_linear_multistep_integrator.hpp"
@@ -14,20 +15,41 @@ namespace ksp_plugin {
 namespace internal_integrators {
 
 using geometry::Position;
+using integrators::EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator;
 using integrators::EmbeddedExplicitRungeKuttaNyströmIntegrator;
 using integrators::SymmetricLinearMultistepIntegrator;
 using integrators::SymplecticRungeKuttaNyströmIntegrator;
 using integrators::methods::BlanesMoan2002SRKN14A;
+using integrators::methods::Fine1987RKNG34;
 using integrators::methods::DormandالمكاوىPrince1986RKN434FM;
 using integrators::methods::Quinlan1999Order8A;
 using quantities::si::Minute;
 using quantities::si::Second;
 
-Ephemeris<Barycentric>::FixedStepParameters DefaultEphemerisParameters() {
+Ephemeris<Barycentric>::AccuracyParameters
+DefaultEphemerisAccuracyParameters() {
+  return Ephemeris<Barycentric>::AccuracyParameters(
+      /*fitting_tolerance=*/1 * Milli(Metre),
+      /*geopotential_tolerance*/ 0x1.0p-24);
+}
+
+Ephemeris<Barycentric>::FixedStepParameters
+DefaultEphemerisFixedStepParameters() {
   return Ephemeris<Barycentric>::FixedStepParameters(
       SymplecticRungeKuttaNyströmIntegrator<BlanesMoan2002SRKN14A,
                                             Position<Barycentric>>(),
       /*step=*/35 * Minute);
+}
+
+Ephemeris<Barycentric>::GeneralizedAdaptiveStepParameters
+DefaultBurnParameters() {
+  return Ephemeris<Barycentric>::GeneralizedAdaptiveStepParameters(
+      EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
+          Fine1987RKNG34,
+          Position<Barycentric>>(),
+      /*max_steps=*/1000,
+      /*length_integration_tolerance=*/1 * Metre,
+      /*speed_integration_tolerance=*/1 * Metre / Second);
 }
 
 Ephemeris<Barycentric>::FixedStepParameters DefaultHistoryParameters() {

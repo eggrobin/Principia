@@ -6,12 +6,18 @@
 #include <algorithm>
 #include <list>
 #include <map>
+#include <string>
 #include <vector>
 
 #include "astronomy/epoch.hpp"
+#include "base/flags.hpp"
+#include "base/not_null.hpp"
+#include "base/zfp_compressor.hpp"
 #include "geometry/named_quantities.hpp"
 #include "glog/logging.h"
 #include "numerics/fit_hermite_spline.hpp"
+#include "quantities/quantities.hpp"
+#include "quantities/si.hpp"
 
 namespace principia {
 namespace physics {
@@ -20,20 +26,23 @@ namespace internal_forkable {
 using geometry::Instant;
 
 template<typename Frame>
-Instant const& ForkableTraits<DiscreteTrajectory<Frame>>::time(
+Instant const& DiscreteTrajectoryTraits<Frame>::time(
     TimelineConstIterator const it) {
   return it->first;
 }
 
 template<typename Frame>
-Instant const& DiscreteTrajectoryIterator<Frame>::time() const {
-  return this->current()->first;
+typename DiscreteTrajectoryIterator<Frame>::reference
+DiscreteTrajectoryIterator<Frame>::operator*() const {
+  auto const& it = this->current();
+  return {it->first, it->second};
 }
 
 template<typename Frame>
-DegreesOfFreedom<Frame> const&
-DiscreteTrajectoryIterator<Frame>::degrees_of_freedom() const {
-  return this->current()->second;
+std::optional<typename DiscreteTrajectoryIterator<Frame>::reference>
+    DiscreteTrajectoryIterator<Frame>::operator->() const {
+  auto const& it = this->current();
+  return std::make_optional<reference>({it->first, it->second});
 }
 
 template<typename Frame>
@@ -54,14 +63,14 @@ namespace internal_discrete_trajectory {
 
 using astronomy::InfiniteFuture;
 using astronomy::InfinitePast;
+using base::Flags;
 using base::make_not_null_unique;
+using base::ZfpCompressor;
+using geometry::Displacement;
 using numerics::FitHermiteSpline;
-
-template<typename Frame>
-typename DiscreteTrajectory<Frame>::Iterator
-DiscreteTrajectory<Frame>::last() const {
-  return --this->End();
-}
+using quantities::Time;
+using quantities::si::Metre;
+using quantities::si::Second;
 
 template<typename Frame>
 not_null<DiscreteTrajectory<Frame>*>
@@ -69,7 +78,7 @@ DiscreteTrajectory<Frame>::NewForkWithCopy(Instant const& time) {
   // May be at |timeline_end()| if |time| is the fork time of this object.
   auto timeline_it = timeline_.find(time);
   CHECK(timeline_it != timeline_end() ||
-        (!this->is_root() && time == this->Fork().time()))
+        (!this->is_root() && time == this->Fork()->time))
       << "NewForkWithCopy at nonexistent time " << time;
 
   auto const fork = this->NewFork(timeline_it);
@@ -87,7 +96,7 @@ DiscreteTrajectory<Frame>::NewForkWithoutCopy(Instant const& time) {
   // May be at |timeline_end()| if |time| is the fork time of this object.
   auto timeline_it = timeline_.find(time);
   CHECK(timeline_it != timeline_end() ||
-        (!this->is_root() && time == this->Fork().time()))
+        (!this->is_root() && time == this->Fork()->time))
       << "NewForkWithoutCopy at nonexistent time " << time;
 
   return this->NewFork(timeline_it);
@@ -108,19 +117,46 @@ template<typename Frame>
 void DiscreteTrajectory<Frame>::AttachFork(
     not_null<std::unique_ptr<DiscreteTrajectory<Frame>>> fork) {
   CHECK(fork->is_root());
-  CHECK(!fork->timeline_.empty());
+  CHECK(!this->Empty());
 
-  // Append to this trajectory a copy of the first point of |fork|.
   auto& fork_timeline = fork->timeline_;
-  auto fork_begin = fork_timeline.begin();
-  Append(fork_begin->first, fork_begin->second);
+  auto const this_last = --this->end();
+
+  // Determine if |fork| already has a point matching the end of this
+  // trajectory.
+  bool must_prepend;
+  if (fork_timeline.empty()) {
+    must_prepend = true;
+  } else {
+    CHECK_LE(this_last->time, fork_timeline.begin()->first);
+    auto const it = fork_timeline.find(this_last->time);
+    if (it == fork_timeline.end()) {
+      must_prepend = true;
+    } else {
+      CHECK(it == fork_timeline.begin())
+          << it->first << " " << this_last->time;
+      must_prepend = false;
+    }
+  }
+
+  // If needed, prepend to |fork| a copy of the last point of this trajectory.
+  // This ensures that |fork| and this trajectory start and end, respectively,
+  // with points at the same time (but possibly distinct degrees of freedom).
+  if (must_prepend) {
+    fork_timeline.emplace_hint(fork_timeline.begin(),
+                               this_last->time,
+                               this_last->degrees_of_freedom);
+  }
 
   // Attach |fork| to this trajectory.
   this->AttachForkToCopiedBegin(std::move(fork));
 
-  // Remove the first point of |fork| now that it properly attached to its
-  // parent.
-  fork_timeline.erase(fork_begin);
+  // Remove the first point of |fork| now that it is properly attached to its
+  // parent: that point is either redundant (if it was prepended above) or wrong
+  // (because we "trust" this trajectory more than |fork|).  The children that
+  // might have been forked at the deleted point were relocated by
+  // AttachForkToCopiedBegin.
+  fork_timeline.erase(fork_timeline.begin());
 }
 
 template<typename Frame>
@@ -132,7 +168,7 @@ DiscreteTrajectory<Frame>::DetachFork() {
   // beginning of the timeline.
   auto const fork_it = this->Fork();
   auto const begin_it = timeline_.emplace_hint(
-      timeline_.begin(), fork_it.time(), fork_it.degrees_of_freedom());
+      timeline_.begin(), fork_it->time, fork_it->degrees_of_freedom);
   CHECK(begin_it == timeline_.begin());
 
   // Detach this trajectory and tell the caller that it owns the pieces.
@@ -143,14 +179,14 @@ template<typename Frame>
 void DiscreteTrajectory<Frame>::Append(
     Instant const& time,
     DegreesOfFreedom<Frame> const& degrees_of_freedom) {
-  CHECK(this->is_root() || time > this->Fork().time())
+  CHECK(this->is_root() || time > this->Fork()->time)
        << "Append at " << time << " which is before fork time "
-       << this->Fork().time();
+       << this->Fork()->time;
 
   if (!timeline_.empty() && timeline_.cbegin()->first == time) {
     LOG(WARNING) << "Append at existing time " << time
-                 << ", time range = [" << this->Begin().time() << ", "
-                 << last().time() << "]";
+                 << ", time range = [" << this->front().time << ", "
+                 << this->back().time << "]";
     return;
   }
   auto it = timeline_.emplace_hint(timeline_.end(),
@@ -164,7 +200,7 @@ void DiscreteTrajectory<Frame>::Append(
     if (timeline_.size() == 1) {
       downsampling_->SetStartOfDenseTimeline(timeline_.begin(), timeline_);
     } else {
-      this->CheckNoForksBefore(last().time());
+      this->CheckNoForksBefore(this->back().time);
       downsampling_->increment_dense_intervals(timeline_);
       if (downsampling_->reached_max_dense_intervals()) {
         std::vector<TimelineConstIterator> dense_iterators;
@@ -239,10 +275,9 @@ void DiscreteTrajectory<Frame>::ForgetBefore(Instant const& time) {
   // Get an iterator denoting the first entry with time >= |time|.  Remove all
   // the entries that precede it.  This preserves any entry with time == |time|.
   auto const first_kept_in_timeline = timeline_.lower_bound(time);
-  Instant const& first_kept_time = first_kept_in_timeline->first;
   if (downsampling_.has_value() &&
       (first_kept_in_timeline == timeline_.end() ||
-       downsampling_->first_dense_time() < first_kept_time)) {
+       downsampling_->first_dense_time() < first_kept_in_timeline->first)) {
     // The start of the dense timeline will be invalidated.
     downsampling_->SetStartOfDenseTimeline(first_kept_in_timeline, timeline_);
   }
@@ -252,7 +287,7 @@ void DiscreteTrajectory<Frame>::ForgetBefore(Instant const& time) {
 template<typename Frame>
 void DiscreteTrajectory<Frame>::SetDownsampling(
     std::int64_t const max_dense_intervals,
-    Length const tolerance) {
+    Length const& tolerance) {
   CHECK(this->is_root());
   CHECK(!downsampling_.has_value());
   downsampling_.emplace(
@@ -265,12 +300,12 @@ void DiscreteTrajectory<Frame>::ClearDownsampling() {
 
 template<typename Frame>
 Instant DiscreteTrajectory<Frame>::t_min() const {
-  return this->Empty() ? InfiniteFuture : this->Begin().time();
+  return this->Empty() ? InfiniteFuture : this->front().time;
 }
 
 template<typename Frame>
 Instant DiscreteTrajectory<Frame>::t_max() const {
-  return this->Empty() ? InfinitePast : last().time();
+  return this->Empty() ? InfinitePast : this->back().time;
 }
 
 template<typename Frame>
@@ -309,6 +344,7 @@ void DiscreteTrajectory<Frame>::WriteToMessage(
 }
 
 template<typename Frame>
+template<typename, typename>
 not_null<std::unique_ptr<DiscreteTrajectory<Frame>>>
 DiscreteTrajectory<Frame>::ReadFromMessage(
     serialization::DiscreteTrajectory const& message,
@@ -469,15 +505,79 @@ template<typename Frame>
 void DiscreteTrajectory<Frame>::WriteSubTreeToMessage(
     not_null<serialization::DiscreteTrajectory*> const message,
     std::vector<DiscreteTrajectory<Frame>*>& forks) const {
-  Forkable<DiscreteTrajectory, Iterator>::WriteSubTreeToMessage(message, forks);
-  for (auto const& pair : timeline_) {
-    Instant const& instant = pair.first;
-    DegreesOfFreedom<Frame> const& degrees_of_freedom = pair.second;
-    auto const instantaneous_degrees_of_freedom = message->add_timeline();
-    instant.WriteToMessage(instantaneous_degrees_of_freedom->mutable_instant());
-    degrees_of_freedom.WriteToMessage(
-        instantaneous_degrees_of_freedom->mutable_degrees_of_freedom());
+  Forkable<DiscreteTrajectory, Iterator, DiscreteTrajectoryTraits<Frame>>::
+      WriteSubTreeToMessage(message, forks);
+  if (Flags::IsPresent("zfp", "off")) {
+    for (auto const& [instant, degrees_of_freedom] : timeline_) {
+      auto const instantaneous_degrees_of_freedom = message->add_timeline();
+      instant.WriteToMessage(
+          instantaneous_degrees_of_freedom->mutable_instant());
+      degrees_of_freedom.WriteToMessage(
+          instantaneous_degrees_of_freedom->mutable_degrees_of_freedom());
+    }
+  } else {
+    int const timeline_size = timeline_.size();
+    auto* const zfp = message->mutable_zfp();
+    zfp->set_timeline_size(timeline_size);
+
+    // The timeline data is made dimensionless and stored in separate arrays per
+    // coordinate.  We expect strong correlations within a coordinate over time,
+    // but not between coordinates.
+    std::vector<double> t;
+    std::vector<double> qx;
+    std::vector<double> qy;
+    std::vector<double> qz;
+    std::vector<double> px;
+    std::vector<double> py;
+    std::vector<double> pz;
+    t.reserve(timeline_size);
+    qx.reserve(timeline_size);
+    qy.reserve(timeline_size);
+    qz.reserve(timeline_size);
+    px.reserve(timeline_size);
+    py.reserve(timeline_size);
+    pz.reserve(timeline_size);
+    std::optional<Instant> previous_instant;
+    Time max_Δt;
+    std::string* const zfp_timeline = zfp->mutable_timeline();
+    for (auto const& [instant, degrees_of_freedom] : timeline_) {
+      auto const q = degrees_of_freedom.position() - Frame::origin;
+      auto const p = degrees_of_freedom.velocity();
+      t.push_back((instant - Instant{}) / Second);
+      qx.push_back(q.coordinates().x / Metre);
+      qy.push_back(q.coordinates().y / Metre);
+      qz.push_back(q.coordinates().z / Metre);
+      px.push_back(p.coordinates().x / (Metre / Second));
+      py.push_back(p.coordinates().y / (Metre / Second));
+      pz.push_back(p.coordinates().z / (Metre / Second));
+      if (previous_instant.has_value()) {
+        max_Δt = std::max(max_Δt, instant - *previous_instant);
+      }
+      previous_instant = instant;
+    }
+
+    // Times are exact.
+    ZfpCompressor time_compressor(0);
+    // Lengths are approximated to the downsampling tolerance if downsampling is
+    // enabled, otherwise they are exact.
+    Length const length_tolerance =
+        downsampling_.has_value() ? downsampling_->tolerance() : Length();
+    ZfpCompressor length_compressor(length_tolerance / Metre);
+    // Speeds are approximated based on the length tolerance and the maximum
+    // step in the timeline.
+    ZfpCompressor const speed_compressor((length_tolerance / max_Δt) /
+                                         (Metre / Second));
+
+    ZfpCompressor::WriteVersion(message);
+    time_compressor.WriteToMessageMultidimensional<2>(t, zfp_timeline);
+    length_compressor.WriteToMessageMultidimensional<2>(qx, zfp_timeline);
+    length_compressor.WriteToMessageMultidimensional<2>(qy, zfp_timeline);
+    length_compressor.WriteToMessageMultidimensional<2>(qz, zfp_timeline);
+    speed_compressor.WriteToMessageMultidimensional<2>(px, zfp_timeline);
+    speed_compressor.WriteToMessageMultidimensional<2>(py, zfp_timeline);
+    speed_compressor.WriteToMessageMultidimensional<2>(pz, zfp_timeline);
   }
+
   if (downsampling_.has_value()) {
     downsampling_->WriteToMessage(message->mutable_downsampling(), timeline_);
   }
@@ -487,20 +587,53 @@ template<typename Frame>
 void DiscreteTrajectory<Frame>::FillSubTreeFromMessage(
     serialization::DiscreteTrajectory const& message,
     std::vector<DiscreteTrajectory<Frame>**> const& forks) {
-  for (auto timeline_it = message.timeline().begin();
-       timeline_it != message.timeline().end();
-       ++timeline_it) {
-    Append(Instant::ReadFromMessage(timeline_it->instant()),
-           DegreesOfFreedom<Frame>::ReadFromMessage(
-               timeline_it->degrees_of_freedom()));
+  bool const is_pre_frobenius = !message.has_zfp();
+  if (is_pre_frobenius) {
+    for (auto const& instantaneous_dof : message.timeline()) {
+      Append(Instant::ReadFromMessage(instantaneous_dof.instant()),
+             DegreesOfFreedom<Frame>::ReadFromMessage(
+                 instantaneous_dof.degrees_of_freedom()));
+    }
+  } else {
+    ZfpCompressor decompressor;
+    ZfpCompressor::ReadVersion(message);
+
+    int const timeline_size = message.zfp().timeline_size();
+    std::vector<double> t(timeline_size);
+    std::vector<double> qx(timeline_size);
+    std::vector<double> qy(timeline_size);
+    std::vector<double> qz(timeline_size);
+    std::vector<double> px(timeline_size);
+    std::vector<double> py(timeline_size);
+    std::vector<double> pz(timeline_size);
+    std::string_view zfp_timeline(message.zfp().timeline().data(),
+                                  message.zfp().timeline().size());
+
+    decompressor.ReadFromMessageMultidimensional<2>(t, zfp_timeline);
+    decompressor.ReadFromMessageMultidimensional<2>(qx, zfp_timeline);
+    decompressor.ReadFromMessageMultidimensional<2>(qy, zfp_timeline);
+    decompressor.ReadFromMessageMultidimensional<2>(qz, zfp_timeline);
+    decompressor.ReadFromMessageMultidimensional<2>(px, zfp_timeline);
+    decompressor.ReadFromMessageMultidimensional<2>(py, zfp_timeline);
+    decompressor.ReadFromMessageMultidimensional<2>(pz, zfp_timeline);
+
+    for (int i = 0; i < timeline_size; ++i) {
+      Position<Frame> const q =
+          Frame::origin +
+          Displacement<Frame>({qx[i] * Metre, qy[i] * Metre, qz[i] * Metre});
+      Velocity<Frame> const p({px[i] * (Metre / Second),
+                               py[i] * (Metre / Second),
+                               pz[i] * (Metre / Second)});
+      Append(Instant() + t[i] * Second, DegreesOfFreedom<Frame>(q, p));
+    }
   }
   if (message.has_downsampling()) {
     CHECK(this->is_root());
     downsampling_.emplace(
         Downsampling::ReadFromMessage(message.downsampling(), timeline_));
   }
-  Forkable<DiscreteTrajectory, Iterator>::FillSubTreeFromMessage(message,
-                                                                 forks);
+  Forkable<DiscreteTrajectory, Iterator, DiscreteTrajectoryTraits<Frame>>::
+      FillSubTreeFromMessage(message, forks);
 }
 
 template<typename Frame>
@@ -511,13 +644,13 @@ Hermite3<Instant, Position<Frame>> DiscreteTrajectory<Frame>::GetInterpolation(
   // This is the upper bound of the interval upon which we will do the
   // interpolation.
   auto const upper = this->LowerBound(time);
-  auto const lower = upper == this->Begin() ? upper : --Iterator{upper};
+  auto const lower = upper == this->begin() ? upper : --Iterator{upper};
   return Hermite3<Instant, Position<Frame>>{
-      {lower.time(), upper.time()},
-      {lower.degrees_of_freedom().position(),
-       upper.degrees_of_freedom().position()},
-      {lower.degrees_of_freedom().velocity(),
-       upper.degrees_of_freedom().velocity()}};
+      {lower->time, upper->time},
+      {lower->degrees_of_freedom.position(),
+       upper->degrees_of_freedom.position()},
+      {lower->degrees_of_freedom.velocity(),
+       upper->degrees_of_freedom.velocity()}};
 }
 
 }  // namespace internal_discrete_trajectory

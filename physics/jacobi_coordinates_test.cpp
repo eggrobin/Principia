@@ -14,6 +14,8 @@ namespace principia {
 namespace physics {
 namespace internal_jacobi_coordinates {
 
+using geometry::Frame;
+using geometry::Inertial;
 using quantities::Length;
 using quantities::si::Kilogram;
 using quantities::si::Metre;
@@ -24,34 +26,32 @@ using ::testing::ElementsAre;
 
 class JacobiCoordinatesTest : public ::testing::Test {
  protected:
-  using Frame = geometry::Frame<serialization::Frame::TestTag,
-                                serialization::Frame::TEST,
-                                /*frame_is_inertial=*/true>;
+  using World = Frame<enum class WorldTag, Inertial>;
 
   MassiveBody m1_ = MassiveBody(1 * Kilogram);
   MassiveBody m2_ = MassiveBody(2 * Kilogram);
 };
 
 TEST_F(JacobiCoordinatesTest, Jacobi) {
-  auto const x_positions = [](JacobiCoordinates<Frame> const& system) {
+  auto const x_positions = [](JacobiCoordinates<World> const& system) {
     std::vector<Length> result;
     auto const barycentric_dof = system.BarycentricDegreesOfFreedom();
     std::transform(barycentric_dof.begin(),
                    barycentric_dof.end(),
                    std::back_inserter(result),
-                   [](RelativeDegreesOfFreedom<Frame> const& dof) {
+                   [](RelativeDegreesOfFreedom<World> const& dof) {
                      return dof.displacement().coordinates().x;
                    });
     return result;
   };
 
   // i, and Ω are 0 by default.
-  KeplerianElements<Frame> elements;
+  KeplerianElements<World> elements;
   elements.eccentricity = 0;
   elements.argument_of_periapsis = 0 * Radian;
   elements.mean_anomaly = 0 * Radian;
 
-  JacobiCoordinates<Frame> system(m2_);
+  JacobiCoordinates<World> system(m2_);
   EXPECT_EQ(2 * Kilogram, system.System().mass());
   EXPECT_THAT(x_positions(system), ElementsAre(0 * Metre));
 
@@ -64,7 +64,8 @@ TEST_F(JacobiCoordinatesTest, Jacobi) {
   EXPECT_EQ(3 * Kilogram, system.System().mass());
   EXPECT_THAT(
       x_positions(system),
-      ElementsAre(-1.0 / 3.0 * Metre, AlmostEquals(2.0 / 3.0 * Metre, 1)));
+      ElementsAre(AlmostEquals(-1.0 / 3.0 * Metre, 1),
+                  AlmostEquals(2.0 / 3.0 * Metre, 0)));
 
   elements.semimajor_axis = 5.0 / 3.0 * Metre;
   system.Add(m2_, elements);
@@ -79,9 +80,9 @@ TEST_F(JacobiCoordinatesTest, Jacobi) {
   // 2  1  2  .  .  .  .  1
   //       ^ barycentre
   EXPECT_THAT(x_positions(system),
-              ElementsAre(AlmostEquals(-2 * Metre, 1),
-                          AlmostEquals(-1 * Metre, 2),
-                          VanishesBefore(1 * Metre, 1),
+              ElementsAre(AlmostEquals(-2 * Metre, 0),
+                          AlmostEquals(-1 * Metre, 0),
+                          VanishesBefore(1 * Metre, 0),
                           5 * Metre));
 }
 

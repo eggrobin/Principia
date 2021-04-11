@@ -14,14 +14,14 @@
 
 namespace principia {
 
-using astronomy::ICRFJ2000Ecliptic;
+using astronomy::ICRS;
 using geometry::Displacement;
 using geometry::Multivector;
 using geometry::R3Element;
 using quantities::Length;
 using quantities::Quantity;
-using quantities::SIUnit;
 using quantities::Time;
+namespace si = quantities::si;
 
 namespace numerics {
 
@@ -42,7 +42,7 @@ struct ValueGenerator<double> {
 template<typename D>
 struct ValueGenerator<Quantity<D>> {
   static Quantity<D> Get(std::mt19937_64& random) {
-    return static_cast<double>(random()) * SIUnit<Quantity<D>>();
+    return static_cast<double>(random()) * si::Unit<Quantity<D>>;
   }
 };
 
@@ -81,8 +81,8 @@ template<typename Value, typename Argument, int degree,
 void EvaluatePolynomialInMonomialBasis(benchmark::State& state) {
   using P = PolynomialInMonomialBasis<Value, Argument, degree, Evaluator>;
   std::mt19937_64 random(42);
-  P::Coefficients coefficients;
-  RandomTupleGenerator<P::Coefficients, 0>::Fill(coefficients, random);
+  typename P::Coefficients coefficients;
+  RandomTupleGenerator<typename P::Coefficients, 0>::Fill(coefficients, random);
   P const p(coefficients);
 
   auto const min = ValueGenerator<Argument>::Get(random);
@@ -93,7 +93,7 @@ void EvaluatePolynomialInMonomialBasis(benchmark::State& state) {
 
   while (state.KeepRunning()) {
     for (int i = 0; i < evaluations_per_iteration; ++i) {
-      result += p.Evaluate(argument);
+      result += p(argument);
       argument += Δargument;
     }
   }
@@ -154,32 +154,28 @@ void BM_EvaluatePolynomialInMonomialBasisVectorDouble(benchmark::State& state) {
   int const degree = state.range_x();
   switch (degree) {
     case 4:
-      EvaluatePolynomialInMonomialBasis<
-          Multivector<double, ICRFJ2000Ecliptic, 1>,
-          Time,
-          4,
-          Evaluator>(state);
+      EvaluatePolynomialInMonomialBasis<Multivector<double, ICRS, 1>,
+                                        Time,
+                                        4,
+                                        Evaluator>(state);
       break;
     case 8:
-      EvaluatePolynomialInMonomialBasis<
-          Multivector<double, ICRFJ2000Ecliptic, 1>,
-          Time,
-          8,
-          Evaluator>(state);
+      EvaluatePolynomialInMonomialBasis<Multivector<double, ICRS, 1>,
+                                        Time,
+                                        8,
+                                        Evaluator>(state);
       break;
     case 12:
-      EvaluatePolynomialInMonomialBasis<
-          Multivector<double, ICRFJ2000Ecliptic, 1>,
-          Time,
-          12,
-          Evaluator>(state);
+      EvaluatePolynomialInMonomialBasis<Multivector<double, ICRS, 1>,
+                                        Time,
+                                        12,
+                                        Evaluator>(state);
       break;
     case 16:
-      EvaluatePolynomialInMonomialBasis<
-          Multivector<double, ICRFJ2000Ecliptic, 1>,
-          Time,
-          16,
-          Evaluator>(state);
+      EvaluatePolynomialInMonomialBasis<Multivector<double, ICRS, 1>,
+                                        Time,
+                                        16,
+                                        Evaluator>(state);
       break;
     default:
       LOG(FATAL) << "Degree " << degree
@@ -192,25 +188,25 @@ void BM_EvaluatePolynomialInMonomialBasisDisplacement(benchmark::State& state) {
   int const degree = state.range_x();
   switch (degree) {
     case 4:
-      EvaluatePolynomialInMonomialBasis<Displacement<ICRFJ2000Ecliptic>,
+      EvaluatePolynomialInMonomialBasis<Displacement<ICRS>,
                                         Time,
                                         4,
                                         Evaluator>(state);
       break;
     case 8:
-      EvaluatePolynomialInMonomialBasis<Displacement<ICRFJ2000Ecliptic>,
+      EvaluatePolynomialInMonomialBasis<Displacement<ICRS>,
                                         Time,
                                         8,
                                         Evaluator>(state);
       break;
     case 12:
-      EvaluatePolynomialInMonomialBasis<Displacement<ICRFJ2000Ecliptic>,
+      EvaluatePolynomialInMonomialBasis<Displacement<ICRS>,
                                         Time,
                                         12,
                                         Evaluator>(state);
       break;
     case 16:
-      EvaluatePolynomialInMonomialBasis<Displacement<ICRFJ2000Ecliptic>,
+      EvaluatePolynomialInMonomialBasis<Displacement<ICRS>,
                                         Time,
                                         16,
                                         Evaluator>(state);

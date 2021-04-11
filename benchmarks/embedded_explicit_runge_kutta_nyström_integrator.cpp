@@ -27,6 +27,7 @@ namespace principia {
 
 using geometry::Displacement;
 using geometry::Frame;
+using geometry::Inertial;
 using geometry::Instant;
 using geometry::Position;
 using geometry::Vector;
@@ -40,7 +41,6 @@ using quantities::Cos;
 using quantities::Length;
 using quantities::Mass;
 using quantities::Sin;
-using quantities::SIUnit;
 using quantities::Speed;
 using quantities::Stiffness;
 using quantities::Time;
@@ -57,8 +57,7 @@ namespace integrators {
 
 namespace {
 
-using World = Frame<serialization::Frame::TestTag,
-                    serialization::Frame::TEST, true>;
+using World = Frame<enum class WorldTag, Inertial>;
 
 template<typename ODE>
 double HarmonicOscillatorToleranceRatio1D(
@@ -108,7 +107,7 @@ void SolveHarmonicOscillatorAndComputeError1D(benchmark::State& state,
     solution.push_back(state);
   };
 
-  Integrator::Parameters const parameters(
+  typename Integrator::Parameters const parameters(
       /*first_time_step=*/t_final - t_initial,
       /*safety_factor=*/0.9);
   auto const tolerance_to_error_ratio =
@@ -167,7 +166,7 @@ void SolveHarmonicOscillatorAndComputeError3D(
     solution.push_back(state);
   };
 
-  Integrator::Parameters const parameters(
+  typename Integrator::Parameters const parameters(
       /*first_time_step=*/t_final - t_initial,
       /*safety_factor=*/0.9);
   auto const tolerance_to_error_ratio =

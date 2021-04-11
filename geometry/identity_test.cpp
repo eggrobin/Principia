@@ -6,6 +6,7 @@
 #include "geometry/frame.hpp"
 #include "geometry/orthogonal_map.hpp"
 #include "geometry/r3_element.hpp"
+#include "geometry/symmetric_bilinear_form.hpp"
 #include "glog/logging.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -24,30 +25,38 @@ namespace geometry {
 class IdentityTest : public testing::Test {
  protected:
   using World1 = Frame<serialization::Frame::TestTag,
-                       serialization::Frame::TEST1, true>;
+                       Inertial,
+                       Handedness::Right,
+                       serialization::Frame::TEST1>;
   using World2 = Frame<serialization::Frame::TestTag,
-                       serialization::Frame::TEST2, true>;
+                       Inertial,
+                       Handedness::Right,
+                       serialization::Frame::TEST2>;
   using Orth = OrthogonalMap<World1, World2>;
   using Id = Identity<World1, World2>;
-  using R3 = R3Element<quantities::Length>;
+  using R3 = R3Element<Length>;
 
-  void SetUp() override {
-    vector_ = Vector<quantities::Length, World1>(
-        R3(1.0 * Metre, 2.0 * Metre, 3.0 * Metre));
-    bivector_ = Bivector<quantities::Length, World1>(
-        R3(1.0 * Metre, 2.0 * Metre, 3.0 * Metre));
-    trivector_ = Trivector<quantities::Length, World1>(4.0 * Metre);
-  }
+  IdentityTest()
+      : vector_(Vector<Length, World1>(
+            R3(1.0 * Metre, 2.0 * Metre, 3.0 * Metre))),
+        bivector_(Bivector<Length, World1>(
+            R3(1.0 * Metre, 2.0 * Metre, 3.0 * Metre))),
+        trivector_(Trivector<Length, World1>(4.0 * Metre)),
+        form_(SymmetricBilinearForm<Length, World1, Vector>(
+            R3x3Matrix<Length>({1.0 * Metre, 2.0 * Metre, 3.0 * Metre},
+                               {2.0 * Metre, 5.0 * Metre, 6.0 * Metre},
+                               {3.0 * Metre, 6.0 * Metre, 4.0 * Metre}))) {}
 
-  Vector<quantities::Length, World1> vector_;
-  Bivector<quantities::Length, World1> bivector_;
-  Trivector<quantities::Length, World1> trivector_;
+  Vector<Length, World1> const vector_;
+  Bivector<Length, World1> const bivector_;
+  Trivector<Length, World1> const trivector_;
+  SymmetricBilinearForm<Length, World1, Vector> const form_;
 };
 
 using IdentityDeathTest = IdentityTest;
 
 TEST_F(IdentityTest, Determinant) {
-  EXPECT_TRUE(Id().Determinant().Positive());
+  EXPECT_TRUE(Id().Determinant().is_positive());
 }
 
 TEST_F(IdentityTest, AppliedToVector) {
@@ -65,11 +74,19 @@ TEST_F(IdentityTest, AppliedToTrivector) {
               Eq(4.0 * Metre));
 }
 
+TEST_F(IdentityTest, AppliedToSymmetricBilinearForm) {
+  R3x3Matrix<Length> const expected_coordinates(
+      {1.0 * Metre, 2.0 * Metre, 3.0 * Metre},
+      {2.0 * Metre, 5.0 * Metre, 6.0 * Metre},
+      {3.0 * Metre, 6.0 * Metre, 4.0 * Metre});
+  EXPECT_THAT(Id()(form_).coordinates(),
+              Eq(expected_coordinates));
+}
+
 TEST_F(IdentityTest, Inverse) {
-  Vector<quantities::Length, World1> const vector1 = vector_;
-  Vector<quantities::Length, World2> const vector2 =
-      Vector<quantities::Length, World2>(
-          R3(1.0 * Metre, 2.0 * Metre, 3.0 * Metre));
+  Vector<Length, World1> const vector1 = vector_;
+  Vector<Length, World2> const vector2 =
+      Vector<Length, World2>(R3(1.0 * Metre, 2.0 * Metre, 3.0 * Metre));
   EXPECT_THAT(Id().Inverse()(vector2).coordinates(),
               Eq<R3>({1.0 * Metre, 2.0 * Metre, 3.0 * Metre}));
   Id id;
@@ -80,12 +97,12 @@ TEST_F(IdentityTest, Inverse) {
 }
 
 TEST_F(IdentityTest, Forget) {
-  EXPECT_THAT(Id().Forget()(vector_).coordinates(),
+  EXPECT_THAT(Id().Forget<OrthogonalMap>()(vector_).coordinates(),
               Eq<R3>({1.0 * Metre, 2.0 * Metre, 3.0 * Metre}));
 }
 
 TEST_F(IdentityTest, Compose) {
-  struct World3;
+  using World3 = Frame<enum class World3Tag>;
   using Orth12 = OrthogonalMap<World1, World2>;
   using Orth13 = OrthogonalMap<World1, World3>;
   using Orth23 = OrthogonalMap<World2, World3>;
@@ -93,13 +110,13 @@ TEST_F(IdentityTest, Compose) {
   using Id13 = Identity<World1, World3>;
   using Id23 = Identity<World2, World3>;
   Id12 id12;
-  Orth12 const o12 = id12.Forget();
+  Orth12 const o12 = id12.Forget<OrthogonalMap>();
   Id23 id23;
-  Orth23 const o23 = id23.Forget();
+  Orth23 const o23 = id23.Forget<OrthogonalMap>();
   Id13 const id13 = id23 * id12;
   Orth13 const o13 = o23 * o12;
   for (Length l = 1 * Metre; l < 4 * Metre; l += 1 * Metre) {
-    Vector<quantities::Length, World1> modified_vector(
+    Vector<Length, World1> modified_vector(
         {l, vector_.coordinates().y, vector_.coordinates().z});
     EXPECT_THAT(id13(modified_vector), Eq(o13(modified_vector)));
   }
@@ -128,6 +145,12 @@ TEST_F(IdentityTest, SerializationSuccess) {
   Identity<World1, World2> const id12b =
       Identity<World1, World2>::ReadFromMessage(message);
   EXPECT_THAT(id12a(vector_), id12b(vector_));
+}
+
+TEST_F(IdentityTest, Output) {
+  using Id12 = Identity<World1, World2>;
+  Id12 id12;
+  std::cout << id12 << "\n";
 }
 
 }  // namespace geometry

@@ -43,6 +43,12 @@ using Derivative = typename std::conditional_t<
     Value,
     Quotient<Difference<Value>, Exponentiation<Difference<Argument>, order>>>;
 
+// The result type of the primitive of a |Value|-valued function with respect to
+// its |Argument|-valued argument.  The primitive of an affine-valued function
+// does not make much sense, but it must compile, hence the Difference.
+template<typename Value, typename Argument>
+using Primitive = Product<Difference<Value>, Difference<Argument>>;
+
 // |Variation<T>| is the type of the time derivative of a |T|-valued function.
 template<typename T>
 using Variation = Derivative<T, Time>;
@@ -56,6 +62,8 @@ using SolidAngle   = Square<Angle>;
 // General mechanics
 using Speed        = Variation<Length>;
 using Acceleration = Variation<Speed>;
+using Jerk         = Variation<Acceleration>;
+using Snap         = Variation<Jerk>;
 using Momentum     = Product<Mass, Speed>;
 using Force        = Variation<Momentum>;
 using Stiffness    = Quotient<Force, Length>;
@@ -80,8 +88,10 @@ using Torque              = Variation<AngularMomentum>;
 
 using GravitationalParameter = Quotient<Exponentiation<Length, 3>,
                                         Exponentiation<Time, 2>>;
-using Order2ZonalCoefficient = Quotient<Exponentiation<Length, 5>,
-                                        Exponentiation<Time, 2>>;
+using Degree2SphericalHarmonicCoefficient = Product<GravitationalParameter,
+                                                    Exponentiation<Length, 2>>;
+using Degree3SphericalHarmonicCoefficient = Product<GravitationalParameter,
+                                                    Exponentiation<Length, 3>>;
 
 // Astrodynamics
 using SpecificImpulse         = Quotient<Momentum, Mass>;
@@ -124,6 +134,9 @@ using MagneticFluxDensity = Quotient<MagneticFlux, Area>;
 using Inductance          = Quotient<MagneticFlux, Current>;
 using ElectricField       = Quotient<Force, Charge>;
 
+// The angular element for permittivity comes from the integral form of Gauss's
+// law: the surface integral includes a solid angle of one Steradian, the volume
+// integral has no angle whatsoever, the permittivity compensates.
 using Permeability = Product<Quotient<Inductance, Length>, SolidAngle>;
 using Permittivity = Quotient<Quotient<Capacitance, Length>, SolidAngle>;
 

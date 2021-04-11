@@ -23,7 +23,8 @@ void SolarSystemFactory::AdjustAccuracy(
   std::set<std::string> existing;
   std::set<std::string> oblate;
   switch (accuracy) {
-    case SolarSystemFactory::Accuracy::AllBodiesAndOblateness:
+    case SolarSystemFactory::Accuracy::AllBodiesAndDampedOblateness:
+    case SolarSystemFactory::Accuracy::AllBodiesAndFullOblateness:
       oblate.insert(SolarSystemFactory::name(SolarSystemFactory::Sun));
       oblate.insert(SolarSystemFactory::name(SolarSystemFactory::Jupiter));
       oblate.insert(SolarSystemFactory::name(SolarSystemFactory::Saturn));
@@ -85,28 +86,46 @@ void SolarSystemFactory::AdjustAccuracy(
     solar_system.RemoveMassiveBody(body_to_remove);
   }
   for (std::string const& body_to_spherify : bodies_to_spherify) {
-    solar_system.RemoveOblateness(body_to_spherify);
+    solar_system.LimitOblatenessToDegree(body_to_spherify, /*max_degree=*/0);
   }
 }
 
-inline not_null<std::unique_ptr<SolarSystem<ICRFJ2000Equator>>>
+template<typename Frame>
+typename Ephemeris<Frame>::AccuracyParameters
+SolarSystemFactory::MakeAccuracyParameters(Length const& fitting_tolerance,
+                                           Accuracy const accuracy) {
+  switch (accuracy) {
+    case Accuracy::MajorBodiesOnly:
+    case Accuracy::MinorAndMajorBodies:
+    case Accuracy::AllBodiesAndDampedOblateness:
+      return typename Ephemeris<Frame>::AccuracyParameters(
+          fitting_tolerance,
+          /*geopotential_tolerance=*/0x1.0p-24);
+    case Accuracy::AllBodiesAndFullOblateness:
+      return typename Ephemeris<Frame>::AccuracyParameters(
+          fitting_tolerance,
+          /*geopotential_tolerance=*/0.0);
+  }
+  LOG(FATAL) << "Bad accuracy";
+  base::noreturn();
+}
+
+inline not_null<std::unique_ptr<SolarSystem<ICRS>>>
 SolarSystemFactory::AtСпутник1Launch(Accuracy const accuracy) {
-  auto solar_system =
-      base::make_not_null_unique<SolarSystem<ICRFJ2000Equator>>(
-          SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
-          SOLUTION_DIR / "astronomy" /
-              "sol_initial_state_jd_2436116_311504629.proto.txt");
+  auto solar_system = base::make_not_null_unique<SolarSystem<ICRS>>(
+      SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
+      SOLUTION_DIR / "astronomy" /
+          "sol_initial_state_jd_2436116_311504629.proto.txt");
   AdjustAccuracy(accuracy, *solar_system);
   return solar_system;
 }
 
-inline not_null<std::unique_ptr<SolarSystem<ICRFJ2000Equator>>>
+inline not_null<std::unique_ptr<SolarSystem<ICRS>>>
 SolarSystemFactory::AtСпутник2Launch(Accuracy const accuracy) {
-  auto solar_system =
-      base::make_not_null_unique<SolarSystem<ICRFJ2000Equator>>(
-          SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
-          SOLUTION_DIR / "astronomy" /
-              "sol_initial_state_jd_2436145_604166667.proto.txt");
+  auto solar_system = base::make_not_null_unique<SolarSystem<ICRS>>(
+      SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
+      SOLUTION_DIR / "astronomy" /
+          "sol_initial_state_jd_2436145_604166667.proto.txt");
   AdjustAccuracy(accuracy, *solar_system);
   return solar_system;
 }

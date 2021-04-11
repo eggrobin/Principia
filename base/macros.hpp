@@ -26,6 +26,9 @@ char const* const CompilerVersion = __VERSION__;
 #define PRINCIPIA_COMPILER_MSVC 1
 char const* const CompilerName = "Microsoft Visual C++";
 char const* const CompilerVersion = STRINGIFY_EXPANSION(_MSC_FULL_VER);
+# if _HAS_CXX20
+# define PRINCIPIA_COMPILER_MSVC_HAS_CXX20 1
+# endif
 #elif defined(__ICC) || defined(__INTEL_COMPILER)
 #define PRINCIPIA_COMPILER_ICC 1
 char const* const CompilerName = "Intel C++ Compiler";
@@ -70,28 +73,6 @@ char const* const Architecture = "x86-64";
 #error "Have you tried a Cray-1?"
 #endif
 
-#if defined(CDECL)
-#  error "CDECL already defined"
-#else
-// Architecture macros from http://goo.gl/ZypnO8.
-// We use cdecl on x86, the calling convention is unambiguous on x86-64.
-#  if ARCH_CPU_X86
-#    if PRINCIPIA_COMPILER_CLANG ||  \
-        PRINCIPIA_COMPILER_MSVC ||   \
-        PRINCIPIA_COMPILER_CLANG_CL
-#      define CDECL __cdecl
-#    elif PRINCIPIA_COMPILER_ICC || PRINCIPIA_COMPILER_GCC
-#      define CDECL __attribute__((cdecl))
-#    else
-#      error "Get a real compiler!"
-#    endif
-#  elif ARCH_CPU_X86_64
-#    define CDECL
-#  else
-#    error "Have you tried a Cray-1?"
-#  endif
-#endif
-
 // DLL-exported functions for interfacing with Platform Invocation Services.
 #if defined(PRINCIPIA_DLL)
 #  error "PRINCIPIA_DLL already defined"
@@ -104,25 +85,6 @@ char const* const Architecture = "x86-64";
 #    endif
 #  else
 #    define PRINCIPIA_DLL __attribute__((visibility("default")))
-#  endif
-#endif
-
-// DLL-exported functions for isolated physics optimization.
-#if defined(PHYSICS_DLL)
-#  error "PHYSICS_DLL already defined"
-#else
-#  if OS_WIN
-#    if PHYSICS_DLL_IMPORT
-#      define PHYSICS_DLL __declspec(dllimport)
-#      define PHYSICS_DLL_TEMPLATE_CLASS extern template class PHYSICS_DLL
-#    else
-#      define PHYSICS_DLL __declspec(dllexport)
-#      define PHYSICS_DLL_TEMPLATE_CLASS template class PHYSICS_DLL
-#    endif
-#  else
-#    define PHYSICS_DLL __attribute__((visibility("default")))
-     // No isolated physics library on Linux or Macintosh at the moment.
-#    define PHYSICS_DLL_TEMPLATE_CLASS template class PHYSICS_DLL
 #  endif
 #endif
 
@@ -167,20 +129,20 @@ inline void noreturn() { std::exit(0); }
 // 64-bit architectures.
 #define PRINCIPIA_USE_SSE3_INTRINSICS !_DEBUG
 
+// Set this to 1 to test analytical series based on piecewise Poisson series.
+#define PRINCIPIA_CONTINUOUS_TRAJECTORY_SUPPORTS_PIECEWISE_POISSON_SERIES 0
+
 // Thread-safety analysis.
 #if PRINCIPIA_COMPILER_CLANG || PRINCIPIA_COMPILER_CLANG_CL
 #  define THREAD_ANNOTATION_ATTRIBUTE__(x) __attribute__((x))
 #  define EXCLUDES(...) \
        THREAD_ANNOTATION_ATTRIBUTE__(locks_excluded(__VA_ARGS__))
-#  define GUARDED_BY(...) \
-       THREAD_ANNOTATION_ATTRIBUTE__(guarded_by(__VA_ARGS__))
 #  define REQUIRES(...) \
        THREAD_ANNOTATION_ATTRIBUTE__(requires_capability(__VA_ARGS__))
 #  define REQUIRES_SHARED(...) \
        THREAD_ANNOTATION_ATTRIBUTE__(requires_shared_capability(__VA_ARGS__))
 #else
 #  define EXCLUDES(x)
-#  define GUARDED_BY(x)
 #  define REQUIRES(x)
 #  define REQUIRES_SHARED(x)
 #endif
@@ -192,38 +154,16 @@ inline void noreturn() { std::exit(0); }
 #  define UNICODE_PATH(x) u8 ## x
 #endif
 
-// Mutex.
-#if !OS_MACOSX
-#  define HAS_SHARED_MUTEX 1
-#endif
+#define NAMED(expression) u8 ## #expression << ": " << (expression)
 
-#define NAMED(expression) #expression << ": " << (expression)
-
-// A macro to allow glog checking within C++11 constexpr code.  If |condition|
-// is true, evaluates to |expression|.  Otherwise, results in a CHECK failure at
-// runtime and a compilation error due to a call to non-constexpr code at
-// compile time.
-// NOTE(egg): in the failure case, the |LOG(FATAL)| is wrapped in a lambda.  The
-// reason is that |LOG(FATAL)| constructs a |google::LogMessageFatal|, and
-// |google::LogMessage::Fail()| is called in its destructor.  As a temporary,
-// the |google::LogMessageFatal| is destroyed as the last step in evaluating the
-// enclosing full-expression.  If we simply used the comma operator, the entire
-// ternary |((condition) ? (expression) : (CHECK(condition), (expression)))|
-// would be part of the enclosing full-expression, so that |expression| would
-// get evaluated before the |CHECK| failure, possibly triggering all sorts of
-// terrible UB or other checks (|DateDeathTest| provides a couple of examples).
-// With the lambda, the full-expression forms the expression statement
-// |LOG(FATAL) << "Check failed: " #condition " ";|, so that failure occurs
-// before we return from the lambda's function call operator, and |expression|
-// is never evaluated.  We do not use |CHECK| because that would require
-// capture, but this should produce the same output.
-#define CHECKING(condition, expression)                                      \
-  ((condition) ? (expression)                                                \
-               : (([] { LOG(FATAL) << "Check failed: " #condition " "; })(), \
-                  (expression)))
+// Needed to circumvent lint warnings in constexpr functions where CHECK_LT and
+// friends cannot be used.
+#define CONSTEXPR_CHECK(condition) CHECK(condition)
+#define CONSTEXPR_DCHECK(condition) DCHECK(condition)
 
 // Clang for some reason doesn't like FP arithmetic that yields infinities in
-// constexpr code (MSVC and GCC are fine with that).
+// constexpr code (MSVC and GCC are fine with that).  This will be fixed in
+// Clang 9.0.0, all hail zygoloid.
 #if PRINCIPIA_COMPILER_CLANG || PRINCIPIA_COMPILER_CLANG_CL
 #  define CONSTEXPR_INFINITY const
 #else
@@ -239,6 +179,20 @@ inline void noreturn() { std::exit(0); }
 // For templates in macro parameters.
 #define TEMPLATE(...) template<__VA_ARGS__>
 
+// For circumventing
+// https://developercommunity.visualstudio.com/content/problem/1256363/operator-call-incorrectly-marked-as-ambiguous-with.html.
+#if PRINCIPIA_COMPILER_MSVC_HAS_CXX20
+#define PRINCIPIA_MAX(l, r) ((l) > (r) ? (l) : (r))
+#define PRINCIPIA_MAX3(x1, x2, x3) \
+  PRINCIPIA_MAX((x1), PRINCIPIA_MAX((x2), (x3)))
+#define PRINCIPIA_MAX4(x1, x2, x3, x4) \
+  PRINCIPIA_MAX((x1), PRINCIPIA_MAX((x2), PRINCIPIA_MAX((x3), (x4))))
+#else
+#define PRINCIPIA_MAX(l, r) std::max((l), (r))
+#define PRINCIPIA_MAX3(x1, x2, x3) std::max({(x1), (x2), (x3)})
+#define PRINCIPIA_MAX4(x1, x2, x3, x4) std::max({(x1), (x2), (x3), (x4)})
+#endif
+
 // Forward declaration of a class or struct declared in an internal namespace
 // according to #602.
 // Usage:
@@ -250,6 +204,15 @@ inline void noreturn() { std::exit(0); }
 namespace internal_##package_name {                  \
 template_and_class_key declared_name;                \
 }                                                    \
+using internal_##package_name::declared_name
+
+#define FORWARD_DECLARE_FUNCTION_FROM(package_name,        \
+                                      template_and_result, \
+                                      declared_name,       \
+                                      parameters)          \
+namespace internal_##package_name {                        \
+template_and_result declared_name parameters;              \
+}                                                          \
 using internal_##package_name::declared_name
 
 }  // namespace base

@@ -4,8 +4,10 @@
 #include "physics/rotating_body.hpp"
 
 #include <algorithm>
+#include <optional>
 #include <vector>
 
+#include "geometry/grassmann.hpp"
 #include "geometry/r3_element.hpp"
 #include "geometry/rotation.hpp"
 #include "physics/oblate_body.hpp"
@@ -16,13 +18,36 @@ namespace principia {
 namespace physics {
 namespace internal_rotating_body {
 
+using geometry::Cross;
 using geometry::DefinesFrame;
 using geometry::EulerAngles;
 using geometry::Exp;
+using geometry::NormalizeOrZero;
 using geometry::RadiusLatitudeLongitude;
 using geometry::SphericalCoordinates;
-using quantities::SIUnit;
 using quantities::si::Radian;
+
+template<typename Frame>
+RotatingBody<Frame>::Parameters::Parameters(
+    Length const& min_radius,
+    Length const& mean_radius,
+    Length const& max_radius,
+    Angle const& reference_angle,
+    Instant const& reference_instant,
+    AngularFrequency const& angular_frequency,
+    Angle const& right_ascension_of_pole,
+    Angle const& declination_of_pole)
+    : min_radius_(min_radius),
+      mean_radius_(mean_radius),
+      max_radius_(max_radius),
+      reference_angle_(reference_angle),
+      reference_instant_(reference_instant),
+      angular_frequency_(angular_frequency),
+      right_ascension_of_pole_(right_ascension_of_pole),
+      declination_of_pole_(declination_of_pole) {
+  CHECK_NE(angular_frequency_, AngularFrequency())
+      << "Rotating body cannot have zero angular velocity";
+}
 
 template<typename Frame>
 RotatingBody<Frame>::Parameters::Parameters(
@@ -32,15 +57,12 @@ RotatingBody<Frame>::Parameters::Parameters(
     AngularFrequency const& angular_frequency,
     Angle const& right_ascension_of_pole,
     Angle const& declination_of_pole)
-    : mean_radius_(mean_radius),
-      reference_angle_(reference_angle),
-      reference_instant_(reference_instant),
-      angular_frequency_(angular_frequency),
-      right_ascension_of_pole_(right_ascension_of_pole),
-      declination_of_pole_(declination_of_pole) {
-  CHECK_NE(angular_frequency_, 0.0 * SIUnit<AngularFrequency>())
-      << "Rotating body cannot have zero angular velocity";
-}
+    : Parameters(mean_radius, mean_radius, mean_radius,
+                 reference_angle,
+                 reference_instant,
+                 angular_frequency,
+                 right_ascension_of_pole,
+                 declination_of_pole) {}
 
 template<typename Frame>
 RotatingBody<Frame>::RotatingBody(
@@ -52,8 +74,19 @@ RotatingBody<Frame>::RotatingBody(
                       1.0,
                       parameters.declination_of_pole_,
                       parameters.right_ascension_of_pole_).ToCartesian()),
+      biequatorial_(RadiusLatitudeLongitude(
+                        1.0,
+                        0 * Radian,
+                        π / 2 * Radian +
+                            parameters.right_ascension_of_pole_).ToCartesian()),
+      equatorial_(Wedge(biequatorial_, polar_axis_).coordinates()),
       angular_velocity_(polar_axis_.coordinates() *
                         parameters.angular_frequency_) {}
+
+template<typename Frame>
+Length RotatingBody<Frame>::min_radius() const {
+  return parameters_.min_radius_;
+}
 
 template<typename Frame>
 Length RotatingBody<Frame>::mean_radius() const {
@@ -61,8 +94,23 @@ Length RotatingBody<Frame>::mean_radius() const {
 }
 
 template<typename Frame>
+Length RotatingBody<Frame>::max_radius() const {
+  return parameters_.max_radius_;
+}
+
+template<typename Frame>
 Vector<double, Frame> const& RotatingBody<Frame>::polar_axis() const {
   return polar_axis_;
+}
+
+template<typename Frame>
+Vector<double, Frame> const& RotatingBody<Frame>::biequatorial() const {
+  return biequatorial_;
+}
+
+template<typename Frame>
+Vector<double, Frame> const& RotatingBody<Frame>::equatorial() const {
+  return equatorial_;
 }
 
 template<typename Frame>
@@ -120,8 +168,12 @@ void RotatingBody<Frame>::WriteToMessage(
   not_null<serialization::RotatingBody*> const rotating_body =
       message->MutableExtension(serialization::RotatingBody::extension);
   Frame::WriteToMessage(rotating_body->mutable_frame());
+  parameters_.min_radius_.WriteToMessage(
+      rotating_body->mutable_min_radius());
   parameters_.mean_radius_.WriteToMessage(
       rotating_body->mutable_mean_radius());
+  parameters_.max_radius_.WriteToMessage(
+      rotating_body->mutable_max_radius());
   parameters_.reference_angle_.WriteToMessage(
       rotating_body->mutable_reference_angle());
   parameters_.reference_instant_.WriteToMessage(
@@ -139,23 +191,43 @@ not_null<std::unique_ptr<RotatingBody<Frame>>>
 RotatingBody<Frame>::ReadFromMessage(
     serialization::RotatingBody const& message,
     MassiveBody::Parameters const& massive_body_parameters) {
-  Parameters const parameters(
-      Length::ReadFromMessage(message.mean_radius()),
-      Angle::ReadFromMessage(message.reference_angle()),
-      Instant::ReadFromMessage(message.reference_instant()),
-      AngularFrequency::ReadFromMessage(message.angular_frequency()),
-      Angle::ReadFromMessage(message.right_ascension_of_pole()),
-      Angle::ReadFromMessage(message.declination_of_pole()));
+  bool is_pre_del_ferro = !message.has_min_radius() &&
+                          !message.has_max_radius();
+  std::optional<Parameters> parameters;
+  if (is_pre_del_ferro) {
+    Length const mean_radius = Length::ReadFromMessage(message.mean_radius());
+    Length const min_radius = mean_radius;
+    Length const max_radius = mean_radius;
+    parameters.emplace(
+        min_radius,
+        mean_radius,
+        max_radius,
+        Angle::ReadFromMessage(message.reference_angle()),
+        Instant::ReadFromMessage(message.reference_instant()),
+        AngularFrequency::ReadFromMessage(message.angular_frequency()),
+        Angle::ReadFromMessage(message.right_ascension_of_pole()),
+        Angle::ReadFromMessage(message.declination_of_pole()));
+  } else {
+    parameters.emplace(
+        Length::ReadFromMessage(message.min_radius()),
+        Length::ReadFromMessage(message.mean_radius()),
+        Length::ReadFromMessage(message.max_radius()),
+        Angle::ReadFromMessage(message.reference_angle()),
+        Instant::ReadFromMessage(message.reference_instant()),
+        AngularFrequency::ReadFromMessage(message.angular_frequency()),
+        Angle::ReadFromMessage(message.right_ascension_of_pole()),
+        Angle::ReadFromMessage(message.declination_of_pole()));
+  }
 
   if (message.HasExtension(serialization::OblateBody::extension)) {
     serialization::OblateBody const& extension =
         message.GetExtension(serialization::OblateBody::extension);
     return OblateBody<Frame>::ReadFromMessage(extension,
                                               massive_body_parameters,
-                                              parameters);
+                                              *parameters);
   } else {
     return std::make_unique<RotatingBody<Frame>>(massive_body_parameters,
-                                                 parameters);
+                                                 *parameters);
   }
 }
 

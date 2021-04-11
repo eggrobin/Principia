@@ -3,25 +3,39 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{83A31DA7-3F62-464D-9F6B-09CCE07A865A}</ProjectGuid>
     <RootNamespace>mathematica</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(SolutionDir)principia.props" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="..\third_party_zfp.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release_LLVM|x64'">
+    <Import Project="..\third_party_zfp.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="..\third_party_zfp.props" />
+  </ImportGroup>
   <ItemGroup>
     <ClCompile Include="..\base\bundle.cpp" />
     <ClCompile Include="..\base\status.cpp" />
+    <ClCompile Include="..\numerics\cbrt.cpp" />
+    <ClCompile Include="..\physics\protector.cpp" />
+    <ClCompile Include="error_analysis_test.cpp" />
     <ClCompile Include="integrator_plots.cpp" />
-    <ClCompile Include="local_error_analysis.cpp" />
+    <ClCompile Include="mathematica_test.cpp" />
     <ClCompile Include="retrobop_dynamical_stability.cpp" />
-    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="integrator_plots.hpp" />
     <ClInclude Include="local_error_analysis.hpp" />
+    <ClInclude Include="local_error_analysis_body.hpp" />
     <ClInclude Include="retrobop_dynamical_stability.hpp" />
     <ClInclude Include="mathematica.hpp" />
     <ClInclude Include="mathematica_body.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="associated_legendre_function.wl" />
+    <None Include="elliptic_integrals.wl" />
+    <None Include="fukushima_elliptic_bd.wl" />
     <None Include="generate_graphs.wl" />
     <None Include="navball.wl" />
     <None Include="integration.wl" />

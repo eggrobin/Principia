@@ -32,19 +32,26 @@ namespace internal_forkable {
 using base::not_constructible;
 
 template<typename Frame>
-struct ForkableTraits<DiscreteTrajectory<Frame>> : not_constructible {
-  using TimelineConstIterator =
-      typename std::map<Instant, DegreesOfFreedom<Frame>>::const_iterator;
+struct DiscreteTrajectoryTraits : not_constructible {
+  using Timeline = typename std::map<Instant, DegreesOfFreedom<Frame>>;
+  using TimelineConstIterator = typename Timeline::const_iterator;
+
   static Instant const& time(TimelineConstIterator it);
 };
 
 template<typename Frame>
 class DiscreteTrajectoryIterator
     : public ForkableIterator<DiscreteTrajectory<Frame>,
-                              DiscreteTrajectoryIterator<Frame>> {
+                              DiscreteTrajectoryIterator<Frame>,
+                              DiscreteTrajectoryTraits<Frame>> {
  public:
-  Instant const& time() const;
-  DegreesOfFreedom<Frame> const& degrees_of_freedom() const;
+  struct reference {
+    Instant const& time;
+    DegreesOfFreedom<Frame> const& degrees_of_freedom;
+  };
+
+  reference operator*() const;
+  std::optional<reference> operator->() const;
 
  protected:
   not_null<DiscreteTrajectoryIterator*> that() override;
@@ -60,21 +67,18 @@ using geometry::Instant;
 using geometry::Position;
 using geometry::Vector;
 using geometry::Velocity;
+using internal_forkable::DiscreteTrajectoryIterator;
+using internal_forkable::DiscreteTrajectoryTraits;
 using quantities::Acceleration;
 using quantities::Length;
 using quantities::Speed;
-using internal_forkable::DiscreteTrajectoryIterator;
 using numerics::Hermite3;
 
 template<typename Frame>
 class DiscreteTrajectory : public Forkable<DiscreteTrajectory<Frame>,
-                                           DiscreteTrajectoryIterator<Frame>>,
+                                           DiscreteTrajectoryIterator<Frame>,
+                                           DiscreteTrajectoryTraits<Frame>>,
                            public Trajectory<Frame> {
-  using Timeline = std::map<Instant, DegreesOfFreedom<Frame>>;
-  using TimelineConstIterator = typename Forkable<
-      DiscreteTrajectory<Frame>,
-      DiscreteTrajectoryIterator<Frame>>::TimelineConstIterator;
-
  public:
   using Iterator = DiscreteTrajectoryIterator<Frame>;
 
@@ -83,12 +87,6 @@ class DiscreteTrajectory : public Forkable<DiscreteTrajectory<Frame>,
   DiscreteTrajectory(DiscreteTrajectory&&) = delete;
   DiscreteTrajectory& operator=(DiscreteTrajectory const&) = delete;
   DiscreteTrajectory& operator=(DiscreteTrajectory&&) = delete;
-
-  // Returns an iterator at the last point of the trajectory.  Complexity is
-  // O(1).  The trajectory must not be empty.
-  // TODO(phl): This is really RBegin, but Forkable doesn't have reverse
-  // iterators.
-  Iterator last() const;
 
   // Creates a new child trajectory forked at time |time|, and returns it.  The
   // child trajectory shares its data with the current trajectory for times less
@@ -108,9 +106,10 @@ class DiscreteTrajectory : public Forkable<DiscreteTrajectory<Frame>,
   // trajectory.
   not_null<DiscreteTrajectory<Frame>*> NewForkAtLast();
 
-  // The first point of |fork| is removed from |fork| and appended (using
-  // Append) to this trajectory.  Then |fork| is made a fork of this trajectory
-  // at the newly-inserted point.  |fork| must be a non-empty root.
+  // Changes |fork| to become a fork of this trajectory at the end of this
+  // trajectory.  |fork| must be a non-empty root and must start at or after the
+  // last time of this trajectory.  If it has a point at the last time of this
+  // trajectory, that point is ignored.
   void AttachFork(not_null<std::unique_ptr<DiscreteTrajectory<Frame>>> fork);
 
   // This object must not be a root.  It is detached from its parent and becomes
@@ -138,7 +137,8 @@ class DiscreteTrajectory : public Forkable<DiscreteTrajectory<Frame>,
   // when |Append|ing, ensuring that |EvaluatePosition| returns a result within
   // |tolerance| of the missing points.  |max_dense_intervals| is the largest
   // number of points that can be added before removal is considered.
-  void SetDownsampling(std::int64_t max_dense_intervals, Length tolerance);
+  void SetDownsampling(std::int64_t max_dense_intervals,
+                       Length const& tolerance);
 
   // Clear the downsampling parameters.  From now on, all points appended to the
   // trajectory are going to be retained.
@@ -146,7 +146,7 @@ class DiscreteTrajectory : public Forkable<DiscreteTrajectory<Frame>,
 
   // Implementation of the interface |Trajectory|.
 
-  // The bounds are the times of |Begin()| and |last()| if this trajectory is
+  // The bounds are the times of |begin()| and |rbegin()| if this trajectory is
   // nonempty, otherwise they are infinities of the appropriate signs.
   Instant t_min() const override;
   Instant t_max() const override;
@@ -169,11 +169,16 @@ class DiscreteTrajectory : public Forkable<DiscreteTrajectory<Frame>,
   // and the orders of the |forks| must be consistent during serialization and
   // deserialization.  All pointers designated by the pointers in |forks| must
   // be null at entry; they may be null at exit.
+  template<typename F = Frame,
+           typename = std::enable_if_t<base::is_serializable_v<F>>>
   static not_null<std::unique_ptr<DiscreteTrajectory>> ReadFromMessage(
       serialization::DiscreteTrajectory const& message,
       std::vector<DiscreteTrajectory<Frame>**> const& forks);
 
  protected:
+  using TimelineConstIterator =
+      typename DiscreteTrajectoryTraits<Frame>::TimelineConstIterator;
+
   // The API inherited from Forkable.
   not_null<DiscreteTrajectory*> that() override;
   not_null<DiscreteTrajectory const*> that() const override;
@@ -187,6 +192,8 @@ class DiscreteTrajectory : public Forkable<DiscreteTrajectory<Frame>,
   std::int64_t timeline_size() const override;
 
  private:
+  using Timeline = typename DiscreteTrajectoryTraits<Frame>::Timeline;
+
   class Downsampling {
    public:
     Downsampling(std::int64_t max_dense_intervals,
@@ -259,14 +266,14 @@ class DiscreteTrajectory : public Forkable<DiscreteTrajectory<Frame>,
 
   std::optional<Downsampling> downsampling_;
 
-  template<typename, typename>
+  template<typename, typename, typename>
   friend class internal_forkable::ForkableIterator;
-  template<typename, typename>
+  template<typename, typename, typename>
   friend class internal_forkable::Forkable;
 
   // For using the private constructor in maps.
   template<typename, typename>
-  friend struct std::pair;
+  friend struct ::std::pair;
 };
 
 }  // namespace internal_discrete_trajectory

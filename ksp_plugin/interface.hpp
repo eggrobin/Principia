@@ -1,13 +1,16 @@
 ﻿
 #pragma once
 
+#include <string>
 #include <typeindex>
 #include <type_traits>
+#include <utility>
 
 #include "base/not_null.hpp"
 #include "base/macros.hpp"
 #include "base/pull_serializer.hpp"
 #include "base/push_deserializer.hpp"
+#include "base/status.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/quaternion.hpp"
@@ -33,15 +36,20 @@ namespace interface {
 using base::not_null;
 using base::PullSerializer;
 using base::PushDeserializer;
+using geometry::AngularVelocity;
+using geometry::Bivector;
 using geometry::Displacement;
 using geometry::Instant;
 using geometry::Position;
+using geometry::Quaternion;
 using geometry::R3Element;
 using geometry::Vector;
 using geometry::Velocity;
 using ksp_plugin::AliceSun;
+using ksp_plugin::ApparentWorld;
 using ksp_plugin::Barycentric;
 using ksp_plugin::Camera;
+using ksp_plugin::EccentricPart;
 using ksp_plugin::Iterator;
 using ksp_plugin::NavigationFrame;
 using ksp_plugin::PileUp;
@@ -53,7 +61,9 @@ using ksp_plugin::World;
 using physics::DegreesOfFreedom;
 using physics::Frenet;
 using physics::RelativeDegreesOfFreedom;
+using quantities::AngularMomentum;
 using quantities::Length;
+using quantities::MomentOfInertia;
 
 // Takes ownership of |**pointer| and returns it to the caller.  Nulls
 // |*pointer|.  |pointer| must not be null.  No transfer of ownership of
@@ -66,21 +76,34 @@ std::unique_ptr<T[]> TakeOwnershipArray(T** pointer);
 #include "ksp_plugin/interface.generated.h"
 
 extern "C" PRINCIPIA_DLL
-void CDECL principia__ActivateRecorder(bool activate);
+void __cdecl principia__ActivatePlayer();
 
 extern "C" PRINCIPIA_DLL
-void CDECL principia__InitGoogleLogging();
+void __cdecl principia__ActivateRecorder(bool activate);
+
+extern "C" PRINCIPIA_DLL
+void __cdecl principia__InitGoogleLogging();
 
 bool operator==(AdaptiveStepParameters const& left,
                 AdaptiveStepParameters const& right);
 bool operator==(Burn const& left, Burn const& right);
+bool operator==(EquatorialCrossings const& left,
+                EquatorialCrossings const& right);
+bool operator==(FlightPlanAdaptiveStepParameters const& left,
+                FlightPlanAdaptiveStepParameters const& right);
+bool operator==(Interval const& left, Interval const& right);
 bool operator==(NavigationFrameParameters const& left,
                 NavigationFrameParameters const& right);
 bool operator==(NavigationManoeuvre const& left,
                 NavigationManoeuvre const& right);
 bool operator==(NavigationManoeuvreFrenetTrihedron const& left,
                 NavigationManoeuvreFrenetTrihedron const& right);
+bool operator==(OrbitAnalysis const& left, OrbitAnalysis const& right);
+bool operator==(OrbitGroundTrack const& left, OrbitGroundTrack const& right);
+bool operator==(OrbitRecurrence const& left, OrbitRecurrence const& right);
+bool operator==(OrbitalElements const& left, OrbitalElements const& right);
 bool operator==(QP const& left, QP const& right);
+bool operator==(QPRW const& left, QPRW const& right);
 bool operator==(WXYZ const& left, WXYZ const& right);
 bool operator==(XY const& left, XY const& right);
 bool operator==(XYZ const& left, XYZ const& right);
@@ -90,6 +113,10 @@ bool operator==(XYZ const& left, XYZ const& right);
 physics::Ephemeris<Barycentric>::AdaptiveStepParameters
 FromAdaptiveStepParameters(
     AdaptiveStepParameters const& adaptive_step_parameters);
+std::pair<physics::Ephemeris<Barycentric>::AdaptiveStepParameters,
+          physics::Ephemeris<Barycentric>::GeneralizedAdaptiveStepParameters>
+FromFlightPlanAdaptiveStepParameters(FlightPlanAdaptiveStepParameters const&
+                                         flight_plan_adaptive_step_parameters);
 
 template<typename T>
 T FromQP(QP const& qp);
@@ -102,24 +129,41 @@ template<>
 RelativeDegreesOfFreedom<World>
 FromQP<RelativeDegreesOfFreedom<World>>(QP const& qp);
 
+Quaternion FromWXYZ(WXYZ const& wxyz);
+
 R3Element<double> FromXYZ(XYZ const& xyz);
 template<typename T>
 T FromXYZ(XYZ const& xyz);
 template<>
 Position<World> FromXYZ<Position<World>>(XYZ const& xyz);
 template<>
+Position<EccentricPart> FromXYZ<Position<EccentricPart>>(XYZ const& xyz);
+template<>
 Velocity<Frenet<NavigationFrame>>
 FromXYZ<Velocity<Frenet<NavigationFrame>>>(XYZ const& xyz);
+template<>
+AngularVelocity<World> FromXYZ(XYZ const& xyz);
+template<>
+R3Element<MomentOfInertia> FromXYZ<R3Element<MomentOfInertia>>(XYZ const& xyz);
 
 AdaptiveStepParameters ToAdaptiveStepParameters(
     physics::Ephemeris<Barycentric>::AdaptiveStepParameters const&
         adaptive_step_parameters);
+FlightPlanAdaptiveStepParameters ToFlightPlanAdaptiveStepParameters(
+    physics::Ephemeris<Barycentric>::AdaptiveStepParameters const&
+        adaptive_step_parameters,
+    physics::Ephemeris<Barycentric>::GeneralizedAdaptiveStepParameters const&
+        generalized_adaptive_step_parameters);
 
 KeplerianElements ToKeplerianElements(
     physics::KeplerianElements<Barycentric> const& keplerian_elements);
 
 QP ToQP(DegreesOfFreedom<World> const& dof);
 QP ToQP(RelativeDegreesOfFreedom<AliceSun> const& relative_dof);
+
+// Ownership of the status and its message is transferred to the caller.
+Status* ToNewStatus(base::Status const& status);
+Status* ToNewStatus(base::Error error, std::string const& message);
 
 WXYZ ToWXYZ(geometry::Quaternion const& quaternion);
 
@@ -129,6 +173,7 @@ XYZ ToXYZ(geometry::R3Element<double> const& r3_element);
 XYZ ToXYZ(Position<World> const& position);
 XYZ ToXYZ(Vector<double, World> const& direction);
 XYZ ToXYZ(Velocity<Frenet<NavigationFrame>> const& velocity);
+XYZ ToXYZ(Bivector<AngularMomentum, World> const& angular_momentum);
 
 // Conversions between interchange data and typed data that depend on the state
 // of the plugin.

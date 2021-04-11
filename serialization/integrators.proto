@@ -6,6 +6,8 @@ import "serialization/quantities.proto";
 
 package principia.serialization;
 
+option cc_enable_arenas = true;
+
 message Integrator {
   extensions 3000 to 3999;  // Last used: 3001.
 }
@@ -16,6 +18,7 @@ message AdaptiveStepSizeIntegrator {
   }
   enum Kind {
     DORMAND_ELMIKKAWY_PRINCE_1986_RKN_434FM = 1;
+    FINE_1987_RKNG_34 = 2;
   }
   required Kind kind = 1;
 }
@@ -82,7 +85,7 @@ message AdaptiveStepSizeIntegratorInstance {
   extend IntegratorInstance {
     optional AdaptiveStepSizeIntegratorInstance extension = 7001;
   }
-  extensions 9000 to 9999;  // Last used: 9000
+  extensions 9000 to 9999;  // Last used: 9001
   message Parameters {
     required Quantity first_time_step = 1;
     required double safety_factor = 2;
@@ -101,6 +104,13 @@ message EmbeddedExplicitRungeKuttaNystromIntegratorInstance {
   extend AdaptiveStepSizeIntegratorInstance {
     optional EmbeddedExplicitRungeKuttaNystromIntegratorInstance
         extension = 9000;
+  }
+}
+
+message EmbeddedExplicitGeneralizedRungeKuttaNystromIntegratorInstance {
+  extend AdaptiveStepSizeIntegratorInstance {
+    optional EmbeddedExplicitGeneralizedRungeKuttaNystromIntegratorInstance
+        extension = 9001;
   }
 }
 

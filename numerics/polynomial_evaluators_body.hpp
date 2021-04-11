@@ -2,25 +2,17 @@
 
 #include "numerics/polynomial_evaluators.hpp"
 
+#include <cstddef>
 #include <tuple>
+
+#include "base/bits.hpp"
 
 namespace principia {
 namespace numerics {
 namespace internal_polynomial_evaluators {
 
-namespace {
-
-// Greatest power of 2 less than or equal to n.  8 -> 8, 7 -> 4.
-constexpr int FloorOfPowerOf2(int const n) {
-  return n == 0 ? 0 : n == 1 ? 1 : FloorOfPowerOf2(n >> 1) << 1;
-}
-
-// Ceiling log2 of n.  8 -> 3, 7 -> 2.
-constexpr int CeilingLog2(int const n) {
-  return n == 1 ? 0 : CeilingLog2(n >> 1) + 1;
-}
-
-}  // namespace
+using base::FloorLog2;
+using base::PowerOf2Le;
 
 // Generator for repeated squaring:
 //   SquareGenerator<Length, 0>::Type is Exponentiation<Length, 2>
@@ -40,8 +32,8 @@ struct SquareGenerator<Argument, 0> {
 
 template<typename Argument, typename>
 struct SquaresGenerator;
-template<typename Argument, int... orders>
-struct SquaresGenerator<Argument, std::integer_sequence<int, orders...>> {
+template<typename Argument, std::size_t... orders>
+struct SquaresGenerator<Argument, std::index_sequence<orders...>> {
   using Type = std::tuple<typename SquareGenerator<Argument, orders>::Type...>;
   static Type Evaluate(Argument const& argument);
 };
@@ -58,8 +50,8 @@ auto SquareGenerator<Argument, 0>::Evaluate(Argument const& argument) -> Type {
   return argument * argument;
 }
 
-template<typename Argument, int... orders>
-auto SquaresGenerator<Argument, std::integer_sequence<int, orders...>>::
+template<typename Argument, std::size_t... orders>
+auto SquaresGenerator<Argument, std::index_sequence<orders...>>::
     Evaluate(Argument const& argument) -> Type {
   return std::make_tuple(
       SquareGenerator<Argument, orders>::Evaluate(argument)...);
@@ -72,8 +64,7 @@ auto SquaresGenerator<Argument, std::integer_sequence<int, orders...>>::
 template<typename Value, typename Argument, int degree, int low, int subdegree>
 struct InternalEstrinEvaluator {
   using ArgumentSquaresGenerator =
-      SquaresGenerator<Argument,
-                       std::make_integer_sequence<int, CeilingLog2(degree)>>;
+      SquaresGenerator<Argument, std::make_index_sequence<FloorLog2(degree)>>;
   using ArgumentSquares = typename ArgumentSquaresGenerator::Type;
   using Coefficients =
       typename PolynomialInMonomialBasis<Value, Argument, degree,
@@ -92,8 +83,7 @@ struct InternalEstrinEvaluator {
 template<typename Value, typename Argument, int degree, int low>
 struct InternalEstrinEvaluator<Value, Argument, degree, low, 1> {
   using ArgumentSquaresGenerator =
-      SquaresGenerator<Argument,
-                       std::make_integer_sequence<int, CeilingLog2(degree)>>;
+      SquaresGenerator<Argument, std::make_index_sequence<FloorLog2(degree)>>;
   using ArgumentSquares = typename ArgumentSquaresGenerator::Type;
   using Coefficients =
       typename PolynomialInMonomialBasis<Value, Argument, degree,
@@ -112,8 +102,7 @@ struct InternalEstrinEvaluator<Value, Argument, degree, low, 1> {
 template<typename Value, typename Argument, int degree, int low>
 struct InternalEstrinEvaluator<Value, Argument, degree, low, 0> {
   using ArgumentSquaresGenerator =
-      SquaresGenerator<Argument,
-                       std::make_integer_sequence<int, CeilingLog2(degree)>>;
+      SquaresGenerator<Argument, std::make_index_sequence<FloorLog2(degree)>>;
   using ArgumentSquares = typename ArgumentSquaresGenerator::Type;
   using Coefficients =
       typename PolynomialInMonomialBasis<Value, Argument, degree,
@@ -138,9 +127,9 @@ InternalEstrinEvaluator<Value, Argument, degree, low, subdegree>::Evaluate(
   static_assert(subdegree >= 2,
                 "Unexpected subdegree in InternalEstrinEvaluator::Evaluate");
   // |n| is used to select |argument^(2^(n + 1))| = |argument^m|.
-  constexpr int n = CeilingLog2(subdegree) - 1;
+  constexpr int n = FloorLog2(subdegree) - 1;
   // |m| is |2^(n + 1)|.
-  constexpr int m = FloorOfPowerOf2(subdegree);
+  constexpr int m = PowerOf2Le(subdegree);
   return InternalEstrinEvaluator<Value, Argument, degree,
                                  low, m - 1>::
              Evaluate(coefficients, argument, argument_squares) +
@@ -160,9 +149,9 @@ EvaluateDerivative(Coefficients const& coefficients,
                 "Unexpected subdegree in InternalEstrinEvaluator::"
                 "EvaluateDerivative");
   // |n| is used to select |argument^(2^(n + 1))| = |argument^m|.
-  constexpr int n = CeilingLog2(subdegree) - 1;
+  constexpr int n = FloorLog2(subdegree) - 1;
   // |m| is |2^(n + 1)|.
-  constexpr int m = FloorOfPowerOf2(subdegree);
+  constexpr int m = PowerOf2Le(subdegree);
   return InternalEstrinEvaluator<Value, Argument, degree,
                                  low, m - 1>::
              EvaluateDerivative(coefficients, argument, argument_squares) +
@@ -230,15 +219,19 @@ Derivative<Value, Argument>
 EstrinEvaluator<Value, Argument, degree>::EvaluateDerivative(
     Coefficients const& coefficients,
     Argument const& argument) {
-  using InternalEvaluator = InternalEstrinEvaluator<Value,
-                                                    Argument,
-                                                    degree,
-                                                    /*low=*/1,
-                                                    /*subdegree=*/degree - 1>;
-  return InternalEvaluator::EvaluateDerivative(
-      coefficients,
-      argument,
-      InternalEvaluator::ArgumentSquaresGenerator::Evaluate(argument));
+  if constexpr (degree == 0) {
+    return Derivative<Value, Argument>{};
+  } else {
+    using InternalEvaluator = InternalEstrinEvaluator<Value,
+                                                      Argument,
+                                                      degree,
+                                                      /*low=*/1,
+                                                      /*subdegree=*/degree - 1>;
+    return InternalEvaluator::EvaluateDerivative(
+        coefficients,
+        argument,
+        InternalEvaluator::ArgumentSquaresGenerator::Evaluate(argument));
+  }
 }
 
 // Internal helper for Horner evaluation.  |degree| is the degree of the overall
@@ -323,9 +316,12 @@ Derivative<Value, Argument>
 HornerEvaluator<Value, Argument, degree>::EvaluateDerivative(
     Coefficients const& coefficients,
     Argument const& argument) {
-  // TODO(phl): Starting at 1 prevents us from having polynomials of degree 0.
-  return InternalHornerEvaluator<Value, Argument, degree, /*low=*/1>::
-      EvaluateDerivative(coefficients, argument);
+  if constexpr (degree == 0) {
+    return Derivative<Value, Argument>{};
+  } else {
+    return InternalHornerEvaluator<Value, Argument, degree, /*low=*/1>::
+        EvaluateDerivative(coefficients, argument);
+  }
 }
 
 }  // namespace internal_polynomial_evaluators

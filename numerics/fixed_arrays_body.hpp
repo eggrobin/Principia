@@ -47,12 +47,15 @@ DotProduct<ScalarLeft, ScalarRight, size, 0>::Compute(Left const& left,
   return left[0] * right[0];
 }
 
+// The |data_| member is aggregate-initialized with an empty list initializer,
+// which performs value initialization on the components.  For quantities this
+// calls the default constructor, for non-class types this does
+// zero-initialization.
 template<typename Scalar, int size_>
-constexpr FixedVector<Scalar, size_>::FixedVector() {
-  for (auto& element : data_) {
-    element = {};
-  }
-}
+constexpr FixedVector<Scalar, size_>::FixedVector() : data_{} {}
+
+template<typename Scalar, int size_>
+FixedVector<Scalar, size_>::FixedVector(uninitialized_t) {}
 
 template<typename Scalar, int size_>
 constexpr FixedVector<Scalar, size_>::FixedVector(
@@ -65,23 +68,8 @@ constexpr FixedVector<Scalar, size_>::FixedVector(
     : data_(std::move(data)) {}
 
 template<typename Scalar, int size_>
-FixedVector<Scalar, size_>::FixedVector(
-    std::initializer_list<Scalar> const& data) {
-  CHECK_EQ(size, data.size());
-  std::copy(data.begin(), data.end(), data_.begin());
-}
-
-template<typename Scalar, int size_>
 bool FixedVector<Scalar, size_>::operator==(FixedVector const& right) const {
   return data_ == right.data_;
-}
-
-template<typename Scalar, int size_>
-FixedVector<Scalar, size_>& FixedVector<Scalar, size_>::operator=(
-    std::initializer_list<Scalar> const& right) {
-  CHECK_EQ(size, right.size());
-  std::copy(right.begin(), right.end(), data_.begin());
-  return *this;
 }
 
 template<typename Scalar, int size_>
@@ -103,16 +91,16 @@ FixedVector<Scalar, size_>::operator std::vector<Scalar>() const {
 }
 
 template<typename Scalar, int rows, int columns>
+constexpr FixedMatrix<Scalar, rows, columns>::FixedMatrix()
+    : data_{} {}
+
+template<typename Scalar, int rows, int columns>
+FixedMatrix<Scalar, rows, columns>::FixedMatrix(uninitialized_t) {}
+
+template<typename Scalar, int rows, int columns>
 constexpr FixedMatrix<Scalar, rows, columns>::FixedMatrix(
     std::array<Scalar, rows * columns> const& data)
     : data_(data) {}
-
-template<typename Scalar, int rows, int columns>
-FixedMatrix<Scalar, rows, columns>::FixedMatrix(
-    std::initializer_list<Scalar> const& data) {
-  CHECK_EQ(rows * columns, data.size());
-  std::copy(data.begin(), data.end(), data_.begin());
-}
 
 template<typename Scalar, int rows, int columns>
 bool FixedMatrix<Scalar, rows, columns>::operator==(
@@ -121,12 +109,14 @@ bool FixedMatrix<Scalar, rows, columns>::operator==(
 }
 
 template<typename Scalar, int rows, int columns>
-FixedMatrix<Scalar, rows, columns>&
-FixedMatrix<Scalar, rows, columns>::operator=(
-    std::initializer_list<Scalar> const& right) {
-  CHECK_EQ(rows * columns, right.size());
-  std::copy(right.begin(), right.end(), data_.begin());
-  return *this;
+Scalar* FixedMatrix<Scalar, rows, columns>::operator[](int const index) {
+  return &data_[index * columns];
+}
+
+template<typename Scalar, int rows, int columns>
+constexpr Scalar const* FixedMatrix<Scalar, rows, columns>::operator[](
+    int const index) const {
+  return &data_[index * columns];
 }
 
 template<typename Scalar, int rows, int columns>
@@ -157,6 +147,18 @@ FixedMatrix<Scalar, rows, columns>::row() const {
   return Row<r>(this);
 }
 
+template<typename ScalarLeft, typename ScalarRight, int size>
+constexpr FixedVector<Difference<ScalarLeft, ScalarRight>, size> operator-(
+    FixedVector<ScalarLeft, size> const& left,
+    FixedVector<ScalarRight, size> const& right) {
+  std::array<Difference<ScalarLeft, ScalarRight>, size> result{};
+  for (int i = 0; i < size; ++i) {
+    result[i] = left[i] - right[i];
+  }
+  return FixedVector<Difference<ScalarLeft, ScalarRight>, size>(
+      std::move(result));
+}
+
 template<typename ScalarLeft, typename ScalarRight, int rows, int columns>
 FixedVector<Product<ScalarLeft, ScalarRight>, rows> operator*(
     FixedMatrix<ScalarLeft, rows, columns> const& left,
@@ -173,31 +175,23 @@ FixedVector<Product<ScalarLeft, ScalarRight>, rows> operator*(
 
 template<typename Scalar, int rows>
 constexpr FixedStrictlyLowerTriangularMatrix<Scalar, rows>::
+    FixedStrictlyLowerTriangularMatrix()
+    : data_{} {}
+
+template<typename Scalar, int rows>
+FixedStrictlyLowerTriangularMatrix<Scalar, rows>::
+    FixedStrictlyLowerTriangularMatrix(uninitialized_t) {}
+
+template<typename Scalar, int rows>
+constexpr FixedStrictlyLowerTriangularMatrix<Scalar, rows>::
     FixedStrictlyLowerTriangularMatrix(
         std::array<Scalar, dimension> const& data)
     : data_(data) {}
 
 template<typename Scalar, int rows>
-FixedStrictlyLowerTriangularMatrix<Scalar, rows>::
-    FixedStrictlyLowerTriangularMatrix(
-        std::initializer_list<Scalar> const& data) {
-  CHECK_EQ(dimension, data.size());
-  std::copy(data.begin(), data.end(), data_.begin());
-}
-
-template<typename Scalar, int rows>
 bool FixedStrictlyLowerTriangularMatrix<Scalar, rows>::operator==(
     FixedStrictlyLowerTriangularMatrix const& right) const {
   return data_ == right.data_;
-}
-
-template<typename Scalar, int rows>
-FixedStrictlyLowerTriangularMatrix<Scalar, rows>&
-FixedStrictlyLowerTriangularMatrix<Scalar, rows>::operator=(
-    std::initializer_list<Scalar> const& right) {
-  CHECK_EQ(dimension, right.size());
-  std::copy(right.begin(), right.end(), data_.begin());
-  return *this;
 }
 
 template<typename Scalar, int rows>
@@ -214,7 +208,42 @@ FixedStrictlyLowerTriangularMatrix<Scalar, rows>::operator[](
 }
 
 template<typename Scalar, int rows>
-int constexpr FixedStrictlyLowerTriangularMatrix<Scalar, rows>::dimension;
+constexpr int FixedStrictlyLowerTriangularMatrix<Scalar, rows>::dimension;
+
+template<typename Scalar, int rows>
+constexpr FixedLowerTriangularMatrix<Scalar, rows>::FixedLowerTriangularMatrix()
+    : data_{} {}
+
+template<typename Scalar, int rows>
+FixedLowerTriangularMatrix<Scalar, rows>::FixedLowerTriangularMatrix(
+    uninitialized_t) {}
+
+template<typename Scalar, int rows>
+constexpr FixedLowerTriangularMatrix<Scalar, rows>::
+    FixedLowerTriangularMatrix(std::array<Scalar, dimension> const& data)
+    : data_(data) {}
+
+template<typename Scalar, int rows>
+bool FixedLowerTriangularMatrix<Scalar, rows>::operator==(
+    FixedLowerTriangularMatrix const& right) const {
+  return data_ == right.data_;
+}
+
+template<typename Scalar, int rows>
+Scalar* FixedLowerTriangularMatrix<Scalar, rows>::operator[](
+    int const index) {
+  return &data_[index * (index + 1) / 2];
+}
+
+template<typename Scalar, int rows>
+constexpr Scalar const*
+FixedLowerTriangularMatrix<Scalar, rows>::operator[](
+    int const index) const {
+  return &data_[index * (index + 1) / 2];
+}
+
+template<typename Scalar, int rows>
+constexpr int FixedLowerTriangularMatrix<Scalar, rows>::dimension;
 
 }  // namespace internal_fixed_arrays
 }  // namespace numerics

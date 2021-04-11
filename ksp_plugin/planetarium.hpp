@@ -34,6 +34,7 @@ using physics::DegreesOfFreedom;
 using physics::DiscreteTrajectory;
 using physics::Ephemeris;
 using physics::RigidMotion;
+using physics::Trajectory;
 using quantities::Angle;
 using quantities::Length;
 
@@ -62,7 +63,7 @@ class Planetarium {
   // TODO(phl): All this Navigation is weird.  Should it be named Plotting?
   // In particular Navigation vs. NavigationFrame is a mess.
   Planetarium(Parameters const& parameters,
-              Perspective<Navigation, Camera> const& perspective,
+              Perspective<Navigation, Camera> perspective,
               not_null<Ephemeris<Barycentric> const*> ephemeris,
               not_null<NavigationFrame const*> plotting_frame);
 
@@ -82,9 +83,20 @@ class Planetarium {
       Instant const& now,
       bool reverse) const;
 
+  // A method that plots the cubic Hermite spline interpolating the trajectory,
+  // using an adaptive step size to keep the error between the straight segments
+  // and the actual spline below and close to the angular resolution.
   RP2Lines<Length, Camera> PlotMethod2(
       DiscreteTrajectory<Barycentric>::Iterator const& begin,
       DiscreteTrajectory<Barycentric>::Iterator const& end,
+      Instant const& now,
+      bool reverse) const;
+
+  // The same method, operating on the |Trajectory| interface.
+  RP2Lines<Length, Camera> PlotMethod2(
+      Trajectory<Barycentric> const& trajectory,
+      Instant const& first_time,
+      Instant const& last_time,
       Instant const& now,
       bool reverse) const;
 

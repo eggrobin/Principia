@@ -27,16 +27,15 @@ using quantities::Quotient;
 template<typename Method, typename Position>
 EmbeddedExplicitRungeKuttaNyströmIntegrator<Method, Position>::
 EmbeddedExplicitRungeKuttaNyströmIntegrator() {
-  // the first node is always 0 in an explicit method.
+  // The first node is always 0 in an explicit method.
   CHECK_EQ(0.0, c_[0]);
   if (first_same_as_last) {
     // Check that the conditions for the FSAL property are satisfied, see for
-    // instance Dormand, El-Mikkawy and Prince (1986),
-    // Families of Runge-Kutta-Nyström formulae, equation 3.1.
+    // instance [DEP87a], equation 3.1.
     CHECK_EQ(1.0, c_[stages_ - 1]);
-    CHECK_EQ(0.0, b_hat_[stages_ - 1]);
+    CHECK_EQ(0.0, b̂_[stages_ - 1]);
     for (int j = 0; j < stages_ - 1; ++j) {
-      CHECK_EQ(b_hat_[j], a_[stages_ - 1][j]);
+      CHECK_EQ(b̂_[j], a_[stages_ - 1][j]);
     }
   }
 }
@@ -49,10 +48,10 @@ Instance::Solve(Instant const& t_final) {
   using Acceleration = typename ODE::Acceleration;
 
   auto const& a = integrator_.a_;
-  auto const& b_hat = integrator_.b_hat_;
-  auto const& b_prime_hat = integrator_.b_prime_hat_;
+  auto const& b̂ = integrator_.b̂_;
+  auto const& b̂ʹ = integrator_.b̂ʹ_;
   auto const& b = integrator_.b_;
-  auto const& b_prime = integrator_.b_prime_;
+  auto const& bʹ = integrator_.bʹ_;
   auto const& c = integrator_.c_;
 
   auto& append_state = this->append_state_;
@@ -70,7 +69,7 @@ Instance::Solve(Instant const& t_final) {
   // Argument checks.
   int const dimension = current_state.positions.size();
   Sign const integration_direction = Sign(parameters.first_time_step);
-  if (integration_direction.Positive()) {
+  if (integration_direction.is_positive()) {
     // Integrating forward.
     CHECK_LT(current_state.time.value, t_final);
   } else {
@@ -88,15 +87,15 @@ Instance::Solve(Instant const& t_final) {
   DoublePrecision<Instant>& t = current_state.time;
 
   // Position increment (high-order).
-  std::vector<Displacement> Δq_hat(dimension);
+  std::vector<Displacement> Δq̂(dimension);
   // Velocity increment (high-order).
-  std::vector<Velocity> Δv_hat(dimension);
+  std::vector<Velocity> Δv̂(dimension);
   // Current position.  This is a non-const reference whose purpose is to make
   // the equations more readable.
-  std::vector<DoublePrecision<Position>>& q_hat = current_state.positions;
+  std::vector<DoublePrecision<Position>>& q̂ = current_state.positions;
   // Current velocity.  This is a non-const reference whose purpose is to make
   // the equations more readable.
-  std::vector<DoublePrecision<Velocity>>& v_hat = current_state.velocities;
+  std::vector<DoublePrecision<Velocity>>& v̂ = current_state.velocities;
 
   // Difference between the low- and high-order approximations.
   typename ODE::SystemStateError error_estimate;
@@ -117,7 +116,7 @@ Instance::Solve(Instant const& t_final) {
 
   // The first stage of the Runge-Kutta-Nyström iteration.  In the FSAL case,
   // |first_stage == 1| after the first step, since the first RHS evaluation has
-  // already occured in the previous step.  In the non-FSAL case and in the
+  // already occurred in the previous step.  In the non-FSAL case and in the
   // first step of the FSAL case, |first_stage == 0|.
   int first_stage = 0;
 
@@ -125,6 +124,7 @@ Instance::Solve(Instant const& t_final) {
   std::int64_t step_count = 0;
 
   Status status;
+  Status step_status;
 
   // No step size control on the first step.  If this instance is being
   // restarted we already have a value of |h| suitable for the next step, based
@@ -136,6 +136,10 @@ Instance::Solve(Instant const& t_final) {
     // Compute the next step with decreasing step sizes until the error is
     // tolerable.
     do {
+      // Reset the status as any error returned by a force computation for a
+      // rejected step is now moot.
+      step_status = Status::OK;
+
       // Adapt step size.
       // TODO(egg): find out whether there's a smarter way to compute that root,
       // especially since we make the order compile-time.
@@ -158,52 +162,62 @@ Instance::Solve(Instant const& t_final) {
                  integration_direction * time_to_end;
         if (at_end) {
           // The chosen step size will overshoot.  Clip it to just reach the
-          // end, and terminate if the step is accepted.
+          // end, and terminate if the step is accepted.  Note that while this
+          // step size is a good approximation, there is no guarantee that it
+          // won't over/undershoot, so we still need to special case the very
+          // last stage below.
           h = time_to_end;
           final_state = current_state;
         }
       }
 
+      auto const h² = h * h;
+
       // Runge-Kutta-Nyström iteration; fills |g|.
       for (int i = first_stage; i < stages_; ++i) {
-        Instant const t_stage = t.value + (t.error + c[i] * h);
+        Instant const t_stage =
+            (parameters.last_step_is_exact && at_end && c[i] == 1.0)
+                ? t_final
+                : t.value + (t.error + c[i] * h);
         for (int k = 0; k < dimension; ++k) {
           Acceleration Σj_a_ij_g_jk{};
           for (int j = 0; j < i; ++j) {
             Σj_a_ij_g_jk += a[i][j] * g[j][k];
           }
-          q_stage[k] = q_hat[k].value +
-                           h * (c[i] * v_hat[k].value + h * Σj_a_ij_g_jk);
+          q_stage[k] = q̂[k].value + h * c[i] * v̂[k].value + h² * Σj_a_ij_g_jk;
         }
-        status.Update(equation.compute_acceleration(t_stage, q_stage, g[i]));
+        step_status.Update(
+            equation.compute_acceleration(t_stage, q_stage, g[i]));
       }
 
       // Increment computation and step size control.
       for (int k = 0; k < dimension; ++k) {
-        Acceleration Σi_b_hat_i_g_ik{};
+        Acceleration Σi_b̂_i_g_ik{};
         Acceleration Σi_b_i_g_ik{};
-        Acceleration Σi_b_prime_hat_i_g_ik{};
-        Acceleration Σi_b_prime_i_g_ik{};
+        Acceleration Σi_b̂ʹ_i_g_ik{};
+        Acceleration Σi_bʹ_i_g_ik{};
         // Please keep the eight assigments below aligned, they become illegible
         // otherwise.
         for (int i = 0; i < stages_; ++i) {
-          Σi_b_hat_i_g_ik       += b_hat[i] * g[i][k];
-          Σi_b_i_g_ik           += b[i] * g[i][k];
-          Σi_b_prime_hat_i_g_ik += b_prime_hat[i] * g[i][k];
-          Σi_b_prime_i_g_ik     += b_prime[i] * g[i][k];
+          Σi_b̂_i_g_ik  += b̂[i] * g[i][k];
+          Σi_b_i_g_ik  += b[i] * g[i][k];
+          Σi_b̂ʹ_i_g_ik += b̂ʹ[i] * g[i][k];
+          Σi_bʹ_i_g_ik += bʹ[i] * g[i][k];
         }
         // The hat-less Δq and Δv are the low-order increments.
-        Δq_hat[k]               = h * (h * (Σi_b_hat_i_g_ik) + v_hat[k].value);
-        Displacement const Δq_k = h * (h * (Σi_b_i_g_ik) + v_hat[k].value);
-        Δv_hat[k]               = h * Σi_b_prime_hat_i_g_ik;
-        Velocity const Δv_k     = h * Σi_b_prime_i_g_ik;
+        Δq̂[k]                   = h * v̂[k].value + h² * Σi_b̂_i_g_ik;
+        Displacement const Δq_k = h * v̂[k].value + h² * Σi_b_i_g_ik;
+        Δv̂[k]                   = h * Σi_b̂ʹ_i_g_ik;
+        Velocity const Δv_k     = h * Σi_bʹ_i_g_ik;
 
-        error_estimate.position_error[k] = Δq_k - Δq_hat[k];
-        error_estimate.velocity_error[k] = Δv_k - Δv_hat[k];
+        error_estimate.position_error[k] = Δq_k - Δq̂[k];
+        error_estimate.velocity_error[k] = Δv_k - Δv̂[k];
       }
       tolerance_to_error_ratio =
           this->tolerance_to_error_ratio_(h, error_estimate);
     } while (tolerance_to_error_ratio < 1.0);
+
+    status.Update(step_status);
 
     if (!parameters.last_step_is_exact && t.value + (t.error + h) > t_final) {
       // We did overshoot.  Drop the point that we just computed and exit.
@@ -220,8 +234,8 @@ Instance::Solve(Instant const& t_final) {
     // Increment the solution with the high-order approximation.
     t.Increment(h);
     for (int k = 0; k < dimension; ++k) {
-      q_hat[k].Increment(Δq_hat[k]);
-      v_hat[k].Increment(Δv_hat[k]);
+      q̂[k].Increment(Δq̂[k]);
+      v̂[k].Increment(Δv̂[k]);
     }
     append_state(current_state);
     ++step_count;
@@ -260,7 +274,7 @@ void EmbeddedExplicitRungeKuttaNyströmIntegrator<Method, Position>::
 Instance::WriteToMessage(
     not_null<serialization::IntegratorInstance*> message) const {
   AdaptiveStepSizeIntegrator<ODE>::Instance::WriteToMessage(message);
-  auto* const extension =
+  [[maybe_unused]] auto* const extension =
       message
           ->MutableExtension(
               serialization::AdaptiveStepSizeIntegratorInstance::extension)
@@ -271,15 +285,49 @@ Instance::WriteToMessage(
 }
 
 template<typename Method, typename Position>
+template<typename, typename>
+not_null<std::unique_ptr<
+    typename EmbeddedExplicitRungeKuttaNyströmIntegrator<Method,
+                                                         Position>::Instance>>
+EmbeddedExplicitRungeKuttaNyströmIntegrator<Method, Position>::Instance::
+ReadFromMessage(
+    serialization::
+        EmbeddedExplicitRungeKuttaNystromIntegratorInstance const&
+            extension,
+    IntegrationProblem<ODE> const& problem,
+    AppendState const& append_state,
+    ToleranceToErrorRatio const& tolerance_to_error_ratio,
+    Parameters const& parameters,
+    Time const& time_step,
+    bool const first_use,
+    EmbeddedExplicitRungeKuttaNyströmIntegrator const& integrator) {
+  // Cannot use |make_not_null_unique| because the constructor of |Instance| is
+  // private.
+  return std::unique_ptr<Instance>(new Instance(problem,
+                                                append_state,
+                                                tolerance_to_error_ratio,
+                                                parameters,
+                                                time_step,
+                                                first_use,
+                                                integrator));
+}
+
+template<typename Method, typename Position>
 EmbeddedExplicitRungeKuttaNyströmIntegrator<Method, Position>::
 Instance::Instance(
     IntegrationProblem<ODE> const& problem,
     AppendState const& append_state,
     ToleranceToErrorRatio const& tolerance_to_error_ratio,
     Parameters const& parameters,
+    Time const& time_step,
+    bool const first_use,
     EmbeddedExplicitRungeKuttaNyströmIntegrator const& integrator)
-    : AdaptiveStepSizeIntegrator<ODE>::Instance(
-          problem, append_state, tolerance_to_error_ratio, parameters),
+    : AdaptiveStepSizeIntegrator<ODE>::Instance(problem,
+                                                append_state,
+                                                tolerance_to_error_ratio,
+                                                parameters,
+                                                time_step,
+                                                first_use),
       integrator_(integrator) {}
 
 template<typename Method, typename Position>
@@ -292,11 +340,14 @@ NewInstance(IntegrationProblem<ODE> const& problem,
             Parameters const& parameters) const {
   // Cannot use |make_not_null_unique| because the constructor of |Instance| is
   // private.
-  return std::unique_ptr<Instance>(new Instance(problem,
-                                                append_state,
-                                                tolerance_to_error_ratio,
-                                                parameters,
-                                                *this));
+  return std::unique_ptr<Instance>(
+      new Instance(problem,
+                   append_state,
+                   tolerance_to_error_ratio,
+                   parameters,
+                   /*time_step=*/parameters.first_time_step,
+                   /*first_use=*/true,
+                   *this));
 }
 
 template<typename Method, typename Position>
@@ -304,31 +355,6 @@ void EmbeddedExplicitRungeKuttaNyströmIntegrator<Method, Position>::
 WriteToMessage(not_null<serialization::AdaptiveStepSizeIntegrator*> message)
     const {
   message->set_kind(Method::kind);
-}
-
-template<typename Method, typename Position>
-not_null<std::unique_ptr<typename Integrator<
-    SpecialSecondOrderDifferentialEquation<Position>>::Instance>>
-EmbeddedExplicitRungeKuttaNyströmIntegrator<Method, Position>::
-ReadFromMessage(
-    serialization::AdaptiveStepSizeIntegratorInstance const& message,
-    IntegrationProblem<ODE> const& problem,
-    AppendState const& append_state,
-    ToleranceToErrorRatio const& tolerance_to_error_ratio,
-    Parameters const& parameters) const {
-  CHECK(message.HasExtension(
-      serialization::EmbeddedExplicitRungeKuttaNystromIntegratorInstance::
-          extension))
-      << message.DebugString();
-
-  // Cannot use |make_not_null_unique| because the constructor of |Instance| is
-  // private.
-  return std::unique_ptr<typename AdaptiveStepSizeIntegrator<ODE>::Instance>(
-      new Instance(problem,
-                   append_state,
-                   tolerance_to_error_ratio,
-                   parameters,
-                   *this));
 }
 
 }  // namespace internal_embedded_explicit_runge_kutta_nyström_integrator

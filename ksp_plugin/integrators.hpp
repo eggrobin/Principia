@@ -14,21 +14,31 @@ using quantities::Length;
 using quantities::si::Metre;
 using quantities::si::Milli;
 
-constexpr Length default_ephemeris_fitting_tolerance = 1 * Milli(Metre);
+// Parameters for downsamplng after fixed-step integration.
+constexpr std::int64_t MaxDenseIntervals = 10'000;
+constexpr Length DownsamplingTolerance = 10 * Metre;
 
 // Factories for parameters used to control integration.
-Ephemeris<Barycentric>::FixedStepParameters DefaultEphemerisParameters();
+Ephemeris<Barycentric>::AccuracyParameters
+DefaultEphemerisAccuracyParameters();
+Ephemeris<Barycentric>::FixedStepParameters
+DefaultEphemerisFixedStepParameters();
+Ephemeris<Barycentric>::GeneralizedAdaptiveStepParameters
+DefaultBurnParameters();
 Ephemeris<Barycentric>::FixedStepParameters DefaultHistoryParameters();
 Ephemeris<Barycentric>::AdaptiveStepParameters DefaultPredictionParameters();
 Ephemeris<Barycentric>::AdaptiveStepParameters DefaultPsychohistoryParameters();
 
 }  // namespace internal_integrators
 
-using internal_integrators::default_ephemeris_fitting_tolerance;
-using internal_integrators::DefaultEphemerisParameters;
+using internal_integrators::DefaultBurnParameters;
+using internal_integrators::DefaultEphemerisAccuracyParameters;
+using internal_integrators::DefaultEphemerisFixedStepParameters;
 using internal_integrators::DefaultHistoryParameters;
 using internal_integrators::DefaultPredictionParameters;
 using internal_integrators::DefaultPsychohistoryParameters;
+using internal_integrators::DownsamplingTolerance;
+using internal_integrators::MaxDenseIntervals;
 
 }  // namespace ksp_plugin
 }  // namespace principia

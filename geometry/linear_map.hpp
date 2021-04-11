@@ -38,6 +38,10 @@ class LinearMap {
 //   virtual Trivector<Scalar, ToFrame> operator()(
 //       Trivector<Scalar, FromFrame> const& trivector) const = 0;
 //
+//   template<typename Scalar>
+//   SymmetricBilinearForm<Scalar, ToFrame> operator()(
+//       SymmetricBilinearForm<Scalar, FromFrame> const& form) const = 0;
+//
 //   template<typename T>
 //   typename base::Mappable<LinearMap, T>::type operator()(T const& t) const;
 //
@@ -45,6 +49,10 @@ class LinearMap {
   // Serialization of the frames.  These are just helper functions for
   // implementing the subclasses, they don't dispatch to the subclasses.
   static void WriteToMessage(not_null<serialization::LinearMap*> message);
+  template<typename F = FromFrame,
+           typename T = ToFrame,
+           typename = std::enable_if_t<base::is_serializable_v<F> &&
+                                       base::is_serializable_v<T>>>
   static void ReadFromMessage(serialization::LinearMap const& message);
 
 //   template<typename Scalar>

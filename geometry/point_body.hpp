@@ -18,7 +18,6 @@ namespace internal_point {
 using base::not_constructible;
 using quantities::Product;
 using quantities::Quantity;
-using quantities::SIUnit;
 
 template<typename Vector>
 struct PointSerializer : not_constructible {};
@@ -111,6 +110,7 @@ void Point<Vector>::WriteToMessage(
 }
 
 template<typename Vector>
+template<typename, typename>
 Point<Vector> Point<Vector>::ReadFromMessage(
     serialization::Point const& message) {
   Point result;
@@ -129,26 +129,28 @@ Point<Vector> operator+(Vector const& translation,
 }
 
 template<typename Vector>
-typename std::enable_if_t<is_quantity<Vector>::value, bool> operator<(
-    Point<Vector> const& left, Point<Vector> const& right) {
+constexpr typename std::enable_if_t<is_quantity_v<Vector>, bool> operator<(
+    Point<Vector> const& left,
+    Point<Vector> const& right) {
   return left.coordinates_ < right.coordinates_;
 }
 
 template<typename Vector>
-typename std::enable_if_t<is_quantity<Vector>::value, bool> operator<=(
-    Point<Vector> const& left, Point<Vector> const& right) {
+constexpr typename std::enable_if_t<is_quantity_v<Vector>, bool>
+operator<=(Point<Vector> const& left, Point<Vector> const& right) {
   return left.coordinates_ <= right.coordinates_;
 }
 
 template<typename Vector>
-typename std::enable_if_t<is_quantity<Vector>::value, bool> operator>=(
-    Point<Vector> const& left, Point<Vector> const& right) {
+constexpr typename std::enable_if_t<is_quantity_v<Vector>, bool>
+operator>=(Point<Vector> const& left, Point<Vector> const& right) {
   return left.coordinates_ >= right.coordinates_;
 }
 
 template<typename Vector>
-typename std::enable_if_t<is_quantity<Vector>::value, bool> operator>(
-    Point<Vector> const& left, Point<Vector> const& right) {
+constexpr typename std::enable_if_t<is_quantity_v<Vector>, bool> operator>(
+    Point<Vector> const& left,
+    Point<Vector> const& right) {
   return left.coordinates_ > right.coordinates_;
 }
 

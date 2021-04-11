@@ -43,14 +43,34 @@ TEST_F(NotNullDeathTest, DeathByNullptr) {
 
 TEST_F(NotNullTest, Move) {
   not_null<std::unique_ptr<int>> int_ptr1 = make_not_null_unique<int>(3);
-#if !PRINCIPIA_COMPILER_MSVC ||     \
-    !(_MSC_FULL_VER == 190023506 || \
-      _MSC_FULL_VER == 190023918 || \
-      _MSC_FULL_VER == 190024210 || \
-      _MSC_FULL_VER == 190024213 || \
-      _MSC_FULL_VER == 190024215 || \
-      _MSC_FULL_VER == 191326215 || \
-      _MSC_FULL_VER == 191426316)
+#if !PRINCIPIA_COMPILER_MSVC || \
+    !(_MSC_FULL_VER == 190'023'506 || \
+      _MSC_FULL_VER == 190'023'918 || \
+      _MSC_FULL_VER == 190'024'210 || \
+      _MSC_FULL_VER == 190'024'213 || \
+      _MSC_FULL_VER == 190'024'215 || \
+      _MSC_FULL_VER == 191'326'215 || \
+      _MSC_FULL_VER == 191'426'316 || \
+      _MSC_FULL_VER == 191'426'412 || \
+      _MSC_FULL_VER == 191'426'428 || \
+      _MSC_FULL_VER == 191'426'429 || \
+      _MSC_FULL_VER == 191'526'608 || \
+      _MSC_FULL_VER == 191'526'731 || \
+      _MSC_FULL_VER == 191'627'024 || \
+      _MSC_FULL_VER == 191'627'025 || \
+      _MSC_FULL_VER == 191'627'027 || \
+      _MSC_FULL_VER == 192'027'508 || \
+      _MSC_FULL_VER == 192'227'706 || \
+      _MSC_FULL_VER == 192'227'724 || \
+      _MSC_FULL_VER == 192'227'905 || \
+      _MSC_FULL_VER == 192'328'106 || \
+      _MSC_FULL_VER == 192'428'314 || \
+      _MSC_FULL_VER == 192'428'316 || \
+      _MSC_FULL_VER == 192'528'610 || \
+      _MSC_FULL_VER == 192'528'611 || \
+      _MSC_FULL_VER == 192'628'806 || \
+      _MSC_FULL_VER == 192'729'111 || \
+      _MSC_FULL_VER == 192'829'333)
   EXPECT_THAT(*(std::unique_ptr<int> const&)int_ptr1, Eq(3));
 #endif
   not_null<std::unique_ptr<int>> int_ptr2 = std::move(int_ptr1);
@@ -77,7 +97,7 @@ TEST_F(NotNullTest, Copy) {
   EXPECT_THAT(*int_ptr3, Eq(3));
   int_ptr2 = check_not_null(owner_of_five.get());
   EXPECT_THAT(*int_ptr2, Eq(5));
-  int_ptr2 = std::move(int_ptr3);
+  int_ptr2 = int_ptr3;
   EXPECT_THAT(*int_ptr2, Eq(3));
   EXPECT_THAT(*int_ptr3, Eq(3));
 }
@@ -159,7 +179,7 @@ TEST_F(NotNullTest, DynamicCast) {
   class Derived : public Base {};
   {
     not_null<Base*> b = new Derived;
-    not_null<Derived*> d = dynamic_cast_not_null<Derived*>(b);
+    [[maybe_unused]] not_null<Derived*> d = dynamic_cast_not_null<Derived*>(b);
     delete b;
   }
   {
@@ -214,7 +234,7 @@ TEST_F(NotNullTest, RValue) {
   owner_int = make_not_null_unique<int>(1729);
 
   not_null<int*> not_null_access_int = owner_int.get();
-  int const* access_const_int = not_null_access_int;
+  [[maybe_unused]] int const* access_const_int = not_null_access_int;
 
   not_null<std::shared_ptr<int>> not_null_shared_int = std::make_shared<int>(3);
   // This exercises |operator OtherPointer() const&|.  The conversion from

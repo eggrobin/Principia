@@ -1,12 +1,12 @@
 ﻿
 #pragma once
 
-#include <deque>
-#include <optional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <vector>
 
+#include "absl/container/inlined_vector.h"
 #include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
 #include "serialization/physics.pb.h"
@@ -29,30 +29,25 @@ using geometry::Instant;
 // and Forkable may then be instantiated using ForkableIterator.
 // The template parameters with 1337 names are those that participate in this
 // mutual CRTP.
-
-template<typename Tr4jectory, typename It3rator>
-class Forkable;
-
-// This traits class must export declarations similar to the following:
-//
-// using TimelineConstIterator = ...;
-// static Instant const& time(TimelineConstIterator it);
+// Both classes have a Traits template parameter that gathers common
+// implementation properties.  The Traits class must export declarations similar
+// to the following:
+//   using Timeline = ...;
+//   using TimelineConstIterator = ...;
+//   static Instant const& time(TimelineConstIterator it);
 //
 // TimelineConstIterator must be an STL-like iterator in the timeline of
-// Tr4jectory.  |time()| must return the corresponding time.
-//
-// NOTE(phl): This was originally written as a trait under the assumption that
-// we would want to expose STL iterators to clients.  This doesn't seem like a
-// good idea anymore, so maybe this should turn into another CRTP class.
-template<typename Tr4jectory>
-struct ForkableTraits;
+// Tr4jectory.  |time()| must return the corresponding time.  Iterators must be
+// STL-like and *must*not* be invalidated when the trajectory changes.
+
+template<typename Tr4jectory, typename It3rator, typename Traits>
+class Forkable;
 
 // A template for iterating over the timeline of a Forkable object, taking forks
 // into account.
-template<typename Tr4jectory, typename It3rator>
+template<typename Tr4jectory, typename It3rator, typename Traits>
 class ForkableIterator {
-  using TimelineConstIterator =
-      typename ForkableTraits<Tr4jectory>::TimelineConstIterator;
+  using TimelineConstIterator = typename Traits::TimelineConstIterator;
 
  public:
   ForkableIterator() = default;
@@ -74,7 +69,7 @@ class ForkableIterator {
   virtual not_null<It3rator const*> that() const = 0;
 
   // Returns the point in the timeline that is denoted by this iterator.
-  TimelineConstIterator current() const;
+  TimelineConstIterator const& current() const;
 
  private:
   // We want a single representation for an end iterator.  In various places
@@ -89,25 +84,21 @@ class ForkableIterator {
   void CheckNormalizedIfEnd();
 
   // |ancestry_| is never empty.  |current_| is an iterator in the timeline
-  // for |ancestry_.front()|.  |current_| may be at end.
+  // for |ancestry_.back()|.  |current_| may be at end. The inline size of 3
+  // for |ancestry_| is intended to cover a vessel's history, psychohistory,
+  // and prediction.
   TimelineConstIterator current_;
-  std::deque<not_null<Tr4jectory const*>> ancestry_;  // Pointers not owned.
+  absl::InlinedVector<not_null<Tr4jectory const*>, 3> ancestry_;
 
-  template<typename, typename>
+  template<typename, typename, typename>
   friend class Forkable;
 };
 
 // This template represents a trajectory which is forkable and iterable (using
 // a ForkableIterator).
-template<typename Tr4jectory, typename It3rator>
+template<typename Tr4jectory, typename It3rator, typename Traits>
 class Forkable {
  public:
-  // An iterator into the timeline of the trajectory.  Must be STL-like.
-  // Beware, if these iterators are invalidated all the guarantees of Forkable
-  // are void.
-  using TimelineConstIterator =
-      typename ForkableTraits<Tr4jectory>::TimelineConstIterator;
-
   Forkable() = default;
   virtual ~Forkable() = default;
 
@@ -132,8 +123,11 @@ class Forkable {
   not_null<Tr4jectory const*> parent() const;
   not_null<Tr4jectory*> parent();
 
-  It3rator Begin() const;
-  It3rator End() const;
+  It3rator begin() const;
+  It3rator end() const;
+
+  typename It3rator::reference front() const;
+  typename It3rator::reference back() const;
 
   It3rator Find(Instant const& time) const;
   It3rator LowerBound(Instant const& time) const;
@@ -150,6 +144,8 @@ class Forkable {
   bool Empty() const;
 
  protected:
+  using TimelineConstIterator = typename Traits::TimelineConstIterator;
+
   // The API that must be implemented by subclasses.
 
   // Must return |this| of the proper type.
@@ -177,10 +173,10 @@ class Forkable {
   // |timeline_it| may be at end if it denotes the fork time of this object.
   not_null<Tr4jectory*> NewFork(TimelineConstIterator const& timeline_it);
 
-  // |fork| must be a non-empty root and its first point must have been appended
-  // to this object by the caller.  |fork| is attached to this object as a child
-  // at the end of the timeline.  The caller must then delete the first point of
-  // |fork|'s timeline.
+  // |fork| must be a non-empty root and its first point must be at the same
+  // time as the last point of this object.  |fork| is attached to this object
+  // as a child at the end of the timeline.  The caller must then delete the
+  // first point of |fork|'s timeline.
   void AttachForkToCopiedBegin(not_null<std::unique_ptr<Tr4jectory>> fork);
 
   // This object must not be a root.  It is detached from its parent and becomes
@@ -233,7 +229,7 @@ class Forkable {
   std::optional<TimelineConstIterator> position_in_parent_timeline_;
   Children children_;
 
-  template<typename, typename>
+  template<typename, typename, typename>
   friend class ForkableIterator;
 };
 

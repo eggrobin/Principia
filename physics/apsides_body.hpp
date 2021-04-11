@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "base/array.hpp"
+#include "base/jthread.hpp"
 #include "numerics/root_finders.hpp"
 
 namespace principia {
@@ -20,6 +21,7 @@ using geometry::Position;
 using geometry::Sign;
 using numerics::Bisect;
 using numerics::Hermite3;
+using quantities::IsFinite;
 using quantities::Length;
 using quantities::Speed;
 using quantities::Square;
@@ -29,6 +31,7 @@ template<typename Frame>
 void ComputeApsides(Trajectory<Frame> const& reference,
                     typename DiscreteTrajectory<Frame>::Iterator const begin,
                     typename DiscreteTrajectory<Frame>::Iterator const end,
+                    int const max_points,
                     DiscreteTrajectory<Frame>& apoapsides,
                     DiscreteTrajectory<Frame>& periapsides) {
   std::optional<Instant> previous_time;
@@ -40,14 +43,13 @@ void ComputeApsides(Trajectory<Frame> const& reference,
   Instant const t_min = reference.t_min();
   Instant const t_max = reference.t_max();
   for (auto it = begin; it != end; ++it) {
-    Instant const& time = it.time();
+    auto const& [time, degrees_of_freedom] = *it;
     if (time < t_min) {
       continue;
     }
     if (time > t_max) {
       break;
     }
-    DegreesOfFreedom<Frame> const degrees_of_freedom = it.degrees_of_freedom();
     DegreesOfFreedom<Frame> const body_degrees_of_freedom =
         reference.EvaluateDegreesOfFreedom(time);
     RelativeDegreesOfFreedom<Frame> const relative =
@@ -96,6 +98,12 @@ void ComputeApsides(Trajectory<Frame> const& reference,
              -squared_distance_derivative});
       }
 
+      // This can happen for instance if the square distance is stationary.
+      // Safer to give up.
+      if (!IsFinite(apsis_time - Instant{})) {
+        break;
+      }
+
       // Now that we know the time of the apsis, use a Hermite approximation to
       // derive its degrees of freedom.  Note that an extremum of
       // |squared_distance_approximation| is in general not an extremum for
@@ -105,10 +113,13 @@ void ComputeApsides(Trajectory<Frame> const& reference,
       // we shouldn't be far from the truth.
       DegreesOfFreedom<Frame> const apsis_degrees_of_freedom =
           begin.trajectory()->EvaluateDegreesOfFreedom(apsis_time);
-      if (Sign(squared_distance_derivative).Negative()) {
+      if (Sign(squared_distance_derivative).is_negative()) {
         apoapsides.Append(apsis_time, apsis_degrees_of_freedom);
       } else {
         periapsides.Append(apsis_time, apsis_degrees_of_freedom);
+      }
+      if (apoapsides.Size() >= max_points && periapsides.Size() >= max_points) {
+        break;
       }
     }
 
@@ -119,19 +130,27 @@ void ComputeApsides(Trajectory<Frame> const& reference,
   }
 }
 
-template<typename Frame>
-void ComputeNodes(typename DiscreteTrajectory<Frame>::Iterator begin,
+template<typename Frame, typename Predicate>
+Status ComputeNodes(typename DiscreteTrajectory<Frame>::Iterator begin,
                   typename DiscreteTrajectory<Frame>::Iterator end,
                   Vector<double, Frame> const& north,
+                  int const max_points,
                   DiscreteTrajectory<Frame>& ascending,
-                  DiscreteTrajectory<Frame>& descending) {
+                  DiscreteTrajectory<Frame>& descending,
+                  Predicate predicate) {
+  static_assert(
+      std::is_convertible<decltype(predicate(
+                              std::declval<DegreesOfFreedom<Frame>>())),
+                          bool>::value,
+      "|predicate| must be a predicate on |DegreesOfFreedom<Frame>|");
+
   std::optional<Instant> previous_time;
   std::optional<Length> previous_z;
   std::optional<Speed> previous_z_speed;
 
   for (auto it = begin; it != end; ++it) {
-    Instant const time = it.time();
-    DegreesOfFreedom<Frame> const& degrees_of_freedom = it.degrees_of_freedom();
+    RETURN_IF_STOPPED;
+    auto const& [time, degrees_of_freedom] = *it;
     Length const z =
         (degrees_of_freedom.position() - Frame::origin).coordinates().z;
     Speed const z_speed = degrees_of_freedom.velocity().coordinates().z;
@@ -167,13 +186,18 @@ void ComputeNodes(typename DiscreteTrajectory<Frame>::Iterator begin,
 
       DegreesOfFreedom<Frame> const node_degrees_of_freedom =
           begin.trajectory()->EvaluateDegreesOfFreedom(node_time);
-      if (Sign(InnerProduct(north, Vector<double, Frame>({0, 0, 1}))) ==
-          Sign(z_speed)) {
-        // |north| is up and we are going up, or |north| is down and we are
-        // going down.
-        ascending.Append(node_time, node_degrees_of_freedom);
-      } else {
-        descending.Append(node_time, node_degrees_of_freedom);
+      if (predicate(node_degrees_of_freedom)) {
+        if (Sign(InnerProduct(north, Vector<double, Frame>({0, 0, 1}))) ==
+            Sign(z_speed)) {
+          // |north| is up and we are going up, or |north| is down and we are
+          // going down.
+          ascending.Append(node_time, node_degrees_of_freedom);
+        } else {
+          descending.Append(node_time, node_degrees_of_freedom);
+        }
+        if (ascending.Size() >= max_points && descending.Size() >= max_points) {
+          break;
+        }
       }
     }
 
@@ -181,6 +205,7 @@ void ComputeNodes(typename DiscreteTrajectory<Frame>::Iterator begin,
     previous_z = z;
     previous_z_speed = z_speed;
   }
+  return Status::OK;
 }
 
 }  // namespace internal_apsides

@@ -7,6 +7,8 @@ import "serialization/quantities.proto";
 
 package principia.serialization;
 
+option cc_enable_arenas = true;
+
 message BarycentricRotatingDynamicFrame {
   extend DynamicFrame {
     optional BarycentricRotatingDynamicFrame extension = 6001;
@@ -49,21 +51,31 @@ message ContinuousTrajectory {
     required Point instant = 1;
     required Pair degrees_of_freedom = 2;
   }
-  required Quantity step = 1;
-  required Quantity tolerance = 2;
-  required Quantity adjusted_tolerance = 3;
-  required bool is_unstable = 4;
-  required int32 degree = 5;
-  required int32 degree_age = 6;
-  repeated ChebyshevSeries series = 7;  // Pre-Cohen.
-  optional Point first_time = 8;
-  repeated InstantaneousDegreesOfFreedom last_point = 9;
-  // Added in Cohen.
   message InstantPolynomialPair {
     required Point t_max = 1;
     required Polynomial polynomial = 2;
   }
-  repeated InstantPolynomialPair instant_polynomial_pair = 10;
+  message Checkpoint {
+    required Point time = 1;
+    required Quantity adjusted_tolerance = 2;
+    required bool is_unstable = 3;
+    required int32 degree = 4;
+    required int32 degree_age = 5;
+    repeated InstantaneousDegreesOfFreedom last_point = 6;
+  }
+  required Quantity step = 1;
+  required Quantity tolerance = 2;
+  optional Quantity adjusted_tolerance = 3;  // Pre-Grassmann.
+  optional bool is_unstable = 4;  // Pre-Grassmann.
+  optional int32 degree = 5;  // Pre-Grassmann.
+  optional int32 degree_age = 6;  // Pre-Grassmann.
+  repeated InstantaneousDegreesOfFreedom last_point = 9;  // Pre-Grassmann.
+  optional Point checkpoint_time = 11;  // Added in Fatou, removed in Grassmann.
+  repeated ChebyshevSeries series = 7;  // Pre-Cohen.
+  optional Point first_time = 8;
+  repeated InstantPolynomialPair
+      instant_polynomial_pair = 10;  // Added in Cohen.
+  repeated Checkpoint checkpoint = 12;  // Added in Grassmann.
 }
 
 message DiscreteTrajectory {
@@ -86,6 +98,15 @@ message DiscreteTrajectory {
   repeated int32 fork_position = 3;
   // Added in 陈景润.
   optional Downsampling downsampling = 4;
+
+  // Added in Frobenius.
+  message Zfp {
+    required int32 codec_version = 1;
+    required int32 library_version = 2;
+    required bytes timeline = 3;
+    required int32 timeline_size = 4;
+  }
+  optional Zfp zfp = 5;
 }
 
 message DynamicFrame {
@@ -93,6 +114,10 @@ message DynamicFrame {
 }
 
 message Ephemeris {
+  message AccuracyParameters {
+    required Quantity fitting_tolerance = 1;
+    required double geopotential_tolerance = 2;
+  }
   message AdaptiveStepParameters {
     required AdaptiveStepSizeIntegrator integrator = 1;
     required int64 max_steps = 2;
@@ -103,19 +128,40 @@ message Ephemeris {
     required FixedStepSizeIntegrator integrator = 1;
     required Quantity step = 2;
   }
+  message Checkpoint {
+    required Point time = 1;
+    required IntegratorInstance instance = 2;
+  }
   repeated MassiveBody body = 1;
   repeated ContinuousTrajectory trajectory = 2;
-  required Quantity fitting_tolerance = 5;
+  optional AccuracyParameters accuracy_parameters = 10; // Added in Ἐρατοσθένης.
   required FixedStepParameters fixed_step_parameters = 7;
-  optional Point t_max = 8;
-  required IntegratorInstance instance = 9;
+  optional IntegratorInstance instance = 9;  // Pre-Grassmann.
+  optional Point checkpoint_time = 12;  // Added in Fatou, removed in Grassmann.
+  repeated Checkpoint checkpoint = 13;  // Added in Grassmann.
 
+  // Pre-Fatou.
+  reserved 11;
+  reserved "has_checkpoints";
+  // Pre-Εὔδοξος.
+  reserved 8;
+  reserved "t_max";
+  // Pre-Ἐρατοσθένης.
+  reserved 5;
+  reserved "fitting_tolerance";
   // Pre-Cardano.
   reserved 6;
   reserved "last_state";
   // Pre-Буняковский.
   reserved 3, 4;
   reserved "planetary_integrator", "step";
+}
+
+message EulerSolver {
+  required R3Element moments_of_inertia = 1;
+  required Multivector initial_angular_momentum = 2;
+  required Rotation initial_attitude = 3;
+  required Point initial_time = 4;
 }
 
 message HierarchicalSystem {
@@ -167,7 +213,42 @@ message OblateBody {
   extend RotatingBody {
     optional OblateBody extension = 4000;
   }
-  required Quantity j2 = 1;
+  message Geopotential {
+    message GeopotentialRow {
+      message GeopotentialColumn {
+        required int32 order = 1;
+        // j can only be set if order is 0.
+        oneof cos_j {
+          double cos = 2;
+          double j = 4;
+        }
+        required double sin = 3;
+      }
+      // For a given |degree|, the |column| array must contain at most
+      // |degree + 1| entries.
+      required int32 degree = 1;
+      // For stability, the serialization produces columns by increasing order.
+      repeated GeopotentialColumn column = 2;
+    }
+    // For stability, the serialization produces rows by increasing degree.
+    repeated GeopotentialRow row = 1;
+
+    // Pre-Erdős.
+    reserved 2, 3;
+    reserved "max_degree", "zonal";
+  }
+  optional Quantity reference_radius = 4;
+  oneof oblateness {
+    // Unnormalized Degree2SphericalHarmonicCoefficient.
+    Quantity pre_diophantos_j2 = 1;
+    Geopotential geopotential = 2;  // Normalized.
+  }
+}
+
+message RigidMotion {
+  required AffineMap rigid_transformation = 1;
+  required Multivector angular_velocity_of_to_frame = 2;
+  required Multivector velocity_of_to_frame_origin = 3;
 }
 
 message RotatingBody {
@@ -176,7 +257,9 @@ message RotatingBody {
   }
   extensions 4000 to 4999;  // Last used: 4000.
   required Frame frame = 1;
+  optional Quantity min_radius = 9;  // Added in Del Ferro.
   required Quantity mean_radius = 5;
+  optional Quantity max_radius = 10;  // Added in Del Ferro.
   required Quantity reference_angle = 2;
   required Point reference_instant = 3;
   required Quantity angular_frequency = 6;

@@ -67,11 +67,6 @@ class Renderer {
   virtual Vessel& GetTargetVessel();
   virtual Vessel const& GetTargetVessel() const;
 
-  // If there is a target vessel, returns its prediction after extending it up
-  // to |time|.
-  virtual DiscreteTrajectory<Barycentric> const& GetTargetVesselPrediction(
-      Instant const& time) const;
-
   // Returns a trajectory in |World| corresponding to the trajectory defined by
   // |begin| and |end|, as seen in the current plotting frame.  In this function
   // and others in this class, |sun_world_position| is the current position of
@@ -164,6 +159,10 @@ class Renderer {
       Position<World> const& sun_world_position,
       Rotation<Barycentric, AliceSun> const& planetarium_rotation) const;
 
+  virtual Rotation<CameraReference, World> CameraReferenceRotation(
+      Instant const& time,
+      Rotation<Barycentric, AliceSun> const& planetarium_rotation) const;
+
   virtual void WriteToMessage(not_null<serialization::Renderer*> message) const;
 
   static not_null<std::unique_ptr<Renderer>> ReadFromMessage(
@@ -180,10 +179,6 @@ class Renderer {
     not_null<Celestial const*> const celestial;
     not_null<std::unique_ptr<NavigationFrame>> const target_frame;
   };
-
-  // Returns a plotting frame suitable for evaluation at |time|, possibly by
-  // extending the prediction if there is a target vessel.
-  not_null<NavigationFrame const*> GetPlottingFrame(Instant const& time) const;
 
   not_null<Celestial const*> const sun_;
 

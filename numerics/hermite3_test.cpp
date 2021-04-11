@@ -11,11 +11,13 @@
 #include "quantities/si.hpp"
 #include "serialization/geometry.pb.h"
 #include "testing_utilities/almost_equals.hpp"
+#include "testing_utilities/approximate_quantity.hpp"
 #include "testing_utilities/is_near.hpp"
 
 namespace principia {
 
 using geometry::Frame;
+using geometry::Inertial;
 using geometry::Instant;
 using geometry::Displacement;
 using geometry::Position;
@@ -31,6 +33,7 @@ using quantities::si::Radian;
 using quantities::si::Second;
 using testing_utilities::AlmostEquals;
 using testing_utilities::IsNear;
+using testing_utilities::operator""_⑴;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 
@@ -38,8 +41,7 @@ namespace numerics {
 
 class Hermite3Test : public ::testing::Test {
  protected:
-  using World = Frame<serialization::Frame::TestTag,
-                      serialization::Frame::TEST1, true>;
+  using World = Frame<enum class WorldTag, Inertial>;
 
   Instant const t0_;
 };
@@ -71,7 +73,7 @@ TEST_F(Hermite3Test, Typed) {
   // Just here to check that the types work in the presence of affine spaces.
   Hermite3<Instant, Position<World>> h({t0_ + 1 * Second, t0_ + 2 * Second},
                                        {World::origin, World::origin},
-                                       {Velocity<World>(), Velocity<World>()});
+                                       {World::unmoving, World::unmoving});
 
   EXPECT_EQ(World::origin, h.Evaluate(t0_ + 1.3 * Second));
   EXPECT_EQ(Velocity<World>(), h.EvaluateDerivative(t0_ + 1.7 * Second));
@@ -136,7 +138,7 @@ TEST_F(Hermite3Test, ThreeDimensionalInterpolationError) {
           samples,
           /*get_argument=*/[](auto&& pair) -> auto&& { return pair.first; },
           /*get_value=*/[](auto&& pair) -> auto&& { return pair.second; }),
-      IsNear(1.5 * Centi(Metre)));
+      IsNear(1.5_⑴ * Centi(Metre)));
 }
 
 }  // namespace numerics

@@ -1,12 +1,5 @@
 ﻿
 // .\Release\x64\benchmarks.exe --benchmark_repetitions=10 --benchmark_min_time=2 --benchmark_filter=Newhall  // NOLINT(whitespace/line_length)
-// Benchmarking on 1 X 3310 MHz CPU
-// 2015/05/24-13:16:32
-// Benchmark                    Time(ns)    CPU(ns) Iterations
-// -----------------------------------------------------------
-// BM_NewhallApproximation/4         589        562    2000000
-// BM_NewhallApproximation/8         657        624    2000000
-// BM_NewhallApproximation/16        754        741    2000000
 
 #include <memory>
 #include <random>
@@ -24,7 +17,7 @@
 
 namespace principia {
 
-using astronomy::ICRFJ2000Ecliptic;
+using astronomy::ICRS;
 using base::not_null;
 using geometry::Displacement;
 using geometry::Instant;
@@ -65,33 +58,31 @@ void BM_NewhallApproximationDouble(benchmark::State& state) {
 }
 
 template<typename Result,
-         Result (*newhall)(
-             int degree,
-             std::vector<Displacement<ICRFJ2000Ecliptic>> const& q,
-             std::vector<Variation<Displacement<ICRFJ2000Ecliptic>>> const& v,
-             Instant const& t_min,
-             Instant const& t_max,
-             Displacement<ICRFJ2000Ecliptic>& error_estimate)>
+         Result (*newhall)(int degree,
+                           std::vector<Displacement<ICRS>> const& q,
+                           std::vector<Variation<Displacement<ICRS>>> const& v,
+                           Instant const& t_min,
+                           Instant const& t_max,
+                           Displacement<ICRS>& error_estimate)>
 void BM_NewhallApproximationDisplacement(benchmark::State& state) {
   int const degree = state.range_x();
   std::mt19937_64 random(42);
-  std::vector<Displacement<ICRFJ2000Ecliptic>> p;
-  std::vector<Variation<Displacement<ICRFJ2000Ecliptic>>> v;
+  std::vector<Displacement<ICRS>> p;
+  std::vector<Variation<Displacement<ICRS>>> v;
   Instant const t0;
   Instant const t_min = t0 + static_cast<double>(random()) * Second;
   Instant const t_max = t_min + static_cast<double>(random()) * Second;
 
-  Displacement<ICRFJ2000Ecliptic> error_estimate;
+  Displacement<ICRS> error_estimate;
   while (state.KeepRunning()) {
     state.PauseTiming();
     p.clear();
     v.clear();
     for (int i = 0; i <= 8; ++i) {
-      p.push_back(Displacement<ICRFJ2000Ecliptic>(
-          {static_cast<double>(random()) * Metre,
-           static_cast<double>(random()) * Metre,
-           static_cast<double>(random()) * Metre}));
-      v.push_back(Variation<Displacement<ICRFJ2000Ecliptic>>(
+      p.push_back(Displacement<ICRS>({static_cast<double>(random()) * Metre,
+                                      static_cast<double>(random()) * Metre,
+                                      static_cast<double>(random()) * Metre}));
+      v.push_back(Variation<Displacement<ICRS>>(
           {static_cast<double>(random()) * Metre / Second,
            static_cast<double>(random()) * Metre / Second,
            static_cast<double>(random()) * Metre / Second}));
@@ -101,36 +92,33 @@ void BM_NewhallApproximationDisplacement(benchmark::State& state) {
   }
 }
 
-using ResultЧебышёвDouble =
-    ЧебышёвSeries<double>;
-using ResultЧебышёвDisplacement =
-    ЧебышёвSeries<Displacement<ICRFJ2000Ecliptic>>;
+using ResultЧебышёвDouble = ЧебышёвSeries<double>;
+using ResultЧебышёвDisplacement = ЧебышёвSeries<Displacement<ICRS>>;
 using ResultMonomialDouble =
     not_null<std::unique_ptr<Polynomial<double, Instant>>>;
-using ResultMonomialDisplacement = not_null<
-    std::unique_ptr<Polynomial<Displacement<ICRFJ2000Ecliptic>, Instant>>>;
+using ResultMonomialDisplacement =
+    not_null<std::unique_ptr<Polynomial<Displacement<ICRS>, Instant>>>;
 
-BENCHMARK_TEMPLATE2(
+BENCHMARK_TEMPLATE(
     BM_NewhallApproximationDouble,
     ResultЧебышёвDouble,
     &NewhallApproximationInЧебышёвBasis<double>)
     ->Arg(4)->Arg(8)->Arg(16);
-BENCHMARK_TEMPLATE2(
+BENCHMARK_TEMPLATE(
     BM_NewhallApproximationDisplacement,
     ResultЧебышёвDisplacement,
-    &NewhallApproximationInЧебышёвBasis<Displacement<ICRFJ2000Ecliptic>>)
+    &NewhallApproximationInЧебышёвBasis<Displacement<ICRS>>)
     ->Arg(4)->Arg(8)->Arg(16);
-// No space or line break in the second argument, that confuses automation.
-BENCHMARK_TEMPLATE2(
+BENCHMARK_TEMPLATE(
     BM_NewhallApproximationDouble,
     ResultMonomialDouble,
-    (&NewhallApproximationInMonomialBasis<double,EstrinEvaluator>))  // NOLINT
+    (&NewhallApproximationInMonomialBasis<double, EstrinEvaluator>))
     ->Arg(4)->Arg(8)->Arg(16);
-// No space or line break in the second argument, that confuses automation.
-BENCHMARK_TEMPLATE2(
+BENCHMARK_TEMPLATE(
     BM_NewhallApproximationDisplacement,
     ResultMonomialDisplacement,
-    (&NewhallApproximationInMonomialBasis<Displacement<ICRFJ2000Ecliptic>,EstrinEvaluator>))  // NOLINT
+    (&NewhallApproximationInMonomialBasis<Displacement<ICRS>,
+                                          EstrinEvaluator>))
     ->Arg(4)->Arg(8)->Arg(16);
 
 }  // namespace numerics

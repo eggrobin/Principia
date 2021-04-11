@@ -16,6 +16,7 @@
 #include "base/status.hpp"
 #include "base/thread_pool.hpp"
 #include "geometry/affine_map.hpp"
+#include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
 #include "geometry/perspective.hpp"
 #include "geometry/point.hpp"
@@ -52,7 +53,9 @@ using base::Subset;
 using base::ThreadPool;
 using geometry::AffineMap;
 using geometry::AngularVelocity;
+using geometry::Bivector;
 using geometry::Displacement;
+using geometry::InertiaTensor;
 using geometry::Instant;
 using geometry::OrthogonalMap;
 using geometry::Point;
@@ -80,6 +83,7 @@ using quantities::Force;
 using quantities::Length;
 using quantities::Mass;
 using quantities::Time;
+using quantities::Torque;
 using quantities::si::Hour;
 using quantities::si::Metre;
 using quantities::si::Milli;
@@ -124,7 +128,8 @@ class Plugin {
       serialization::InitialState::Keplerian::Body const& initial_state);
 
   virtual void InitializeEphemerisParameters(
-      Ephemeris<Barycentric>::FixedStepParameters const& parameters);
+      Ephemeris<Barycentric>::AccuracyParameters const& accuracy_parameters,
+      Ephemeris<Barycentric>::FixedStepParameters const& fixed_step_parameters);
   virtual void InitializeHistoryParameters(
       Ephemeris<Barycentric>::FixedStepParameters const& parameters);
   virtual void InitializePsychohistoryParameters(
@@ -201,20 +206,33 @@ class Plugin {
       PartId part_id,
       std::string const& name,
       Mass const& mass,
+      Position<EccentricPart> const& centre_of_mass,
+      InertiaTensor<RigidPart> const& inertia_tensor,
+      bool is_solid_rocket_motor,
       GUID const& vessel_guid,
       Index main_body_index,
       DegreesOfFreedom<World> const& main_body_degrees_of_freedom,
-      DegreesOfFreedom<World> const& part_degrees_of_freedom,
+      RigidMotion<EccentricPart, World> const& part_rigid_motion,
       Time const& Δt);
 
-  // Calls |increment_intrinsic_force| on the relevant part, which must be in a
-  // loaded vessel.
-  virtual void IncrementPartIntrinsicForce(PartId part_id,
-                                           Vector<Force, World> const& force);
+  // Calls |apply_intrinsic_force| and |apply_intrinsic_torque| on the
+  // relevant part, which must be in a loaded vessel.
+  virtual void ApplyPartIntrinsicForce(
+      PartId part_id,
+      Vector<Force, World> const& force) const;
+  virtual void ApplyPartIntrinsicForceAtPosition(
+      PartId part_id,
+      Vector<Force, World> const& force,
+      Displacement<World> const& lever_arm) const;
+  virtual void ApplyPartIntrinsicTorque(
+      PartId part_id,
+      Bivector<Torque, World> const& torque) const;
+
+  virtual bool PartIsTruthful(PartId part_id) const;
 
   // Calls |MakeSingleton| for all parts in loaded vessels, enabling the use of
   // union-find for pile up construction.  This must be called after the calls
-  // to |IncrementPartIntrinsicForce|, and before the calls to
+  // to |ApplyPartIntrinsicForce|, and before the calls to
   // |ReportGroundCollision| or |ReportPartCollision|.
   virtual void PrepareToReportCollisions();
 
@@ -232,17 +250,16 @@ class Plugin {
   // the list of |pile_ups_| according to the reported collisions.
   virtual void FreeVesselsAndPartsAndCollectPileUps(Time const& Δt);
 
-  // Calls |SetPartApparentDegreesOfFreedom| on the pile-up containing the
-  // relevant part.  This part must be in a loaded vessel.
-  virtual void SetPartApparentDegreesOfFreedom(
+  // Calls |SetPartApparentRigidMotion| on the pile-up containing the relevant
+  // part.  This part must be in a loaded vessel.
+  virtual void SetPartApparentRigidMotion(
       PartId part_id,
-      DegreesOfFreedom<World> const& degrees_of_freedom,
-      DegreesOfFreedom<World> const& main_body_degrees_of_freedom);
+      RigidMotion<EccentricPart, ApparentWorld> const& rigid_motion);
 
-  // Returns the degrees of freedom of the given part in |World|, assuming that
+  // Returns the motion of the given part in |World|, assuming that
   // the origin of |World| is fixed at the centre of mass of the
   // |part_at_origin|.
-  virtual DegreesOfFreedom<World> GetPartActualDegreesOfFreedom(
+  virtual RigidMotion<EccentricPart, World> GetPartActualMotion(
       PartId part_id,
       RigidMotion<Barycentric, World> const& barycentric_to_world) const;
 
@@ -250,7 +267,7 @@ class Plugin {
   // |Index|, identifying the origin of |World| with the centre of mass of the
   // |Part| with the given |PartId|.
   virtual DegreesOfFreedom<World> CelestialWorldDegreesOfFreedom(
-      Index const index,
+      Index index,
       RigidMotion<Barycentric, World> const& barycentric_to_world,
       Instant const& time) const;
 
@@ -291,9 +308,6 @@ class Plugin {
   virtual void WaitForVesselToCatchUp(PileUpFuture& pile_up_future,
                                       VesselSet& collided_vessels);
 
-  // Forgets the histories of the |celestials_| and of the vessels before |t|.
-  virtual void ForgetAllHistoriesBefore(Instant const& t) const;
-
   // Returns the displacement and velocity of the vessel with GUID |vessel_guid|
   // relative to its parent at current time. For a KSP |Vessel| |v|, the
   // argument corresponds to  |v.id.ToString()|, the return value to
@@ -318,8 +332,8 @@ class Plugin {
       Ephemeris<Barycentric>::AdaptiveStepParameters const&
           prediction_adaptive_step_parameters) const;
 
-  // Updates the prediction for the vessel with guid |vessel_guid|.
-  void UpdatePrediction(GUID const& vessel_guid) const;
+  // Updates the prediction for the vessels with guids in |vessel_guids|.
+  void UpdatePrediction(std::vector<GUID> const& vessel_guids) const;
 
   virtual void CreateFlightPlan(GUID const& vessel_guid,
                                 Instant const& final_time,
@@ -332,6 +346,7 @@ class Plugin {
       DiscreteTrajectory<Barycentric>::Iterator const& begin,
       DiscreteTrajectory<Barycentric>::Iterator const& end,
       Position<World> const& sun_world_position,
+      int max_points,
       std::unique_ptr<DiscreteTrajectory<World>>& apoapsides,
       std::unique_ptr<DiscreteTrajectory<World>>& periapsides) const;
 
@@ -341,6 +356,7 @@ class Plugin {
       DiscreteTrajectory<Barycentric>::Iterator const& begin,
       DiscreteTrajectory<Barycentric>::Iterator const& end,
       Position<World> const& sun_world_position,
+      int max_points,
       std::unique_ptr<DiscreteTrajectory<World>>& closest_approaches) const;
 
   // Computes the nodes of the trajectory defined by |begin| and |end| with
@@ -349,18 +365,17 @@ class Plugin {
       DiscreteTrajectory<Barycentric>::Iterator const& begin,
       DiscreteTrajectory<Barycentric>::Iterator const& end,
       Position<World> const& sun_world_position,
+      int max_points,
       std::unique_ptr<DiscreteTrajectory<World>>& ascending,
       std::unique_ptr<DiscreteTrajectory<World>>& descending) const;
-
-  virtual void SetPredictionAdaptiveStepParameters(
-      Ephemeris<Barycentric>::AdaptiveStepParameters const&
-          prediction_adaptive_step_parameters);
 
   virtual bool HasCelestial(Index index) const;
   virtual Celestial const& GetCelestial(Index index) const;
 
   virtual bool HasVessel(GUID const& vessel_guid) const;
   virtual not_null<Vessel*> GetVessel(GUID const& vessel_guid) const;
+
+  virtual void ClearOrbitAnalysersOfVesselsOtherThan(Vessel const& vessel);
 
   virtual not_null<std::unique_ptr<Planetarium>> NewPlanetarium(
       Planetarium::Parameters const& parameters,
@@ -432,11 +447,9 @@ class Plugin {
       Ephemeris<Barycentric>::NewtonianMotionEquation;
 
   // This constructor should only be used during deserialization.
-  Plugin(Ephemeris<Barycentric>::FixedStepParameters const& history_parameters,
-         Ephemeris<Barycentric>::AdaptiveStepParameters const&
-             psychohistory_parameters,
-         Ephemeris<Barycentric>::AdaptiveStepParameters const&
-             prediction_parameters);
+  Plugin(Ephemeris<Barycentric>::FixedStepParameters history_parameters,
+         Ephemeris<Barycentric>::AdaptiveStepParameters
+             psychohistory_parameters);
 
   void InitializeIndices(
       std::string const& name,
@@ -460,13 +473,13 @@ class Plugin {
       IndexToOwnedCelestial& celestials,
       std::map<std::string, Index>& name_to_index);
 
-  // Adds a part to a vessel, recording it in the appropriate map and setting up
-  // a deletion callback.
+  // Constructs a part using the constructor arguments, and add it to a vessel,
+  // recording it in the appropriate map and setting up a deletion callback.
+  template<typename... Args>
   void AddPart(not_null<Vessel*> vessel,
                PartId part_id,
                std::string const& name,
-               Mass mass,
-               DegreesOfFreedom<Barycentric> const& degrees_of_freedom);
+               Args... args);
 
   // Whether |loaded_vessels_| contains |vessel|.
   bool is_loaded(not_null<Vessel*> vessel) const;
@@ -477,13 +490,16 @@ class Plugin {
   serialization::InitialState initial_state_;
   std::map<std::string, Index> name_to_index_;
   std::map<Index, std::string> index_to_name_;
+  std::uint64_t system_fingerprint_ = 0;
   std::map<Index, std::optional<Index>> parents_;
   // The ephemeris is only constructed once, so this is an initialization
   // object.  The other parameters must be persisted to create new vessels.
   // Since this is not persisted directly, it is optional so that it can be null
   // in a deserialized object.
+  std::optional<Ephemeris<Barycentric>::AccuracyParameters>
+      ephemeris_accuracy_parameters_;
   std::optional<Ephemeris<Barycentric>::FixedStepParameters>
-      ephemeris_parameters_;
+      ephemeris_fixed_step_parameters_;
 
   GUIDToOwnedVessel vessels_;
   // For each part, the vessel that this part belongs to. The part is guaranteed
@@ -497,7 +513,6 @@ class Plugin {
   // The parameters for computing the various trajectories.
   Ephemeris<Barycentric>::FixedStepParameters history_parameters_;
   Ephemeris<Barycentric>::AdaptiveStepParameters psychohistory_parameters_;
-  Ephemeris<Barycentric>::AdaptiveStepParameters prediction_parameters_;
 
   // The thread pool for advancing vessels.
   ThreadPool<Status> vessel_thread_pool_;
@@ -526,6 +541,13 @@ class Plugin {
   VesselSet loaded_vessels_;
   // The vessels that will be kept during the next call to |AdvanceTime|.
   VesselConstSet kept_vessels_;
+  // Contains the adaptive step parameters for the vessel that existed in the
+  // past but are no longer known to the plugin.  Useful to avoid losing the
+  // parameters, e.g., when a vessel hits the ground.
+  // NOTE(phl): This is a leaky map, in the sense that we don't remove deleted
+  // vessels from it.  Hopefully it's small enough that we don't care.
+  std::map<GUID, Ephemeris<Barycentric>::AdaptiveStepParameters>
+  zombie_prediction_adaptive_step_parameters_;
 
   friend class NavballFrameField;
   friend class TestablePlugin;

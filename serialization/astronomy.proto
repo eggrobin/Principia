@@ -2,24 +2,35 @@ syntax = "proto2";
 
 import "serialization/geometry.proto";
 import "serialization/integrators.proto";
+import "serialization/physics.proto";
 
 package principia.serialization;
+
+option cc_enable_arenas = true;
 
 message GravityModel {
   message Body {
     required string name = 1;
     // Massive body.
-    required string gravitational_parameter = 2;
+    oneof massive {
+      string gravitational_parameter = 2;
+      string mass = 13;
+    }
     // Rotating body.
     optional string reference_instant = 12;  // Terrestrial time.
+    optional string min_radius = 15;
     optional string mean_radius = 7;
+    optional string max_radius = 16;
     optional string axis_right_ascension = 3;
     optional string axis_declination = 4;
     optional string reference_angle = 8;
     optional string angular_frequency = 9;
     // Oblate body.
-    optional double j2 = 11;
     optional string reference_radius = 6;
+    oneof oblateness {
+      double j2 = 11;  // Unnormalized.
+      OblateBody.Geopotential geopotential = 14;
+    }
     reserved 5, 10;
   }
   oneof frame {
@@ -45,10 +56,12 @@ message InitialState {
   message Keplerian {
     message Body {
       message Elements {
-        // Exactly one of the optional fields below must be present.
         required double eccentricity = 1;
-        optional string semimajor_axis = 2;
-        optional string mean_motion = 3;
+        oneof category2 {  // See kepler_orbit.hpp.
+          string semimajor_axis = 2;
+          string mean_motion = 3;
+          string period = 8;
+        }
         required string inclination = 4;
         required string longitude_of_ascending_node = 5;
         required string argument_of_periapsis = 6;
@@ -77,6 +90,8 @@ message NumericsBlueprint {
   message Ephemeris {
     required FixedStepSizeIntegrator.Kind integrator = 1;
     required string step = 2;
+    required string fitting_tolerance = 3;
+    required string geopotential_tolerance = 4;
   }
   message History {
     required FixedStepSizeIntegrator.Kind integrator = 1;

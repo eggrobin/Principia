@@ -89,7 +89,7 @@ std::ostream& operator<<(std::ostream& out,
 
 template<typename Frame>
 class KeplerOrbit final {
-  static_assert(Frame::is_inertial, "Frame must be inertial");
+  static_assert(!Frame::may_rotate);
 
  public:
   // Exactly one of the |optional|s must be filled in the given

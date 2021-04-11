@@ -1,16 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace principia {
 namespace ksp_plugin_adapter {
 
 internal static class GLLines {
   public enum Style {
-    SOLID,
-    DASHED,
-    FADED,
+    Solid,
+    Dashed,
+    Faded,
   }
 
   public static void Draw(Action line_vertices) {
@@ -20,29 +17,26 @@ internal static class GLLines {
       UnityEngine.GL.LoadPixelMatrix();
       UnityEngine.GL.Begin(UnityEngine.GL.LINES);
 
-      Vector3d camera = ScaledSpace.ScaledToLocalSpace(
-          PlanetariumCamera.Camera.transform.position);
       line_vertices();
 
       UnityEngine.GL.End();
       UnityEngine.GL.PopMatrix();
     } catch (Exception e) {
-      Log.Fatal("Exception while drawing lines: " + e.ToString());
+      Log.Fatal("Exception while drawing lines: " + e);
     }
   }
 
-  public static void AddSegment(Vector3d world_begin,
-                                Vector3d world_end) {
-    var begin = WorldToMapScreen(world_begin);
-    var end = WorldToMapScreen(world_end);
+  public static void AddSegment(Vector3d world_begin, Vector3d world_end) {
+    UnityEngine.Vector3 begin = WorldToMapScreen(world_begin);
+    UnityEngine.Vector3 end = WorldToMapScreen(world_end);
     if (begin.z > 0 && end.z > 0) {
       UnityEngine.GL.Vertex3(begin.x, begin.y, 0);
       UnityEngine.GL.Vertex3(end.x, end.y, 0);
     }
   }
 
-  public static IntPtr NewPlanetarium(IntPtr plugin,
-                                       XYZ sun_world_position) {
+  public static DisposablePlanetarium NewPlanetarium(IntPtr plugin,
+                                                     XYZ sun_world_position) {
     UnityEngine.Camera camera = PlanetariumCamera.Camera;
     UnityEngine.Vector3 opengl_camera_x_in_world =
         camera.cameraToWorldMatrix.MultiplyVector(
@@ -72,96 +66,97 @@ internal static class GLLines {
     double m11 = camera.projectionMatrix[1, 1];
     double field_of_view = Math.Atan2(Math.Sqrt(m00 * m00 + m11 * m11),
                                       m00 * m11);
-    return plugin.PlanetariumCreate(
-               sun_world_position,
-               (XYZ)(Vector3d)opengl_camera_x_in_world,
-               (XYZ)(Vector3d)opengl_camera_y_in_world,
-               (XYZ)(Vector3d)opengl_camera_z_in_world,
-               (XYZ)(Vector3d)camera_position_in_world,
-               /*focal=*/1,
-               field_of_view);
+    return plugin.PlanetariumCreate(sun_world_position,
+                                    (XYZ)(Vector3d)opengl_camera_x_in_world,
+                                    (XYZ)(Vector3d)opengl_camera_y_in_world,
+                                    (XYZ)(Vector3d)opengl_camera_z_in_world,
+                                    (XYZ)(Vector3d)camera_position_in_world,
+                                    focal:1,
+                                    field_of_view);
   }
 
-  public static void PlotAndDeleteRP2Lines(IntPtr rp2_lines_iterator,
-                                           UnityEngine.Color colour,
-                                           Style style) {
-    try {
-      UnityEngine.GL.Color(colour);
+  public static void PlotRP2Lines(DisposableIterator rp2_lines_iterator,
+                                  UnityEngine.Color colour,
+                                  Style style) {
+    UnityEngine.GL.Color(colour);
 
-      // First evaluate the total size of the lines.
-      int size = 0;
-      for (;
-            !rp2_lines_iterator.IteratorAtEnd();
-            rp2_lines_iterator.IteratorIncrement()) {
-        IntPtr rp2_line_iterator =
-            rp2_lines_iterator.IteratorGetRP2LinesIterator();
-        try {
-          size += rp2_line_iterator.IteratorSize();
-        } finally {
-          Interface.IteratorDelete(ref rp2_line_iterator);
-        }
+    // First evaluate the total size of the lines.
+    int size = 0;
+    for (;
+        !rp2_lines_iterator.IteratorAtEnd();
+        rp2_lines_iterator.IteratorIncrement()) {
+      using (DisposableIterator rp2_line_iterator =
+          rp2_lines_iterator.IteratorGetRP2LinesIterator()) {
+        size += rp2_line_iterator.IteratorSize();
       }
+    }
 
-      // Reset the iterator and do the actual plotting.
-      rp2_lines_iterator.IteratorReset();
-      int index = 0;
-      for (;
-           !rp2_lines_iterator.IteratorAtEnd();
-           rp2_lines_iterator.IteratorIncrement()) {
-        IntPtr rp2_line_iterator =
-            rp2_lines_iterator.IteratorGetRP2LinesIterator();
-        try {
-          XY? previous_rp2_point = null;
-          for (;
-               !rp2_line_iterator.IteratorAtEnd();
-               rp2_line_iterator.IteratorIncrement()) {
-            XY current_rp2_point = ToScreen(
-                rp2_line_iterator.IteratorGetRP2LineXY());
-            if (previous_rp2_point.HasValue) {
-              if (style == Style.FADED) {
-                colour.a = 1 - (float)(4 * index) / (float)(5 * size);
-                UnityEngine.GL.Color(colour);
-              }
-              if (style != Style.DASHED || index % 2 == 1) {
-                UnityEngine.GL.Vertex3((float)previous_rp2_point.Value.x,
-                                       (float)previous_rp2_point.Value.y,
-                                       0);
-                UnityEngine.GL.Vertex3((float)current_rp2_point.x,
-                                       (float)current_rp2_point.y,
-                                       0);
-              }
+    // Reset the iterator and do the actual plotting.
+    rp2_lines_iterator.IteratorReset();
+    int index = 0;
+    for (;
+        !rp2_lines_iterator.IteratorAtEnd();
+        rp2_lines_iterator.IteratorIncrement()) {
+      using (DisposableIterator rp2_line_iterator =
+          rp2_lines_iterator.IteratorGetRP2LinesIterator()) {
+        XY? previous_rp2_point = null;
+        for (;
+            !rp2_line_iterator.IteratorAtEnd();
+            rp2_line_iterator.IteratorIncrement()) {
+          XY current_rp2_point = ToScreen(
+              rp2_line_iterator.IteratorGetRP2LineXY());
+          if (previous_rp2_point.HasValue) {
+            if (style == Style.Faded) {
+              var faded_colour = colour;
+              // Fade from the opacity of |colour| (when index = 0) down to 1/4
+              // of that opacity.
+              faded_colour.a *= 1 - (float)(4 * index) / (float)(5 * size);
+              UnityEngine.GL.Color(faded_colour);
             }
-            previous_rp2_point = current_rp2_point;
-            ++index;
+            if (style != Style.Dashed || index % 2 == 1) {
+              UnityEngine.GL.Vertex3((float)previous_rp2_point.Value.x,
+                                     (float)previous_rp2_point.Value.y,
+                                     0);
+              UnityEngine.GL.Vertex3((float)current_rp2_point.x,
+                                     (float)current_rp2_point.y,
+                                     0);
+            }
           }
-        } finally {
-          Interface.IteratorDelete(ref rp2_line_iterator);
+          previous_rp2_point = current_rp2_point;
+          ++index;
         }
       }
-    } finally {
-      Interface.IteratorDelete(ref rp2_lines_iterator);
     }
   }
 
   private static UnityEngine.Vector3 WorldToMapScreen(Vector3d world) {
     return PlanetariumCamera.Camera.WorldToScreenPoint(
-               ScaledSpace.LocalToScaledSpace(world));
+        ScaledSpace.LocalToScaledSpace(world));
   }
 
   private static XY ToScreen(XY rp2_point) {
     UnityEngine.Camera camera = PlanetariumCamera.Camera;
-    return new XY{x = (rp2_point.x * camera.projectionMatrix[0, 0] + 1.0) *
-                      0.5 * camera.pixelWidth,
-                  y = (rp2_point.y * camera.projectionMatrix[1, 1] + 1.0) *
-                      0.5 * camera.pixelHeight};
-   }
+    return new XY{
+        x = (rp2_point.x * camera.projectionMatrix[0, 0] + 1.0) *
+            0.5 *
+            camera.pixelWidth,
+        y = (rp2_point.y * camera.projectionMatrix[1, 1] + 1.0) *
+            0.5 *
+            camera.pixelHeight
+    };
+  }
 
   private static UnityEngine.Material line_material_;
+
   private static UnityEngine.Material line_material {
     get {
       if (line_material_ == null) {
         line_material_ = new UnityEngine.Material(
+#if KSP_VERSION_1_11_2
+            UnityEngine.Shader.Find("KSP/Particles/Additive"));
+#elif KSP_VERSION_1_7_3
             UnityEngine.Shader.Find("Particles/Additive"));
+#endif
       }
       return line_material_;
     }

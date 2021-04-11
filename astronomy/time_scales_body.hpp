@@ -19,9 +19,13 @@ namespace internal_time_scales {
 
 using astronomy::date_time::Date;
 using astronomy::date_time::DateTime;
+using astronomy::date_time::IsJulian;
+using astronomy::date_time::JulianDate;
 using astronomy::date_time::operator""_Date;
 using astronomy::date_time::operator""_DateTime;
+using astronomy::date_time::operator""_Julian;
 using quantities::si::Day;
+using quantities::si::Radian;
 using quantities::si::Second;
 
 // Returns the duration between 2000-01-01T12:00:00 and |date_time| (of the same
@@ -31,14 +35,20 @@ using quantities::si::Second;
 // to which it is interpreted.
 // On a time scale with leap seconds, this is not injective: a positive leap
 // second and the following second map to the same interval.
-constexpr quantities::Time TimeScale(DateTime const& date_time) {
+constexpr quantities::Time TimeSince20000101T120000Z(
+    DateTime const& date_time) {
   return (date_time.time().millisecond() / 1e3) * Second +
          (date_time.time().second() +
           60 * (date_time.time().minute() +
                 60 * (date_time.time().hour() - 12 +
                       24 * static_cast<std::int64_t>(
-                               date_time.date().mjd() -
-                               "2000-01-01"_Date.mjd())))) * Second;
+                          date_time.date().mjd() -
+                          "2000-01-01"_Date.mjd())))) * Second;
+}
+
+constexpr quantities::Time TimeSinceJ2000(JulianDate const& jd) {
+  return (jd.day() + (static_cast<double>(jd.fraction_numerator()) /
+                      static_cast<double>(jd.fraction_denominator()))) * Day;
 }
 
 constexpr double mjd(quantities::Time const& from_j2000) {
@@ -53,9 +63,17 @@ constexpr Instant FromTAI(quantities::Time const& tai) {
   return FromTT(tai + 32.184 * Second);
 }
 
+constexpr Instant FromGPSTime(quantities::Time const& gps) {
+  return FromTAI(gps + 19 * Second);
+}
+
+constexpr Instant From北斗Time(quantities::Time const& 北斗) {
+  return FromTAI(北斗 + 33 * Second);
+}
+
 // Utilities for modern UTC (since 1972).
 
-constexpr std::array<int, (2018 - 1972) * 2 + 1> leap_seconds = {{
+constexpr std::array<int, (2021 - 1972) * 2 + 1> leap_seconds = {{
     +1, +1,  // 1972
     +0, +1,  // 1973
     +0, +1,  // 1974
@@ -102,32 +120,40 @@ constexpr std::array<int, (2018 - 1972) * 2 + 1> leap_seconds = {{
     +1, +0,  // 2015
     +0, +1,  // 2016
     +0, +0,  // 2017
-    +0,      // 2018
+    +0, +0,  // 2018
+    +0, +0,  // 2019
+    +0, +0,  // 2020
+    +0,      // 2021
 }};
 
 // Returns +1 if a positive leap second was inserted at the end of the given
 // |month| of the given |year|, 0 otherwise.
 constexpr int LeapSecond(int const year, int const month) {
-  return month == 6
-             ? CHECKING((year - 1972) * 2 < leap_seconds.size(),
-                        leap_seconds[(year - 1972) * 2])
-             : CHECKING(month == 12,
-                        CHECKING((year - 1972) * 2 + 1 < leap_seconds.size(),
-                                 leap_seconds[(year - 1972) * 2 + 1]));
+  if (month == 6) {
+    CONSTEXPR_CHECK((year - 1972) * 2 < leap_seconds.size());
+    return leap_seconds[(year - 1972) * 2];
+  } else {
+    CONSTEXPR_CHECK(month == 12);
+    CONSTEXPR_CHECK((year - 1972) * 2 + 1 < leap_seconds.size());
+    return leap_seconds[(year - 1972) * 2 + 1];
+  }
 }
 
 // Returns UTC - TAI on the given UTC day (similar to Bulletin C).
 constexpr quantities::Time ModernUTCMinusTAI(Date const& utc_date) {
-  return utc_date.month() == 1 && utc_date.day() == 1
-             ? utc_date.year() == 1972
-                   ? -10 * Second
-                   : -LeapSecond(utc_date.year() - 1, 6) * Second +
-                         -LeapSecond(utc_date.year() - 1, 12) * Second +
-                         ModernUTCMinusTAI(
-                             Date::Calendar(utc_date.year() - 1, 1, 1))
-             : (utc_date.month() > 6 ? -LeapSecond(utc_date.year(), 6) * Second
-                                     : 0 * Second) +
-                   ModernUTCMinusTAI(Date::Calendar(utc_date.year(), 1, 1));
+  if (utc_date.month() == 1 && utc_date.day() == 1) {
+    if (utc_date.year() == 1972) {
+      return -10 * Second;
+    } else {
+      return -LeapSecond(utc_date.year() - 1, 6) * Second +
+             -LeapSecond(utc_date.year() - 1, 12) * Second +
+             ModernUTCMinusTAI(Date::Calendar(utc_date.year() - 1, 1, 1));
+    }
+  } else {
+    return (utc_date.month() > 6 ? -LeapSecond(utc_date.year(), 6) * Second
+                                 : 0 * Second) +
+           ModernUTCMinusTAI(Date::Calendar(utc_date.year(), 1, 1));
+  }
 }
 
 constexpr bool IsValidModernUTC(DateTime const& date_time) {
@@ -142,12 +168,16 @@ constexpr bool IsValidModernUTC(DateTime const& date_time) {
 // https://hpiers.obspm.fr/iers/bul/bulc/UTC-TAI.history.
 constexpr quantities::Time RateTAIMinusStretchyUTC(DateTime const& utc) {
   return utc.date() < "1962-01-01"_Date
-             ? (mjd(TimeScale(utc)) - 37'300) * 0.001'296 * Second
+             ? (mjd(TimeSince20000101T120000Z(utc)) - 37'300) *
+               0.001'296 * Second
        : utc.date() < "1964-01-01"_Date
-             ? (mjd(TimeScale(utc)) - 37'665) * 0.001'123'2 * Second
+             ? (mjd(TimeSince20000101T120000Z(utc)) - 37'665) *
+               0.001'123'2 * Second
        : utc.date() < "1966-01-01"_Date
-             ? (mjd(TimeScale(utc)) - 38'761) * 0.001'296 * Second
-             : (mjd(TimeScale(utc)) - 39'126) * 0.002'592 * Second;
+             ? (mjd(TimeSince20000101T120000Z(utc)) - 38'761) *
+               0.001'296 * Second
+             : (mjd(TimeSince20000101T120000Z(utc)) - 39'126) *
+               0.002'592 * Second;
 }
 
 // The constant term.
@@ -177,7 +207,8 @@ constexpr quantities::Time TAIMinusStretchyUTC(DateTime const& utc) {
 constexpr bool IsValidPositiveStretchyUTCLeap(DateTime const& utc,
                                              Date const& next_day,
                                              double const& milliseconds) {
-  return utc.time().is_leap_second() && utc.date().next_day() == next_day &&
+  return utc.time().is_leap_second() &&
+         utc.date().next_day() == next_day &&
          utc.time().millisecond() < milliseconds;
 }
 
@@ -187,11 +218,11 @@ constexpr bool IsValidPositiveStretchyUTCLeap(DateTime const& utc,
 constexpr bool IsValidStretchyUTCIfOnDayOfNegativeLeap(DateTime const& utc,
                                                        Date const& next_day,
                                                        int const milliseconds) {
-  return CHECKING(milliseconds > 0,
-                  utc.date().next_day() != next_day ||
-                      utc.time().hour() < 23 ||
-                      utc.time().minute() < 59 ||
-                      utc.time().millisecond() < 1000 - milliseconds);
+  CONSTEXPR_CHECK(milliseconds > 0);
+  return utc.date().next_day() != next_day ||
+         utc.time().hour() < 23 ||
+         utc.time().minute() < 59 ||
+         utc.time().millisecond() < 1000 - milliseconds;
 }
 
 // A list of leaps is found at
@@ -240,6 +271,8 @@ struct EOPC04Entry final {
   constexpr quantities::Time ut1() const;
   constexpr quantities::Time ut1_minus_tai() const;
 
+  constexpr Instant tt() const;
+
   int const utc_date;
   quantities::Time const ut1_minus_utc;
 };
@@ -255,13 +288,20 @@ constexpr DateTime EOPC04Entry::utc() const {
 }
 
 constexpr quantities::Time EOPC04Entry::ut1() const {
-  return TimeScale(utc()) + ut1_minus_utc;
+  return TimeSince20000101T120000Z(utc()) + ut1_minus_utc;
 }
 
 constexpr quantities::Time EOPC04Entry::ut1_minus_tai() const {
   return utc().date().year() >= 1972
              ? ut1_minus_utc + ModernUTCMinusTAI(utc().date())
              : ut1_minus_utc - TAIMinusStretchyUTC(utc());
+}
+
+constexpr Instant EOPC04Entry::tt() const {
+  return FromTAI(
+      utc().date().year() >= 1972
+          ? TimeSince20000101T120000Z(utc()) - ModernUTCMinusTAI(utc().date())
+          : TimeSince20000101T120000Z(utc()) + TAIMinusStretchyUTC(utc()));
 }
 
 // NOTE(egg): these have to be defined here, because they depend on internal
@@ -279,23 +319,43 @@ constexpr ExperimentalEOPC02Entry const* LookupUT1(
     quantities::Time const& ut1,
     ExperimentalEOPC02Entry const* begin,
     std::ptrdiff_t const size) {
-  return CHECKING(size > 0,
-                  size == 1
-                      ? CHECKING(begin->ut1_mjd <= mjd(ut1), begin)
-                      : (begin + size / 2)->ut1_mjd <= mjd(ut1)
-                            ? LookupUT1(ut1, begin + size / 2, size - size / 2)
-                            : LookupUT1(ut1, begin, size / 2));
+  CONSTEXPR_CHECK(size > 0);
+  if (size == 1) {
+    CONSTEXPR_CHECK(begin->ut1_mjd <= mjd(ut1));
+    return begin;
+  } else if ((begin + size / 2)->ut1_mjd <= mjd(ut1)) {
+    return LookupUT1(ut1, begin + size / 2, size - size / 2);
+  } else {
+    return LookupUT1(ut1, begin, size / 2);
+  }
 }
 
 constexpr EOPC04Entry const* LookupUT1(quantities::Time const& ut1,
                                        EOPC04Entry const* begin,
                                        std::ptrdiff_t const size) {
-  return CHECKING(size > 0,
-                  size == 1
-                      ? CHECKING(begin->ut1() <= ut1, begin)
-                      : (begin + size / 2)->ut1() <= ut1
-                            ? LookupUT1(ut1, begin + size / 2, size - size / 2)
-                            : LookupUT1(ut1, begin, size / 2));
+  CONSTEXPR_CHECK(size > 0);
+  if (size == 1) {
+    CONSTEXPR_CHECK(begin->ut1() <= ut1);
+    return begin;
+  } else if ((begin + size / 2)->ut1() <= ut1) {
+    return LookupUT1(ut1, begin + size / 2, size - size / 2);
+  } else {
+    return LookupUT1(ut1, begin, size / 2);
+  }
+}
+
+constexpr EOPC04Entry const* LookupTT(Instant const& tt,
+                                      EOPC04Entry const* const begin,
+                                      std::ptrdiff_t const size) {
+  CONSTEXPR_CHECK(size > 0);
+  if (size == 1) {
+    CONSTEXPR_CHECK(begin->tt() <= tt);
+    return begin;
+  } else if ((begin + size / 2)->tt() <= tt) {
+    return LookupTT(tt, begin + size / 2, size - size / 2);
+  } else {
+    return LookupTT(tt, begin, size / 2);
+  }
 }
 
 constexpr ExperimentalEOPC02Entry const* LookupInExperimentalEOPC02(
@@ -308,16 +368,43 @@ constexpr EOPC04Entry const* LookupInEOPC04(
   return LookupUT1(ut1, &eop_c04[0], eop_c04.size());
 }
 
-// Linear interpolation on the UT1 range [low->ut1(), (low + 1)->ut1()].
+constexpr EOPC04Entry const* LookupInEOPC04(Instant const& tt) {
+  return LookupTT(tt, &eop_c04[0], eop_c04.size());
+}
+
+// Linear interpolation of TT on the UT1 range [low->ut1(), (low + 1)->ut1()].
 constexpr Instant InterpolatedEOPC04(EOPC04Entry const* low,
                                      quantities::Time const& ut1) {
   // TODO(egg): figure out whether using the divided difference of the
   // |p->ut1_minus_tai()|s leads to less catastrophic cancellation than using
   // the divided difference of the |DateTimeAsUTC(p->utc())|s.
-  return FromTAI(ut1 - (low->ut1_minus_tai() +
-                        (ut1 - low->ut1()) * ((low + 1)->ut1_minus_tai() -
-                                              low->ut1_minus_tai()) /
-                            ((low + 1)->ut1() - low->ut1())));
+  return FromTAI(ut1 -
+                 (low->ut1_minus_tai() +
+                  (ut1 - low->ut1()) *
+                      ((low + 1)->ut1_minus_tai() - low->ut1_minus_tai()) /
+                      ((low + 1)->ut1() - low->ut1())));
+}
+
+// UT1 Julian Day fraction in [-1/2 - ε, 1/2 + ε] where ε bounds |UT1-UTC|,
+// obtained by linear interpolation of EOP C04 on the TT range
+// [low->tt(), (low + 1)->tt()].
+// |jd_minus_2451545| is set to the integer such that the Julian UT1 date is
+// jd_minus_2451545 + 2451545 + result.
+constexpr double InterpolatedEOPC04JulianDayFraction(EOPC04Entry const* low,
+                                                     Instant const& tt,
+                                                     int& jd_minus_2451545) {
+  double const λ = (tt - low->tt()) / ((low + 1)->tt() - low->tt());
+  // The UTC MJD number for the day of the interpolation interval is
+  //   |low->utc().date().mjd()|.
+  // Up to the second-sized UT1-UTC difference, this is also the UT1 MJD number.
+  // MJD = JD - 2400000.5, so that, in the middle of the interval, where the
+  // result is 0,
+  //   JD - 2451545.0 = (MJD number + 0.5) - 51545 + 0.5
+  //                  = (MJD number) - 51545 + 1.
+  jd_minus_2451545 = low->utc().date().mjd() - 51545 + 1;
+  return (λ - 0.5) + (low->ut1_minus_utc +
+                      λ * ((low + 1)->ut1_minus_utc - low->ut1_minus_utc)) /
+                         (1 * Day);
 }
 
 // Linear interpolation on the UT1 range given by the range of MJDs
@@ -343,117 +430,121 @@ constexpr Instant ExperimentalEOPC02ToEOPC04(ExperimentalEOPC02Entry const& low,
 }
 
 constexpr Instant FromUT1(quantities::Time const ut1) {
-  return ut1 < eop_c04.front().ut1()
-             ? ((LookupInExperimentalEOPC02(ut1) + 1)->ut1_mjd >
-                        mjd(eop_c04.front().ut1())
-                    ? ExperimentalEOPC02ToEOPC04(
-                          *LookupInExperimentalEOPC02(ut1),
-                          eop_c04.front(),
-                          ut1)
-                    : InterpolatedExperimentalEOPC02(
-                          LookupInExperimentalEOPC02(ut1), ut1))
-             : InterpolatedEOPC04(LookupInEOPC04(ut1), ut1);
+  if (ut1 < eop_c04.front().ut1()) {
+    if ((LookupInExperimentalEOPC02(ut1) + 1)->ut1_mjd >
+        mjd(eop_c04.front().ut1())) {
+      return ExperimentalEOPC02ToEOPC04(*LookupInExperimentalEOPC02(ut1),
+                                        eop_c04.front(),
+                                        ut1);
+    } else {
+      return InterpolatedExperimentalEOPC02(LookupInExperimentalEOPC02(ut1),
+                                            ut1);
+    }
+  } else {
+    return InterpolatedEOPC04(LookupInEOPC04(ut1), ut1);
+  }
 }
 
-// Conversions from |DateTime| to |Instant|.
+constexpr Angle EarthRotationAngle(Instant const tt) {
+  CONSTEXPR_CHECK(tt >= eop_c04.front().tt())
+      << "EarthRotationAngle is not implemented before 1962.";
+
+  int ut1_julian_day_number_minus_2451545{};
+  double const ut1_julian_day_fraction = InterpolatedEOPC04JulianDayFraction(
+      LookupInEOPC04(tt), tt, ut1_julian_day_number_minus_2451545);
+  double const Tu =
+      ut1_julian_day_number_minus_2451545 + ut1_julian_day_fraction;
+  // IERS Conventions (2010), equation (5.15).
+  // TODO(egg): We should probably have a modulo 1 on the last term.
+  return 2 * π * Radian *
+         (ut1_julian_day_fraction + 0.7790572732640 +
+          0.00273781191135448 * Tu);
+}
+
+// Conversions from |DateTime| and |JulianDate| to |Instant|.
 
 constexpr Instant DateTimeAsTT(DateTime const& tt) {
-  return CHECKING(!tt.time().is_leap_second(), FromTT(TimeScale(tt)));
+  CONSTEXPR_CHECK(!tt.time().is_leap_second());
+  return FromTT(TimeSince20000101T120000Z(tt));
 }
 
 constexpr Instant DateTimeAsTAI(DateTime const& tai) {
-  return CHECKING(!tai.time().is_leap_second(), FromTAI(TimeScale(tai)));
+  CONSTEXPR_CHECK(!tai.time().is_leap_second());
+  return FromTAI(TimeSince20000101T120000Z(tai));
+}
+
+constexpr Instant DateTimeAsGPSTime(DateTime const& gps) {
+  CONSTEXPR_CHECK(!gps.time().is_leap_second());
+  return FromGPSTime(TimeSince20000101T120000Z(gps));
+}
+
+constexpr Instant DateTimeAs北斗Time(DateTime const& 北斗) {
+  CONSTEXPR_CHECK(!北斗.time().is_leap_second());
+  return From北斗Time(TimeSince20000101T120000Z(北斗));
 }
 
 constexpr Instant DateTimeAsUTC(DateTime const& utc) {
-  return CHECKING(
-      !utc.jd(),
-      utc.time().is_end_of_day()
-      ? DateTimeAsUTC(utc.normalized_end_of_day())
-      : utc.date().year() < 1972
-            ? CHECKING(
-                  IsValidStretchyUTC(utc),
-                  FromTAI(TimeScale(utc) + TAIMinusStretchyUTC(utc)))
-            : CHECKING(IsValidModernUTC(utc),
-                      FromTAI(TimeScale(utc) -
-                              ModernUTCMinusTAI(utc.date()))));
+  if (utc.time().is_end_of_day()) {
+    return DateTimeAsUTC(utc.normalized_end_of_day());
+  } else if (utc.date().year() < 1972) {
+    CONSTEXPR_CHECK(IsValidStretchyUTC(utc));
+    return FromTAI(TimeSince20000101T120000Z(utc) + TAIMinusStretchyUTC(utc));
+  } else {
+    CONSTEXPR_CHECK(IsValidModernUTC(utc));
+    return FromTAI(TimeSince20000101T120000Z(utc) -
+                   ModernUTCMinusTAI(utc.date()));
+  }
 }
 
 constexpr Instant DateTimeAsUT1(DateTime const& ut1) {
-  return CHECKING(
-      !ut1.time().is_leap_second() &&
-          mjd(TimeScale(ut1)) >= experimental_eop_c02.front().ut1_mjd &&
-          TimeScale(ut1) < eop_c04.back().ut1(),
-      FromUT1(TimeScale(ut1)));
+  CONSTEXPR_CHECK(!ut1.time().is_leap_second());
+  CONSTEXPR_CHECK(mjd(TimeSince20000101T120000Z(ut1)) >=
+                  experimental_eop_c02.front().ut1_mjd);
+  CONSTEXPR_CHECK(TimeSince20000101T120000Z(ut1) < eop_c04.back().ut1());
+  return FromUT1(TimeSince20000101T120000Z(ut1));
 }
 
 // |Instant| date literals.
 
-#if (PRINCIPIA_COMPILER_CLANG || PRINCIPIA_COMPILER_CLANG_CL) && WE_LIKE_N3599
-template<typename C, C... str>
-constexpr std::array<C, sizeof...(str)> unpack_as_array() {
-  return std::array<C, sizeof...(str)>{{str...}};
+constexpr Instant operator""_TAI(char const* str, std::size_t const size) {
+  if (IsJulian(str, size)) {
+    return FromTAI(TimeSinceJ2000(operator""_Julian(str, size)));
+  } else {
+    return DateTimeAsTAI(operator""_DateTime(str, size));
+  }
 }
 
-template<typename T>
-constexpr T const& as_const_ref(T const& t) {
-  return t;
+constexpr Instant operator""_TT(char const* const str, std::size_t const size) {
+  if (IsJulian(str, size)) {
+    return FromTT(TimeSinceJ2000(operator""_Julian(str, size)));
+  } else {
+    return DateTimeAsTT(operator""_DateTime(str, size));
+  }
 }
 
-template<typename C, std::size_t size>
-constexpr C const* c_str(std::array<C, size> const& array) {
-  // In C++17 this could be |data()|.  For the moment this does the job.
-  return &as_const_ref(array)[0];
-}
-
-// NOTE(egg): In the following three functions, the |constexpr| intermediate
-// variable forces failures to occur at compile time and not as glog |CHECK|
-// failures at evaluation.
-
-template<typename C, C... str>
-constexpr Instant operator""_TAI() {
-  constexpr auto result = DateTimeAsTAI(
-      operator""_DateTime(c_str(unpack_as_array<C, str...>()), sizeof...(str)));
-  return result;
-}
-
-template<typename C, C... str>
-constexpr Instant operator""_TT() {
-  constexpr auto result = DateTimeAsTT(
-      operator""_DateTime(c_str(unpack_as_array<C, str...>()), sizeof...(str)));
-  return result;
-}
-
-template<typename C, C... str>
-constexpr Instant operator""_UTC() {
-  constexpr auto result = DateTimeAsUTC(
-      operator""_DateTime(c_str(unpack_as_array<C, str...>()), sizeof...(str)));
-  return result;
-}
-
-template<typename C, C... str>
-constexpr Instant operator""_UT1() {
-  constexpr auto result = DateTimeAsUT1(
-      operator""_DateTime(c_str(unpack_as_array<C, str...>()), sizeof...(str)));
-  return result;
-}
-#else
-constexpr Instant operator""_TAI(char const* str, std::size_t size) {
-  return DateTimeAsTAI(operator""_DateTime(str, size));
-}
-
-constexpr Instant operator""_TT(char const* str, std::size_t size) {
-  return DateTimeAsTT(operator""_DateTime(str, size));
-}
-
-constexpr Instant operator""_UTC(char const* str, std::size_t size) {
+constexpr Instant operator""_UTC(char const* const str,
+                                 std::size_t const size) {
   return DateTimeAsUTC(operator""_DateTime(str, size));
 }
 
-constexpr Instant operator""_UT1(char const* str, std::size_t size) {
-  return DateTimeAsUT1(operator""_DateTime(str, size));
+constexpr Instant operator""_UT1(char const* const str,
+                                 std::size_t const size) {
+  if (IsJulian(str, size)) {
+    return FromUT1(TimeSinceJ2000(operator""_Julian(str, size)));
+  } else {
+    return DateTimeAsUT1(operator""_DateTime(str, size));
+  }
 }
-#endif
+
+constexpr Instant operator""_GPS(char const* const str,
+                                 std::size_t const size) {
+  return DateTimeAsGPSTime(operator""_DateTime(str, size));
+}
+
+constexpr Instant operator""_北斗(char const* const str,
+                                  std::size_t const size) {
+  return DateTimeAs北斗Time(operator""_DateTime(str, size));
+}
 
 inline Instant ParseTAI(std::string const& s) {
   return operator""_TAI(s.c_str(), s.size());
@@ -469,6 +560,14 @@ inline Instant ParseUTC(std::string const& s) {
 
 inline Instant ParseUT1(std::string const& s) {
   return operator""_UT1(s.c_str(), s.size());
+}
+
+inline Instant ParseGPSTime(std::string const& s) {
+  return operator""_GPS(s.c_str(), s.size());
+}
+
+inline Instant Parse北斗Time(std::string const& s) {
+  return operator""_北斗(s.c_str(), s.size());
 }
 
 }  // namespace internal_time_scales

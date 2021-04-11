@@ -7,10 +7,10 @@
 #ifndef PRINCIPIA_PHYSICS_OBLATE_BODY_HPP_
 #define PRINCIPIA_PHYSICS_OBLATE_BODY_HPP_
 
-#include <optional>
 #include <vector>
 
 #include "geometry/grassmann.hpp"
+#include "numerics/fixed_arrays.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 
@@ -20,9 +20,11 @@ namespace internal_oblate_body {
 
 using base::not_null;
 using geometry::Vector;
+using numerics::FixedLowerTriangularMatrix;
+using quantities::Degree2SphericalHarmonicCoefficient;
+using quantities::Degree3SphericalHarmonicCoefficient;
 using quantities::GravitationalParameter;
 using quantities::Length;
-using quantities::Order2ZonalCoefficient;
 using quantities::Quotient;
 
 template<typename Frame>
@@ -30,16 +32,36 @@ class OblateBody : public RotatingBody<Frame> {
   static_assert(Frame::is_inertial, "Frame must be inertial");
 
  public:
-  class PHYSICS_DLL Parameters final {
+  static constexpr int max_geopotential_degree = 50;
+  using GeopotentialCoefficients =
+      FixedLowerTriangularMatrix<double, max_geopotential_degree + 1>;
+
+  class Parameters final {
    public:
-    explicit Parameters(Order2ZonalCoefficient const& j2);
-    Parameters(double const j2,
+    Parameters(double j2,
                Length const& reference_radius);
 
+    static Parameters ReadFromMessage(
+        serialization::OblateBody::Geopotential const& message,
+        Length const& reference_radius);
+
+    void WriteToMessage(
+        not_null<serialization::OblateBody::Geopotential*> message) const;
+
    private:
-    std::optional<Order2ZonalCoefficient> j2_;
-    std::optional<
-        Quotient<Order2ZonalCoefficient, GravitationalParameter>> j2_over_μ_;
+    // Only for use when building from a geopotential.
+    explicit Parameters(Length const& reference_radius);
+
+    Length reference_radius_;
+
+    double j2_;
+    Quotient<Degree2SphericalHarmonicCoefficient, GravitationalParameter>
+        j2_over_μ_;
+    GeopotentialCoefficients cos_;
+    GeopotentialCoefficients sin_;
+    int degree_;
+    bool is_zonal_;
+
     template<typename F>
     friend class OblateBody;
   };
@@ -49,12 +71,20 @@ class OblateBody : public RotatingBody<Frame> {
                  rotating_body_parameters,
              Parameters const& parameters);
 
-  // Returns the j2 coefficient.
-  Order2ZonalCoefficient const& j2() const;
-
-  // Returns |j2 / μ|.
-  Quotient<Order2ZonalCoefficient,
+  // These parameters are unnormalized.
+  double j2() const;
+  Quotient<Degree2SphericalHarmonicCoefficient,
            GravitationalParameter> const& j2_over_μ() const;
+
+  // These parameters are normalized.
+  GeopotentialCoefficients const& cos() const;
+  GeopotentialCoefficients const& sin() const;
+  int geopotential_degree() const;
+
+  // Returns true iff the geopotential only contains zonal terms.
+  bool is_zonal() const;
+
+  Length const& reference_radius() const;
 
   // Returns false.
   bool is_massless() const override;
@@ -83,8 +113,6 @@ using internal_oblate_body::OblateBody;
 }  // namespace physics
 }  // namespace principia
 
-#if !PHYSICS_DLL_IMPORT
 #include "physics/oblate_body_body.hpp"
-#endif
 
 #endif  // PRINCIPIA_PHYSICS_OBLATE_BODY_HPP_

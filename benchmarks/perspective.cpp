@@ -25,16 +25,14 @@ using quantities::si::Metre;
 using quantities::si::Radian;
 
 namespace {
-using World = Frame<serialization::Frame::TestTag,
-                    serialization::Frame::TEST1, false>;
-using Camera = Frame<serialization::Frame::TestTag,
-                     serialization::Frame::TEST2, false>;
+using World = Frame<enum class WorldTag>;
+using Camera = Frame<enum class CameraTag>;
 }  // namespace
 
 void RandomSegmentsBenchmark(
-    std::uniform_real_distribution<> const& x_distribution,
-    std::uniform_real_distribution<> const& y_distribution,
-    std::uniform_real_distribution<> const& z_distribution,
+    std::uniform_real_distribution<>& x_distribution,
+    std::uniform_real_distribution<>& y_distribution,
+    std::uniform_real_distribution<>& z_distribution,
     benchmark::State& state) {
   // The camera is on the x-axis and looks towards the positive x.
   Position<World> const camera_origin(

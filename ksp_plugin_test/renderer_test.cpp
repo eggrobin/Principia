@@ -95,7 +95,7 @@ TEST_F(RendererTest, TargetVessel) {
       /*position_function=*/
           [](Instant const& t) { return Barycentric::origin; },
       /*velocity_function=*/
-          [](Instant const& t) { return Velocity<Barycentric>(); },
+          [](Instant const& t) { return Barycentric::unmoving; },
       vessel_trajectory);
   EXPECT_CALL(vessel, prediction())
       .WillRepeatedly(ReturnRef(vessel_trajectory));
@@ -135,8 +135,8 @@ TEST_F(RendererTest, RenderBarycentricTrajectoryInPlottingWithoutTargetVessel) {
 
   RigidMotion<Barycentric, Navigation> rigid_motion(
       RigidTransformation<Barycentric, Navigation>::Identity(),
-      AngularVelocity<Barycentric>(),
-      Velocity<Barycentric>());
+      Barycentric::nonrotating,
+      Barycentric::unmoving);
   for (Instant t = t0_; t < t0_ + 10 * Second; t += 1 * Second) {
     EXPECT_CALL(*dynamic_frame_, ToThisFrameAtTime(t))
         .WillOnce(Return(rigid_motion));
@@ -144,17 +144,15 @@ TEST_F(RendererTest, RenderBarycentricTrajectoryInPlottingWithoutTargetVessel) {
 
   auto const rendered_trajectory =
       renderer_.RenderBarycentricTrajectoryInPlotting(
-          trajectory_to_render.Begin(),
-          trajectory_to_render.End());
+          trajectory_to_render.begin(),
+          trajectory_to_render.end());
 
   EXPECT_EQ(10, rendered_trajectory->Size());
   int index = 0;
-  for (auto it = rendered_trajectory->Begin();
-       it != rendered_trajectory->End();
-       ++it) {
-    EXPECT_EQ(t0_ + index * Second, it.time());
+  for (auto const& [time, degrees_of_freedom] : *rendered_trajectory) {
+    EXPECT_EQ(t0_ + index * Second, time);
     EXPECT_THAT(
-        it.degrees_of_freedom(),
+        degrees_of_freedom,
         Componentwise(
             AlmostEquals(Navigation::origin +
                              Displacement<Navigation>({6 * index * Metre,
@@ -222,27 +220,25 @@ TEST_F(RendererTest, RenderBarycentricTrajectoryInPlottingWithTargetVessel) {
         .WillOnce(Return(DegreesOfFreedom<Barycentric>(
             Barycentric::origin + Displacement<Barycentric>(
                                       {300 * Metre, 200 * Metre, 100 * Metre}),
-            Velocity<Barycentric>())));
+            Barycentric::unmoving)));
   }
 
   renderer_.SetTargetVessel(&vessel, &celestial_, &ephemeris);
   auto const rendered_trajectory =
       renderer_.RenderBarycentricTrajectoryInPlotting(
-          trajectory_to_render.Begin(),
-          trajectory_to_render.End());
+          trajectory_to_render.begin(),
+          trajectory_to_render.end());
 
   EXPECT_EQ(5, rendered_trajectory->Size());
   int index = 3;
-  for (auto it = rendered_trajectory->Begin();
-       it != rendered_trajectory->End();
-       ++it) {
-    EXPECT_EQ(t0_ + index * Second, it.time());
+  for (auto const& [time, degrees_of_freedom] : *rendered_trajectory) {
+    EXPECT_EQ(t0_ + index * Second, time);
     // The degrees of freedom are computed using a real dynamic frame, not a
     // mock.  No point in re-doing the computation here, we just check that the
     // numbers are reasonable.
-    EXPECT_LT((it.degrees_of_freedom().position() - Navigation::origin).Norm(),
+    EXPECT_LT((degrees_of_freedom.position() - Navigation::origin).Norm(),
               42 * Metre);
-    EXPECT_LT(it.degrees_of_freedom().velocity().Norm(), 6 * Metre / Second);
+    EXPECT_LT(degrees_of_freedom.velocity().Norm(), 6 * Metre / Second);
     ++index;
   }
 }
@@ -277,8 +273,8 @@ TEST_F(RendererTest, RenderPlottingTrajectoryInWorldWithoutTargetVessel) {
       DefinesFrame<AliceSun>{});
   RigidMotion<Navigation, Barycentric> rigid_motion(
       RigidTransformation<Navigation, Barycentric>::Identity(),
-      AngularVelocity<Navigation>(),
-      Velocity<Navigation>());
+      Navigation::nonrotating,
+      Navigation::unmoving);
   EXPECT_CALL(*dynamic_frame_, FromThisFrameAtTime(rendering_time))
       .WillOnce(Return(rigid_motion));
   EXPECT_CALL(celestial_, current_position(rendering_time))
@@ -286,23 +282,21 @@ TEST_F(RendererTest, RenderPlottingTrajectoryInWorldWithoutTargetVessel) {
 
   auto const rendered_trajectory =
       renderer_.RenderPlottingTrajectoryInWorld(rendering_time,
-                                                trajectory_to_render.Begin(),
-                                                trajectory_to_render.End(),
+                                                trajectory_to_render.begin(),
+                                                trajectory_to_render.end(),
                                                 sun_world_position,
                                                 planetarium_rotation);
 
   EXPECT_EQ(10, rendered_trajectory->Size());
   int index = 0;
-  for (auto it = rendered_trajectory->Begin();
-       it != rendered_trajectory->End();
-       ++it) {
-    EXPECT_EQ(t0_ + index * Second, it.time());
+  for (auto const& [time, degrees_of_freedom] : *rendered_trajectory) {
+    EXPECT_EQ(t0_ + index * Second, time);
     // The degrees of freedom are computed using real geometrical transforms.
     // No point in re-doing the computation here, we just check that the numbers
     // are reasonable.
-    EXPECT_LT((it.degrees_of_freedom().position() - World::origin).Norm(),
+    EXPECT_LT((degrees_of_freedom.position() - World::origin).Norm(),
               452 * Metre);
-    EXPECT_LT(it.degrees_of_freedom().velocity().Norm(), 9 * Metre / Second);
+    EXPECT_LT(degrees_of_freedom.velocity().Norm(), 9 * Metre / Second);
     ++index;
   }
 }

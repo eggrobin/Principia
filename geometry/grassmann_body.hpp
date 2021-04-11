@@ -17,21 +17,12 @@ using base::not_constructible;
 using quantities::ArcTan;
 
 template<typename Scalar, typename Frame>
-Multivector<Scalar, Frame, 1>::Multivector() {}
-
-template<typename Scalar, typename Frame>
 Multivector<Scalar, Frame, 1>::Multivector(R3Element<Scalar> const& coordinates)
     : coordinates_(coordinates) {}
 
 template<typename Scalar, typename Frame>
-Multivector<Scalar, Frame, 2>::Multivector() {}
-
-template<typename Scalar, typename Frame>
 Multivector<Scalar, Frame, 2>::Multivector(R3Element<Scalar> const& coordinates)
     : coordinates_(coordinates) {}
-
-template<typename Scalar, typename Frame>
-Multivector<Scalar, Frame, 3>::Multivector() {}
 
 template<typename Scalar, typename Frame>
 Multivector<Scalar, Frame, 3>::Multivector(Scalar const& coordinates)
@@ -123,22 +114,28 @@ void Multivector<Scalar, Frame, 3>::WriteToMessage(
 }
 
 template<typename Scalar, typename Frame>
+template<typename, typename>
 Multivector<Scalar, Frame, 1> Multivector<Scalar, Frame, 1>::ReadFromMessage(
     serialization::Multivector const& message) {
+  Frame::ReadFromMessage(message.frame());
   CHECK(message.has_vector());
   return Multivector(R3Element<Scalar>::ReadFromMessage(message.vector()));
 }
 
 template<typename Scalar, typename Frame>
+template<typename, typename>
 Multivector<Scalar, Frame, 2> Multivector<Scalar, Frame, 2>::ReadFromMessage(
     serialization::Multivector const& message) {
+  Frame::ReadFromMessage(message.frame());
   CHECK(message.has_bivector());
   return Multivector(R3Element<Scalar>::ReadFromMessage(message.bivector()));
 }
 
 template<typename Scalar, typename Frame>
+template<typename, typename>
 Multivector<Scalar, Frame, 3> Multivector<Scalar, Frame, 3>::ReadFromMessage(
     serialization::Multivector const& message) {
+  Frame::ReadFromMessage(message.frame());
   CHECK(message.has_trivector());
   return Multivector(Scalar::ReadFromMessage(message.trivector()));
 }
@@ -265,9 +262,7 @@ Rotation<Frame, Frame> Exp(Bivector<Angle, Frame> const& exponent) {
   }
 }
 
-// Implementation from W. Kahan, 2006, How Futile are Mindless Assessments of
-// Roundoff in Floating-Point Computation?, §12 "Mangled Angles", p. 47.
-// https://www.cs.berkeley.edu/~wkahan/Mindless.pdf
+// Implementation from [Kah06], §12 "Mangled Angles", p. 47.
 template<typename LScalar, typename RScalar, typename Frame>
 Angle AngleBetween(Vector<LScalar, Frame> const& v,
                    Vector<RScalar, Frame> const& w) {

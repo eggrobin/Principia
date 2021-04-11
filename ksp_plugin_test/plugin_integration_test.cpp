@@ -16,6 +16,8 @@
 #include "integrators/embedded_explicit_runge_kutta_nyström_integrator.hpp"
 #include "integrators/methods.hpp"
 #include "physics/massive_body.hpp"
+#include "quantities/astronomy.hpp"
+#include "testing_utilities/approximate_quantity.hpp"
 #include "testing_utilities/is_near.hpp"
 #include "testing_utilities/numerics.hpp"
 #include "testing_utilities/solar_system_factory.hpp"
@@ -24,12 +26,13 @@ namespace principia {
 namespace ksp_plugin {
 namespace internal_plugin {
 
-using astronomy::ICRFJ2000Equator;
+using astronomy::ICRS;
 using astronomy::ParseTT;
 using base::make_not_null_unique;
 using geometry::AffineMap;
 using geometry::Bivector;
 using geometry::Identity;
+using geometry::OddPermutation;
 using geometry::Permutation;
 using integrators::EmbeddedExplicitRungeKuttaNyströmIntegrator;
 using integrators::methods::DormandالمكاوىPrince1986RKN434FM;
@@ -45,9 +48,9 @@ using quantities::Length;
 using quantities::NaN;
 using quantities::Pow;
 using quantities::Sin;
-using quantities::SIUnit;
 using quantities::Speed;
 using quantities::Sqrt;
+using quantities::astronomy::AstronomicalUnit;
 using quantities::si::Day;
 using quantities::si::Degree;
 using quantities::si::Hour;
@@ -55,11 +58,11 @@ using quantities::si::Kilo;
 using quantities::si::Kilogram;
 using quantities::si::Minute;
 using quantities::si::Radian;
-using quantities::si::AstronomicalUnit;
 using testing_utilities::AbsoluteError;
 using testing_utilities::IsNear;
 using testing_utilities::RelativeError;
 using testing_utilities::SolarSystemFactory;
+using testing_utilities::operator""_⑴;
 using ::testing::Eq;
 using ::testing::Ge;
 using ::testing::Gt;
@@ -78,11 +81,7 @@ std::string const vessel_name = "NCC-1701-D";
 class PluginIntegrationTest : public testing::Test {
  protected:
   PluginIntegrationTest()
-      : icrf_to_barycentric_positions_(ICRFJ2000Equator::origin,
-                                       Barycentric::origin,
-                                       ircf_to_barycentric_linear_),
-        looking_glass_(Permutation<ICRFJ2000Equator, AliceSun>::XZY),
-        solar_system_(
+      : solar_system_(
             SolarSystemFactory::AtСпутник1Launch(
                 SolarSystemFactory::Accuracy::MinorAndMajorBodies)),
         initial_time_("JD2451545.0625"),
@@ -109,12 +108,6 @@ class PluginIntegrationTest : public testing::Test {
                  satellite_initial_displacement_.Norm()) * unit_tangent;
   }
 
-  DegreesOfFreedom<Barycentric> ICRFToBarycentric(
-      DegreesOfFreedom<ICRFJ2000Equator> const& degrees_of_freedom) {
-    return {icrf_to_barycentric_positions_(degrees_of_freedom.position()),
-            ircf_to_barycentric_linear_(degrees_of_freedom.velocity())};
-  }
-
   void InsertAllSolarSystemBodies() {
     for (int index = SolarSystemFactory::Sun;
          index <= SolarSystemFactory::LastBody;
@@ -133,13 +126,7 @@ class PluginIntegrationTest : public testing::Test {
     }
   }
 
-  Identity<ICRFJ2000Equator, Barycentric> ircf_to_barycentric_linear_;
-  AffineMap<ICRFJ2000Equator,
-            Barycentric,
-            Length,
-            Identity> icrf_to_barycentric_positions_;
-  Permutation<ICRFJ2000Equator, AliceSun> looking_glass_;
-  not_null<std::unique_ptr<SolarSystem<ICRFJ2000Equator>>> solar_system_;
+  not_null<std::unique_ptr<SolarSystem<ICRS>>> solar_system_;
   std::string initial_time_;
   Angle planetarium_rotation_;
 
@@ -214,7 +201,7 @@ TEST_F(PluginIntegrationTest, BodyCentredNonrotatingNavigationIntegration) {
   Length perigee = std::numeric_limits<double>::infinity() * Metre;
   Length apogee = -std::numeric_limits<double>::infinity() * Metre;
   Permutation<AliceSun, World> const alice_sun_to_world =
-      Permutation<AliceSun, World>(Permutation<AliceSun, World>::XZY);
+      Permutation<AliceSun, World>(OddPermutation::XZY);
   Time const δt_long = 10 * Minute;
 #if defined(_DEBUG)
   Time const δt_short = 1 * Minute;
@@ -259,18 +246,16 @@ TEST_F(PluginIntegrationTest, BodyCentredNonrotatingNavigationIntegration) {
     auto const rendered_trajectory =
         plugin_->renderer().RenderBarycentricTrajectoryInWorld(
             plugin_->CurrentTime(),
-            psychohistory.Begin(),
-            psychohistory.End(),
+            psychohistory.begin(),
+            psychohistory.end(),
             sun_world_position,
             plugin_->PlanetariumRotation());
     Position<World> const earth_world_position =
         sun_world_position + alice_sun_to_world(plugin_->CelestialFromParent(
                                  SolarSystemFactory::Earth).displacement());
-    for (auto it = rendered_trajectory->Begin();
-         it != rendered_trajectory->End();
-         ++it) {
+    for (auto const& [time, degrees_of_freedom] : *rendered_trajectory) {
       Length const distance =
-          (it.degrees_of_freedom().position() - earth_world_position).Norm();
+          (degrees_of_freedom.position() - earth_world_position).Norm();
       perigee = std::min(perigee, distance);
       apogee = std::max(apogee, distance);
     }
@@ -312,7 +297,7 @@ TEST_F(PluginIntegrationTest, BarycentricRotatingNavigationIntegration) {
       plugin_->NewBarycentricRotatingNavigationFrame(SolarSystemFactory::Earth,
                                                      SolarSystemFactory::Moon));
   Permutation<AliceSun, World> const alice_sun_to_world =
-      Permutation<AliceSun, World>(Permutation<AliceSun, World>::XZY);
+      Permutation<AliceSun, World>(OddPermutation::XZY);
   Time const δt_long = 1 * Hour;
 #if defined(_DEBUG)
   Time const duration = 12 * Hour;
@@ -369,8 +354,8 @@ TEST_F(PluginIntegrationTest, BarycentricRotatingNavigationIntegration) {
     auto const rendered_trajectory =
         plugin_->renderer().RenderBarycentricTrajectoryInWorld(
             plugin_->CurrentTime(),
-            psychohistory.Begin(),
-            psychohistory.End(),
+            psychohistory.begin(),
+            psychohistory.end(),
             sun_world_position,
             plugin_->PlanetariumRotation());
     Position<World> const earth_world_position =
@@ -385,10 +370,8 @@ TEST_F(PluginIntegrationTest, BarycentricRotatingNavigationIntegration) {
                 .displacement());
     Length const earth_moon =
         (moon_world_position - earth_world_position).Norm();
-    for (auto it = rendered_trajectory->Begin();
-         it != rendered_trajectory->End();
-         ++it) {
-      Position<World> const position = it.degrees_of_freedom().position();
+    for (auto const& [time, degrees_of_freedom] : *rendered_trajectory) {
+      Position<World> const position = degrees_of_freedom.position();
       Length const satellite_earth = (position - earth_world_position).Norm();
       Length const satellite_moon = (position - moon_world_position).Norm();
       EXPECT_THAT(RelativeError(earth_moon, satellite_earth), Lt(0.0907));
@@ -398,25 +381,25 @@ TEST_F(PluginIntegrationTest, BarycentricRotatingNavigationIntegration) {
   // Check that there are no spikes in the rendered trajectory, i.e., that three
   // consecutive points form a sufficiently flat triangle.  This tests issue
   // #256.
-  auto it0 = rendered_trajectory->Begin();
-  CHECK(it0 != rendered_trajectory->End());
+  auto it0 = rendered_trajectory->begin();
+  CHECK(it0 != rendered_trajectory->end());
   auto it1 = it0;
   ++it1;
-  CHECK(it1 != rendered_trajectory->End());
+  CHECK(it1 != rendered_trajectory->end());
   auto it2 = it1;
   ++it2;
-  while (it2 != rendered_trajectory->End()) {
-    EXPECT_THAT((it0.degrees_of_freedom().position() -
-                 it2.degrees_of_freedom().position())
+  while (it2 != rendered_trajectory->end()) {
+    EXPECT_THAT((it0->degrees_of_freedom.position() -
+                 it2->degrees_of_freedom.position())
                     .Norm(),
-                Gt(((it0.degrees_of_freedom().position() -
-                     it1.degrees_of_freedom().position())
+                Gt(((it0->degrees_of_freedom.position() -
+                     it1->degrees_of_freedom.position())
                         .Norm() +
-                    (it1.degrees_of_freedom().position() -
-                     it2.degrees_of_freedom().position())
+                    (it1->degrees_of_freedom.position() -
+                     it2->degrees_of_freedom.position())
                         .Norm()) /
                    1.5))
-        << it0.time();
+        << it0->time;
     ++it0;
     ++it1;
     ++it2;
@@ -720,24 +703,31 @@ TEST_F(PluginIntegrationTest, Prediction) {
       /*max_steps=*/14,
       /*length_integration_tolerance=*/1 * Milli(Metre),
       /*speed_integration_tolerance=*/1 * Milli(Metre) / Second);
-  plugin.SetPredictionAdaptiveStepParameters(adaptive_step_parameters);
+  plugin.SetPredictionAdaptiveStepParameters(vessel_guid,
+                                             adaptive_step_parameters);
   plugin.AdvanceTime(Instant() + 1e-10 * Second, 0 * Radian);
-  plugin.UpdatePrediction(vessel_guid);
-  auto const& prediction =
-      plugin.GetVessel(vessel_guid)->prediction();
+
+  // Polling for the integration to happen.
+  do {
+    plugin.UpdatePrediction({vessel_guid});
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(100ms);
+  } while (plugin.GetVessel(vessel_guid)->prediction().Size() != 15);
+
+  auto const& prediction = plugin.GetVessel(vessel_guid)->prediction();
   auto const rendered_prediction =
       plugin.renderer().RenderBarycentricTrajectoryInWorld(
           plugin.CurrentTime(),
           prediction.Fork(),
-          prediction.End(),
+          prediction.end(),
           World::origin,
           plugin.PlanetariumRotation());
   EXPECT_EQ(15, rendered_prediction->Size());
   int index = 0;
-  for (auto it = rendered_prediction->Begin();
-       it != rendered_prediction->End();
+  for (auto it = rendered_prediction->begin();
+       it != rendered_prediction->end();
        ++it, ++index) {
-    auto const& position = it.degrees_of_freedom().position();
+    auto const& position = it->degrees_of_freedom.position();
     EXPECT_THAT(AbsoluteError((position - World::origin).Norm(), 1 * Metre),
                 Lt(0.5 * Milli(Metre)));
     if (index >= 5) {
@@ -745,11 +735,11 @@ TEST_F(PluginIntegrationTest, Prediction) {
                   Gt(0.1 * Milli(Metre)));
     }
   }
-  EXPECT_THAT(
-      AbsoluteError(rendered_prediction->last().degrees_of_freedom().position(),
-                    Displacement<World>({1 * Metre, 0 * Metre, 0 * Metre}) +
-                        World::origin),
-      IsNear(29 * Milli(Metre), 1.05));
+  EXPECT_THAT(AbsoluteError(
+                  rendered_prediction->back().degrees_of_freedom.position(),
+                  Displacement<World>({1 * Metre, 0 * Metre, 0 * Metre}) +
+                      World::origin),
+              IsNear(29_⑴ * Milli(Metre)));
 }
 
 }  // namespace internal_plugin

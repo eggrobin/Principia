@@ -1,6 +1,8 @@
 
 #include "ksp_plugin/interface.hpp"
 
+#include <algorithm>
+
 #include "geometry/affine_map.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
@@ -65,7 +67,7 @@ RP2Lines<Length, Camera> PlotMethodN(
 
 }  // namespace
 
-Planetarium* principia__PlanetariumCreate(
+Planetarium* __cdecl principia__PlanetariumCreate(
     Plugin const* const plugin,
     XYZ const sun_world_position,
     XYZ const xyz_opengl_camera_x_in_world,
@@ -99,24 +101,18 @@ Planetarium* principia__PlanetariumCreate(
   Position<World> const camera_position_in_world =
       FromXYZ<Position<World>>(xyz_camera_position_in_world);
 
-  RigidTransformation<Camera, World> const
-      camera_to_world_affine_map(Camera::origin,
-                                 camera_position_in_world,
-                                 camera_to_world_rotation.Forget());
+  RigidTransformation<Camera, World> const camera_to_world_affine_map(
+      Camera::origin,
+      camera_position_in_world,
+      camera_to_world_rotation.Forget<OrthogonalMap>());
   RigidTransformation<World, Navigation> const
       world_to_plotting_affine_map =
           renderer.WorldToPlotting(plugin->CurrentTime(),
                                    FromXYZ<Position<World>>(sun_world_position),
                                    plugin->PlanetariumRotation());
 
-  // The radius multiplier is appropriate for Olympus Mons, the largest mountain
-  // in the solar system.
-  // The angular resolution of the human eye is from
-  // https://en.wikipedia.org/wiki/Visual_acuity#Physiology
-  constexpr Length const olympus_mons_peak = 21'230 * Metre;
-  constexpr Length const mars_mean_radius = 3389.50 * Kilo(Metre);
   Planetarium::Parameters parameters(
-      /*sphere_radius_multiplier=*/1.0 + olympus_mons_peak / mars_mean_radius,
+      /*sphere_radius_multiplier=*/1.0,
       /*angular_resolution=*/0.4 * ArcMinute,
       field_of_view * Radian);
   Perspective<Navigation, Camera> perspective(
@@ -126,7 +122,7 @@ Planetarium* principia__PlanetariumCreate(
   return m.Return(plugin->NewPlanetarium(parameters, perspective).release());
 }
 
-void principia__PlanetariumDelete(
+void __cdecl principia__PlanetariumDelete(
     Planetarium const** const planetarium) {
   journal::Method<journal::PlanetariumDelete> m({planetarium}, {planetarium});
   CHECK_NOTNULL(planetarium);
@@ -134,7 +130,7 @@ void principia__PlanetariumDelete(
   return m.Return();
 }
 
-Iterator* principia__PlanetariumPlotFlightPlanSegment(
+Iterator* __cdecl principia__PlanetariumPlotFlightPlanSegment(
     Planetarium const* const planetarium,
     Plugin const* const plugin,
     int const method,
@@ -159,7 +155,7 @@ Iterator* principia__PlanetariumPlotFlightPlanSegment(
   // start and we fail.
   if (index % 2 == 0 ||
       segment_begin == segment_end ||
-      segment_begin.time() >= plugin->renderer().GetPlottingFrame()->t_min()) {
+      segment_begin->time >= plugin->renderer().GetPlottingFrame()->t_min()) {
      rp2_lines = PlotMethodN(*planetarium,
                              method,
                              segment_begin,
@@ -170,7 +166,7 @@ Iterator* principia__PlanetariumPlotFlightPlanSegment(
   return m.Return(new TypedIterator<RP2Lines<Length, Camera>>(rp2_lines));
 }
 
-Iterator* principia__PlanetariumPlotPrediction(
+Iterator* __cdecl principia__PlanetariumPlotPrediction(
     Planetarium const* const planetarium,
     Plugin const* const plugin,
     int const method,
@@ -185,21 +181,20 @@ Iterator* principia__PlanetariumPlotPrediction(
   auto const rp2_lines = PlotMethodN(*planetarium,
                                      method,
                                      prediction.Fork(),
-                                     prediction.End(),
+                                     prediction.end(),
                                      plugin->CurrentTime(),
                                      /*reverse=*/false);
   return m.Return(new TypedIterator<RP2Lines<Length, Camera>>(rp2_lines));
 }
 
-Iterator* principia__PlanetariumPlotPsychohistory(
+Iterator* __cdecl principia__PlanetariumPlotPsychohistory(
     Planetarium const* const planetarium,
     Plugin const* const plugin,
     int const method,
-    char const* const vessel_guid) {
-  journal::Method<journal::PlanetariumPlotPsychohistory> m({planetarium,
-                                                            plugin,
-                                                            method,
-                                                            vessel_guid});
+    char const* const vessel_guid,
+    double const max_history_length) {
+  journal::Method<journal::PlanetariumPlotPsychohistory> m(
+      {planetarium, plugin, method, vessel_guid, max_history_length});
   CHECK_NOTNULL(plugin);
   CHECK_NOTNULL(planetarium);
 
@@ -209,12 +204,90 @@ Iterator* principia__PlanetariumPlotPsychohistory(
     return m.Return(new TypedIterator<RP2Lines<Length, Camera>>({}));
   } else {
     auto const& psychohistory = plugin->GetVessel(vessel_guid)->psychohistory();
-    auto const rp2_lines = PlotMethodN(*planetarium,
-                                       method,
-                                       psychohistory.Begin(),
-                                       psychohistory.End(),
-                                       plugin->CurrentTime(),
-                                       /*reverse=*/true);
+    auto const rp2_lines =
+        PlotMethodN(*planetarium,
+                    method,
+                    psychohistory.LowerBound(plugin->CurrentTime() -
+                                             max_history_length * Second),
+                    psychohistory.end(),
+                    plugin->CurrentTime(),
+                    /*reverse=*/true);
+    return m.Return(new TypedIterator<RP2Lines<Length, Camera>>(rp2_lines));
+  }
+}
+
+// Returns an iterator for the rendered past trajectory of the celestial with
+// the given index; the trajectory goes back |max_history_length| seconds before
+// the present time (or to the earliest time available if the relevant |t_min|
+// is more recent).
+Iterator* __cdecl principia__PlanetariumPlotCelestialTrajectoryForPsychohistory(
+    Planetarium const* const planetarium,
+    Plugin const* const plugin,
+    int const celestial_index,
+    char const* const vessel_guid,
+    double const max_history_length) {
+  journal::Method<journal::PlanetariumPlotCelestialTrajectoryForPsychohistory>
+      m({planetarium,
+         plugin,
+         celestial_index,
+         vessel_guid,
+         max_history_length});
+  CHECK_NOTNULL(plugin);
+  CHECK_NOTNULL(planetarium);
+
+  // Do not plot the past when there is a target vessel as it is misleading.
+  if (plugin->renderer().HasTargetVessel()) {
+    return m.Return(new TypedIterator<RP2Lines<Length, Camera>>({}));
+  } else {
+    auto const& celestial_trajectory =
+        plugin->GetCelestial(celestial_index).trajectory();
+    Instant const first_time = std::max(
+        plugin->CurrentTime() - max_history_length * Second,
+            celestial_trajectory.t_min());
+    auto const rp2_lines =
+        planetarium->PlotMethod2(celestial_trajectory,
+                                 first_time,
+                                 /*last_time=*/plugin->CurrentTime(),
+                                 /*now=*/plugin->CurrentTime(),
+                                 /*reverse=*/true);
+    return m.Return(new TypedIterator<RP2Lines<Length, Camera>>(rp2_lines));
+  }
+}
+
+// Returns an iterator for the rendered future trajectory of the celestial with
+// the given index; the trajectory goes as far as the furthest of the final time
+// of the prediction or that of the flight plan.
+Iterator* __cdecl
+principia__PlanetariumPlotCelestialTrajectoryForPredictionOrFlightPlan(
+    Planetarium const* const planetarium,
+    Plugin const* const plugin,
+    int const celestial_index,
+    char const* const vessel_guid) {
+  journal::Method<
+      journal::PlanetariumPlotCelestialTrajectoryForPredictionOrFlightPlan>
+      m({planetarium, plugin, celestial_index, vessel_guid});
+  CHECK_NOTNULL(plugin);
+  CHECK_NOTNULL(planetarium);
+
+  // Do not plot the past when there is a target vessel as it is misleading.
+  if (plugin->renderer().HasTargetVessel()) {
+    return m.Return(new TypedIterator<RP2Lines<Length, Camera>>({}));
+  } else {
+    auto const& vessel = *plugin->GetVessel(vessel_guid);
+    Instant const prediction_final_time = vessel.prediction().t_max();
+    Instant const final_time =
+        vessel.has_flight_plan()
+            ? std::max(vessel.flight_plan().actual_final_time(),
+                       prediction_final_time)
+            : prediction_final_time;
+    auto const& celestial_trajectory =
+        plugin->GetCelestial(celestial_index).trajectory();
+    auto const rp2_lines =
+        planetarium->PlotMethod2(celestial_trajectory,
+                                 /*first_time=*/plugin->CurrentTime(),
+                                 /*last_time=*/final_time,
+                                 /*now=*/plugin->CurrentTime(),
+                                 /*reverse=*/false);
     return m.Return(new TypedIterator<RP2Lines<Length, Camera>>(rp2_lines));
   }
 }

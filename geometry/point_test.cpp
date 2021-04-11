@@ -3,8 +3,9 @@
 
 #include <vector>
 
-#include "astronomy/epoch.hpp"
+#include "astronomy/time_scales.hpp"
 #include "geometry/frame.hpp"
+#include "geometry/grassmann.hpp"
 #include "gmock/gmock.h"
 #include "quantities/quantities.hpp"
 #include "quantities/named_quantities.hpp"
@@ -16,8 +17,8 @@ namespace principia {
 namespace geometry {
 
 using astronomy::J2000;
-using astronomy::JulianDate;
-using astronomy::ModifiedJulianDate;
+using astronomy::operator""_TT;
+using quantities::Length;
 using quantities::Time;
 using quantities::Volume;
 using quantities::si::Day;
@@ -30,9 +31,11 @@ using testing_utilities::AlmostEquals;
 class PointTest : public testing::Test {
  protected:
   using World = Frame<serialization::Frame::TestTag,
-                      serialization::Frame::TEST, true>;
+                      Inertial,
+                      Handedness::Right,
+                      serialization::Frame::TEST>;
 
-  Instant const mjd0 = ModifiedJulianDate(0);
+  Instant const mjd0 = "MJD0"_TT;
 };
 
 using PointDeathTest = PointTest;
@@ -45,9 +48,9 @@ TEST_F(PointTest, Comparisons) {
 }
 
 TEST_F(PointTest, PlusMinus) {
-  EXPECT_THAT(ModifiedJulianDate(0) - JulianDate(0), Eq(2400000.5 * Day));
-  EXPECT_THAT(JulianDate(2451545.0), Eq(J2000));
-  EXPECT_THAT(ModifiedJulianDate(0) - 2400000.5 * Day, Eq(JulianDate(0)));
+  EXPECT_THAT("MJD0"_TT- "JD0"_TT, Eq(2400000.5 * Day));
+  EXPECT_THAT("JD2451545.0"_TT, Eq(J2000));
+  EXPECT_THAT("MJD0"_TT - 2400000.5 * Day, Eq("JD0"_TT));
 }
 
 TEST_F(PointTest, AssignmentOperators) {
@@ -64,7 +67,7 @@ TEST_F(PointTest, AssignmentOperators) {
 }
 
 TEST_F(PointTest, Ordering) {
-  // Check that is_quantity works for double.
+  // Check that is_quantity_v works for double.
   Point<double> zero;
   Point<double> d1 = zero + 1.0;
   Point<double> d2 = zero -3.0;
@@ -82,13 +85,24 @@ TEST_F(PointTest, Ordering) {
   EXPECT_TRUE(t1 >= t1);
 }
 
+// Uncomment to check that non-serializable frames are detected at compile-time.
+#if 0
+TEST_F(PointTest, SerializationCompilationError) {
+  using F = Frame<enum class FrameTag>;
+  Point<Vector<Length, F>> p;
+  serialization::Point message;
+  p.WriteToMessage(&message);
+}
+#endif
+
 TEST_F(PointDeathTest, SerializationError) {
   EXPECT_DEATH({
     serialization::Point message;
     Instant const t0;
     Instant const t1 = t0 + 10 * Second;
     t1.WriteToMessage(&message);
-    Position<World> const d2 = Position<World>::ReadFromMessage(message);
+    [[maybe_unused]] Position<World> const d2 =
+        Position<World>::ReadFromMessage(message);
   }, "has_multivector");
   EXPECT_DEATH({
     serialization::Point message;
@@ -96,7 +110,8 @@ TEST_F(PointDeathTest, SerializationError) {
     Position<World> const d1 = origin +
         Displacement<World>({-1 * Metre, 2 * Metre, 3 * Metre});
     d1.WriteToMessage(&message);
-    Instant const t2 = Instant::ReadFromMessage(message);
+    [[maybe_unused]] Instant const t2 =
+        Instant::ReadFromMessage(message);
   }, "has_scalar");
 }
 

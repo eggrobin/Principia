@@ -23,10 +23,41 @@ struct EmbeddedExplicitRungeKuttaNyström : not_constructible {
   // static constexpr serialization::AdaptiveStepSizeIntegrator::Kind kind = ..;
   // static constexpr FixedVector<double, stages> c = ...;
   // static constexpr FixedStrictlyLowerTriangularMatrix<double, stages> a = ..;
-  // static constexpr FixedVector<double, stages> b_hat = ...;
-  // static constexpr FixedVector<double, stages> b_prime_hat = ...;
+  // static constexpr FixedVector<double, stages> b̂ = ...;
+  // static constexpr FixedVector<double, stages> b̂ʹ = ...;
   // static constexpr FixedVector<double, stages> b = ...;
-  // static constexpr FixedVector<double, stages> b_prime = ...;
+  // static constexpr FixedVector<double, stages> bʹ = ...;
+};
+
+// Every RKNG method is an RKN method by simply ignoring aʹ, hence the
+// inheritance.  Every RK method can be turned into an RKNG method, however this
+// requires a computation, so it is done explicitly.
+struct EmbeddedExplicitGeneralizedRungeKuttaNyström
+    : EmbeddedExplicitRungeKuttaNyström {
+  // static constexpr int higher_order = ...;
+  // static constexpr int lower_order = ...;
+  // static constexpr int stages = ...;
+  // static constexpr bool first_same_as_last = ...;
+  // static constexpr serialization::AdaptiveStepSizeIntegrator::Kind kind = ..;
+  // static constexpr FixedVector<double, stages> c = ...;
+  // static constexpr FixedStrictlyLowerTriangularMatrix<double, stages> a = ..;
+  // static constexpr FixedStrictlyLowerTriangularMatrix<double, stages> aʹ = .;
+  // static constexpr FixedVector<double, stages> b̂ = ...;
+  // static constexpr FixedVector<double, stages> b̂ʹ = ...;
+  // static constexpr FixedVector<double, stages> b = ...;
+  // static constexpr FixedVector<double, stages> bʹ = ...;
+};
+
+struct EmbeddedExplicitRungeKutta : not_constructible {
+  // static constexpr int higher_order = ...;
+  // static constexpr int lower_order = ...;
+  // static constexpr int stages = ...;
+  // static constexpr bool first_same_as_last = ...;
+  // static constexpr serialization::AdaptiveStepSizeIntegrator::Kind kind = ..;
+  // static constexpr FixedVector<double, stages> c = ...;
+  // static constexpr FixedStrictlyLowerTriangularMatrix<double, stages> a = ..;
+  // static constexpr FixedVector<double, stages> b̂ = ...;
+  // static constexpr FixedVector<double, stages> b = ...;
 };
 
 struct SymmetricLinearMultistep : not_constructible {
@@ -135,9 +166,7 @@ struct AsSymplecticRungeKuttaNyström {
 };
 
 
-// The following methods have coefficients from Blanes and Moan (2002),
-// Practical symplectic partitioned Runge–Kutta and Runge–Kutta–Nyström methods,
-// http://personales.upv.es/serblaza/2002JCAM.pdf.
+// The following methods have coefficients from [BM02].
 struct BlanesMoan2002S6 : SymplecticPartitionedRungeKutta {
   static constexpr int order = 4;
   static constexpr bool time_reversible = true;
@@ -288,12 +317,10 @@ struct BlanesMoan2002SRKN14A : SymplecticRungeKuttaNyström {
                                                    0.091719152624461650}}};
 };
 
-// Coefficients from Forest and Ruth (1990),
-// Fourth-order symplectic integration, equation 4.8.
+// Coefficients from [FR90], equation 4.8.
 // http://zwe.web.cern.ch/zwe/CAS/biblio/ruth-forest.pdf.
-// This scheme was independently discovered by Candy and Rozmus (1991),
-// A Symplectic Integration Algorithm for Separable Hamiltonian Functions
-// (submitted earlier and published later than the Forest and Ruth paper).
+// This scheme was independently discovered by [CR91] (submitted earlier and
+// published later than [FR90]).
 struct CandyRozmus1991ForestRuth1990 : SymplecticPartitionedRungeKutta {
   static constexpr int order = 4;
   static constexpr bool time_reversible = true;
@@ -313,8 +340,37 @@ struct CandyRozmus1991ForestRuth1990 : SymplecticPartitionedRungeKutta {
                                                    +0.6756035959798288170}}};
 };
 
-// Coefficients from Dormand, المكاوى (El-Mikkawy), and Prince (1986),
-// Families of Runge-Kutta-Nyström formulae, table 3 (the RK4(3)4FM).
+// Coefficients from [Fin87].
+struct Fine1987RKNG34 : EmbeddedExplicitGeneralizedRungeKuttaNyström {
+  static constexpr int higher_order = 4;
+  static constexpr int lower_order = 3;
+  static constexpr int stages = 5;
+  static constexpr bool first_same_as_last = false;
+  static constexpr serialization::AdaptiveStepSizeIntegrator::Kind kind =
+      serialization::AdaptiveStepSizeIntegrator::FINE_1987_RKNG_34;
+  static constexpr FixedVector<double, stages> c{{
+      { 0           ,    2 /   9.0,   1 /     3.0,  3 /     4.0,  1.0}}};
+  static constexpr FixedStrictlyLowerTriangularMatrix<double, stages> a{{
+      {  2 /    81.0,
+         1 /    36.0,    1 /  36.0,
+         9 /   128.0,    0        ,  27 /   128.0,
+        11 /    60.0,   -3 /  20.0,   9 /    25.0,  8 /    75.0}}};
+  static constexpr FixedStrictlyLowerTriangularMatrix<double, stages> aʹ{{
+      {  2 /     9.0,
+         1 /    12.0,    1 /   4.0,
+        69 /   128.0, -234 / 128.0, 135 /    64.0,
+       -17 /    12.0,   27 /   4.0, -27 /     5.0, 16 /    15.0}}};
+  static constexpr FixedVector<double, stages> b̂{{
+      { 19 /   180.0,    0        ,  63 /   200.0, 16 /   225.0,   1 / 120.0}}};
+  static constexpr FixedVector<double, stages> b̂ʹ{{
+      {  1 /     9.0,    0        ,   9 /    20.0, 16 /    45.0,   1 /  12.0}}};
+  static constexpr auto b = b̂ - FixedVector<double, stages>{{
+      { 25 / 1'116.0,    0        , -63 / 1'240.0, 64 / 1'395.0, -13 / 744.0}}};
+  static constexpr auto bʹ = b̂ʹ - FixedVector<double, stages>{{
+      {  2 /   125.0,    0        , -27 /   625.0, 32 /   625.0,  -3 / 125.0}}};
+};
+
+// Coefficients from [DEP87a], table 3 (the RK4(3)4FM).
 // Minimizes the 4th order truncation error.
 struct DormandالمكاوىPrince1986RKN434FM :
     EmbeddedExplicitRungeKuttaNyström {
@@ -331,19 +387,17 @@ struct DormandالمكاوىPrince1986RKN434FM :
       { 1.0 /   32.0,
         7.0 / 1000.0, 119.0 / 500.0,
         1.0 /   14.0,   8.0 /  27.0,  25.0 / 189.0}}};
-  static constexpr FixedVector<double, stages> b_hat{{
+  static constexpr FixedVector<double, stages> b̂{{
       { 1.0 /   14.0,   8.0 /  27.0,  25.0 / 189.0,  0.0}}};
-  static constexpr FixedVector<double, stages> b_prime_hat{{
+  static constexpr FixedVector<double, stages> b̂ʹ{{
       { 1.0 /   14.0,  32.0 /  81.0, 250.0 / 567.0,  5.0 / 54.0}}};
   static constexpr FixedVector<double, stages> b{{
       {-7.0 /  150.0,  67.0 / 150.0,   3.0 /  20.0, -1.0 / 20.0}}};
-  static constexpr FixedVector<double, stages> b_prime{{
+  static constexpr FixedVector<double, stages> bʹ{{
       {13.0 /   21.0, -20.0 /  27.0, 275.0 / 189.0, -1.0 /  3.0}}};
 };
 
-// The following methods have coefficients from McLachlan (1995),
-// On the numerical integration of ordinary differential equations by symmetric
-// composition methods, http://www.massey.ac.nz/~rmclachl/sisc95.pdf.
+// The following methods have coefficients from [McL95],
 struct McLachlan1995S2 : SymplecticPartitionedRungeKutta {
   static constexpr int order = 2;
   static constexpr bool time_reversible = true;
@@ -566,9 +620,7 @@ struct McLachlan1995SS17 : SymplecticPartitionedRungeKutta {
                                                    +0.064432989690721649485}}};
 };
 
-// The following methods have coefficients from Robert I. McLachlan and Pau
-// Atela (1992), The accuracy of symplectic integrators, table 2.
-// http://eaton.math.rpi.edu/CSUMS/Papers/Symplectic/McLachlan_Atela_92.pdf.
+// The following methods have coefficients from [MA92], table 2.
 struct McLachlanAtela1992Order2Optimal : SymplecticPartitionedRungeKutta {
   static constexpr int order = 2;
   static constexpr bool time_reversible = false;
@@ -640,25 +692,12 @@ struct McLachlanAtela1992Order5Optimal : SymplecticRungeKuttaNyström {
                                                    -0.0589796254980311632}}};
 };
 
-// This integrator goes by many names, see Hairer, Lubich, and Wanner (2003),
-// Geometric numerical integration illustrated by the Störmer–Verlet method,
-// http://www.math.kit.edu/ianm3/lehre/geonumint2009s/media/gni_by_stoermer-verlet.pdf,
-// section 1.3 (Historical remarks).
-// Notably, it appears in Philosophiae Naturalis Principia Mathematica,
-// in section II (De inventione Virium centripetarum), in the proof of
-// theorem I.  See p. 37 of the first edition,
+// This integrator goes by many names, see [HLW03], section 1.3 (Historical
+// remarks).
+// Notably, it appears in [New87], in section II (De inventione Virium
+// centripetarum), in the proof of theorem I.  See p. 37 of the first edition,
 // https://cudl.lib.cam.ac.uk/view/PR-ADV-B-00039-00001/97.
-// It also appears in:
-// - Delambre (1790), De l'usage du calcul differentiel dans la
-//   construction des tables astronomiques, in Mémoires de l'Académie Royale des
-//   Sciences de Turin, vol. V, Mémoires présentés à l'Académie, p. 143-180.
-//   http://www.biodiversitylibrary.org/item/32318#page/698/mode/1up.
-// - Størmer (1907), Sur les trajectoires des corpuscules électrisés dans
-//   l'espace, avec application aux aurores boréales.
-//   https://hal.archives-ouvertes.fr/jpa-00242574/document.
-// - Verlet (1967) Computer "Experiments" on classical fluids. I.
-//   Thermodynamical properties of Lennard-Jones molecules.
-//   http://www.chemie.unibas.ch/~steinhauser/teaching/FS2014/MD-Simulation/Handout_12.pdf.
+// It also appears in [Del90], [Stö12] and [Ver67].
 struct NewtonDelambreStørmerVerletLeapfrog : SymplecticPartitionedRungeKutta {
   static constexpr int order = 2;
   static constexpr bool time_reversible = true;
@@ -672,9 +711,7 @@ struct NewtonDelambreStørmerVerletLeapfrog : SymplecticPartitionedRungeKutta {
   static constexpr FixedVector<double, stages> b{{{0.5, 0.5}}};
 };
 
-// Coefficients from Okunbor and Skeel (1994),
-// Canonical Runge-Kutta-Nyström methods of orders 5 and 6,
-// http://bionum.cs.purdue.edu/94OkSk.pdf.
+// Coefficients from [OS94].
 // NOTE(egg): The coefficients were actually copied from McLachlan (1995), they
 // seem to differ after a dozen significant figures or so.  Okunbor and Skeel
 // remark "we did not use HYBRJ1 to improve the accuracy of method coefficients
@@ -707,9 +744,7 @@ struct OkunborSkeel1994Order6Method13 : SymplecticRungeKuttaNyström {
                                                    0.00016600692650009894}}};
 };
 
-// The following methods are from Quinlan (1999),
-// Resonances and instabilities in symmetric multistep methods,
-// https://arxiv.org/abs/astro-ph/9901136.
+// The following methods are from [Qui99].
 struct Quinlan1999Order8A : SymmetricLinearMultistep {
   static constexpr int order = 8;
   static constexpr serialization::FixedStepSizeIntegrator::Kind kind =
@@ -731,10 +766,7 @@ struct Quinlan1999Order8B : SymmetricLinearMultistep {
   static constexpr double β_denominator = 120960.0;
 };
 
-// The following methods are from Quinlan and Tremaine (1990),
-// Symmetric multistep methods for the numerical integration of planetary
-// orbits,
-// http://adsabs.harvard.edu/full/1990AJ....100.1694Q.
+// The following methods are from [QT90].
 struct QuinlanTremaine1990Order8 : SymmetricLinearMultistep {
   static constexpr int order = 8;
   static constexpr serialization::FixedStepSizeIntegrator::Kind kind =
@@ -789,8 +821,7 @@ struct QuinlanTremaine1990Order14 : SymmetricLinearMultistep {
   static constexpr double β_denominator = 237758976000.0;
 };
 
-// Coefficients from Ruth (1983), A canonical integration technique,
-// https://accelconf.web.cern.ch/accelconf/p83/PDF/PAC1983_2669.PDF.
+// Coefficients from [Rut83].
 struct Ruth1983 : SymplecticPartitionedRungeKutta {
   static constexpr int order = 3;
   static constexpr bool time_reversible = false;
@@ -805,10 +836,8 @@ struct Ruth1983 : SymplecticPartitionedRungeKutta {
       {{7.0 / 24.0, 3.0 / 4.0, -1.0 / 24.0}}};
 };
 
-// Coefficients from 鈴木 (Suzuki, 1990), Fractal decomposition of exponential
-// operators with applications to many-body theories and Monte Carlo
-// simulations; see also the Japanese version,
-// 量子系のフラクタル経路積分法 と量子コヒーレンス,
+// Coefficients from [Suz90]; see also the Japanese version:
+// 鈴木 (1990), 量子系のフラクタル経路積分法 と量子コヒーレンス,
 // https://www.jstage.jst.go.jp/article/soken/82/3/82_KJ00004703731/_pdf.
 struct 鈴木1990 : SymplecticPartitionedRungeKutta {
   static constexpr int order = 4;
@@ -832,9 +861,7 @@ struct 鈴木1990 : SymplecticPartitionedRungeKutta {
                                                    +0.20724538589718786857}}};
 };
 
-// The following methods have coefficients from 吉田 (Yoshida, 1990),
-// Construction of higher order symplectic integrators
-// http://sixtrack.web.cern.ch/SixTrack/doc/yoshida00.pdf.
+// The following methods have coefficients from [Yos90].
 // NOTE(egg): The coefficients were derived from equations 5.4 through 5.17
 // rather than computed from the wᵢ given in tables 1 and 2.  The results were
 // then cross-checked against those obtained from the tables.

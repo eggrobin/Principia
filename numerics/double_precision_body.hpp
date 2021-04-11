@@ -21,7 +21,8 @@ using geometry::DoubleOrQuantityOrMultivectorSerializer;
 using quantities::Abs;
 using quantities::FusedMultiplyAdd;
 using quantities::Quantity;
-using quantities::SIUnit;
+using quantities::si::Radian;
+namespace si = quantities::si;
 
 // Assumes that |T| and |U| have a memory representation that is a sequence of
 // |double|s, and returns the conjunction of componentwise
@@ -82,7 +83,7 @@ DoublePrecision<T>& DoublePrecision<T>::operator+=(
 template<typename T>
 DoublePrecision<T>& DoublePrecision<T>::operator+=(
     Difference<T> const& right) {
-  *this = *this + right;
+  *this = *this + DoublePrecision(right);
   return *this;
 }
 
@@ -96,7 +97,7 @@ DoublePrecision<T>& DoublePrecision<T>::operator-=(
 template<typename T>
 DoublePrecision<T>& DoublePrecision<T>::operator-=(
     Difference<T> const& right) {
-  *this = *this - right;
+  *this = *this - DoublePrecision(right);
   return *this;
 }
 
@@ -130,7 +131,7 @@ template<typename T, typename U>
 DoublePrecision<Product<T, U>> Scale(T const & scale,
                                      DoublePrecision<U> const& right) {
 #ifdef _DEBUG
-  double const s = scale / quantities::SIUnit<T>();
+  double const s = scale / quantities::si::Unit<T>;
   if (s != 0.0) {
     int exponent;
     double const mantissa = std::frexp(s, &exponent);
@@ -158,8 +159,7 @@ DoublePrecision<Sum<T, U>> QuickTwoSum(T const& a, U const& b) {
   CHECK(ComponentwiseGreaterThanOrEqualOrZero(a, b))
       << "|" << DebugString(a) << "| < |" << DebugString(b) << "|";
 #endif
-  // Hida, Li and Bailey (2007), Library for Double-Double and Quad-Double
-  // Arithmetic.
+  // [HLB07].
   DoublePrecision<Sum<T, U>> result;
   auto& s = result.value;
   auto& e = result.error;
@@ -170,8 +170,7 @@ DoublePrecision<Sum<T, U>> QuickTwoSum(T const& a, U const& b) {
 
 template<typename T, typename U>
 DoublePrecision<Sum<T, U>> TwoSum(T const& a, U const& b) {
-  // Hida, Li and Bailey (2007), Library for Double-Double and Quad-Double
-  // Arithmetic.
+  // [HLB07].
   DoublePrecision<Sum<T, U>> result;
   auto& s = result.value;
   auto& e = result.error;
@@ -202,6 +201,15 @@ DoublePrecision<Difference<T, U>> TwoDifference(T const& a, U const& b) {
 template<typename T, typename U, typename>
 DoublePrecision<Difference<T, U>> TwoDifference(T const& a, U const& b) {
   return TwoSum(a, -b);
+}
+
+inline DoublePrecision<Angle> Mod2π(DoublePrecision<Angle> const& θ) {
+  static DoublePrecision<Angle> const two_π = []() {
+    return QuickTwoSum(0x1.921FB54442D18p2 * Radian,
+                       0x1.1A62633145C07p-52 * Radian);
+  }();
+  auto const θ_over_2π = θ / two_π;
+  return θ - two_π * DoublePrecision<double>(static_cast<int>(θ_over_2π.value));
 }
 
 template<typename T>
@@ -240,8 +248,7 @@ DoublePrecision<Difference<T>> operator-(DoublePrecision<T> const& left) {
 template<typename T, typename U>
 DoublePrecision<Sum<T, U>> operator+(DoublePrecision<T> const& left,
                                      DoublePrecision<U> const& right) {
-  // Linnainmaa (1981), Software for Doubled-Precision Floating-Point
-  // Computations, algorithm longadd.
+  // [Lin81], algorithm longadd.
   auto const sum = TwoSum(left.value, right.value);
   return QuickTwoSum(sum.value, (sum.error + left.error) + right.error);
 }
@@ -249,10 +256,32 @@ DoublePrecision<Sum<T, U>> operator+(DoublePrecision<T> const& left,
 template<typename T, typename U>
 DoublePrecision<Difference<T, U>> operator-(DoublePrecision<T> const& left,
                                             DoublePrecision<U> const& right) {
-  // Linnainmaa (1981), Software for Doubled-Precision Floating-Point
-  // Computations, algorithm longadd.
+  // [Lin81], algorithm longadd.
   auto const sum = TwoDifference(left.value, right.value);
   return QuickTwoSum(sum.value, (sum.error + left.error) - right.error);
+}
+
+template<typename T, typename U>
+DoublePrecision<Product<T, U>> operator*(DoublePrecision<T> const& left,
+                                         DoublePrecision<U> const& right) {
+  // [Lin81], algorithm longmul.
+  auto product = TwoProduct(left.value, right.value);
+  product.error +=
+      (left.value + left.error) * right.error + left.error * right.value;
+  return QuickTwoSum(product.value, product.error);
+}
+
+template<typename T, typename U>
+DoublePrecision<Quotient<T, U>> operator/(DoublePrecision<T> const& left,
+                                          DoublePrecision<U> const& right) {
+  // [Lin81], algorithm longdiv.
+  auto const z = left.value / right.value;
+  auto const product = TwoProduct(right.value, z);
+  auto const zz =
+      ((((left.value - product.value) - product.error) + left.error) -
+       z * right.error) /
+      (right.value + right.error);
+  return QuickTwoSum(z, zz);
 }
 
 template<typename T>

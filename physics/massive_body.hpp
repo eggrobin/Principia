@@ -21,21 +21,24 @@ using quantities::GravitationalParameter;
 using quantities::Length;
 using quantities::Mass;
 
-class PHYSICS_DLL MassiveBody : public Body {
+class MassiveBody : public Body {
  public:
   // We use the gravitational parameter μ = G M in order not to accumulate
   // unit roundoffs from repeated multiplications by G.  The parameter must not
   // be zero.
-  class PHYSICS_DLL Parameters final {
+  class Parameters final {
    public:
     // The constructors are implicit on purpose.
     Parameters(
         GravitationalParameter const& gravitational_parameter);  // NOLINT
-    Parameters(std::string const& name,
+    Parameters(std::string name,
                GravitationalParameter const& gravitational_parameter);
     Parameters(Mass const& mass);  // NOLINT(runtime/explicit)
-    Parameters(std::string const& name,
+    Parameters(std::string name,
                Mass const& mass);
+
+    // For pre-Διόφαντος compatibility.
+    GravitationalParameter const& gravitational_parameter() const;
 
    private:
     std::string const name_;
@@ -44,15 +47,17 @@ class PHYSICS_DLL MassiveBody : public Body {
     friend class MassiveBody;
   };
 
-  explicit MassiveBody(Parameters const& parameters);
+  explicit MassiveBody(Parameters parameters);
 
   // Returns the construction parameter.
   std::string const& name() const;
   GravitationalParameter const& gravitational_parameter() const;
   Mass const& mass() const;
 
-  // Returns zero.
+  // Return zero.
+  virtual Length min_radius() const;
   virtual Length mean_radius() const;
+  virtual Length max_radius() const;
 
   // Returns false.
   bool is_massless() const override;
@@ -87,8 +92,6 @@ using internal_massive_body::MassiveBody;
 }  // namespace physics
 }  // namespace principia
 
-#if !PHYSICS_DLL_IMPORT
 #include "physics/massive_body_body.hpp"
-#endif
 
 #endif  // PRINCIPIA_PHYSICS_MASSIVE_BODY_HPP_

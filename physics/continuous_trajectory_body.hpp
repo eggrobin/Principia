@@ -11,9 +11,9 @@
 #include <vector>
 
 #include "astronomy/epoch.hpp"
+#include "geometry/interval.hpp"
 #include "glog/stl_logging.h"
 #include "numerics/newhall.hpp"
-#include "numerics/polynomial_evaluators.hpp"
 #include "numerics/ulp_distance.hpp"
 #include "numerics/чебышёв_series.hpp"
 #include "quantities/si.hpp"
@@ -22,18 +22,23 @@ namespace principia {
 namespace physics {
 namespace internal_continuous_trajectory {
 
+using astronomy::InfiniteFuture;
+using base::dynamic_cast_not_null;
 using base::Error;
 using base::make_not_null_unique;
+using geometry::Interval;
 using numerics::EstrinEvaluator;
+using numerics::PoissonSeries;
+using numerics::PolynomialInMonomialBasis;
 using numerics::ULPDistance;
 using numerics::ЧебышёвSeries;
 using quantities::DebugString;
-using quantities::SIUnit;
 using quantities::si::Metre;
 using quantities::si::Second;
+namespace si = quantities::si;
 
-int const max_degree = 17;
-int const min_degree = 3;
+constexpr int max_degree = 17;
+constexpr int min_degree = 3;
 int const max_degree_age = 100;
 
 // Only supports 8 divisions for now.
@@ -44,6 +49,11 @@ ContinuousTrajectory<Frame>::ContinuousTrajectory(Time const& step,
                                                   Length const& tolerance)
     : step_(step),
       tolerance_(tolerance),
+      checkpointer_(
+          make_not_null_unique<
+              Checkpointer<serialization::ContinuousTrajectory>>(
+                  MakeCheckpointerWriter(),
+                  MakeCheckpointerReader())),
       adjusted_tolerance_(tolerance_),
       is_unstable_(false),
       degree_(min_degree),
@@ -53,11 +63,13 @@ ContinuousTrajectory<Frame>::ContinuousTrajectory(Time const& step,
 
 template<typename Frame>
 bool ContinuousTrajectory<Frame>::empty() const {
+  absl::ReaderMutexLock l(&lock_);
   return polynomials_.empty();
 }
 
 template<typename Frame>
 double ContinuousTrajectory<Frame>::average_degree() const {
+  absl::ReaderMutexLock l(&lock_);
   if (polynomials_.empty()) {
     return 0;
   } else {
@@ -73,13 +85,15 @@ template<typename Frame>
 Status ContinuousTrajectory<Frame>::Append(
     Instant const& time,
     DegreesOfFreedom<Frame> const& degrees_of_freedom) {
+  absl::MutexLock l(&lock_);
+
   // Consistency checks.
   if (first_time_) {
     Instant const t0;
     CHECK_GE(1,
              ULPDistance((last_points_.back().first + step_ - t0) /
-                             SIUnit<Time>(),
-                         (time - t0) / SIUnit<Time>()))
+                             si::Unit<Time>,
+                         (time - t0) / si::Unit<Time>))
         << "Append at times that are not equally spaced, expected " << step_
         << ", found " << last_points_.back().first << " and " << time;
   } else {
@@ -87,6 +101,7 @@ Status ContinuousTrajectory<Frame>::Append(
   }
 
   Status status;
+  CHECK_LE(last_points_.size(), divisions);
   if (last_points_.size() == divisions) {
     // These vectors are thread-local to avoid deallocation/reallocation each
     // time we go through this code path.
@@ -95,8 +110,7 @@ Status ContinuousTrajectory<Frame>::Append(
     q.clear();
     v.clear();
 
-    for (auto const& pair : last_points_) {
-      DegreesOfFreedom<Frame> const& degrees_of_freedom = pair.second;
+    for (auto const& [_, degrees_of_freedom] : last_points_) {
       q.push_back(degrees_of_freedom.position() - Frame::origin);
       v.push_back(degrees_of_freedom.velocity());
     }
@@ -118,146 +132,262 @@ Status ContinuousTrajectory<Frame>::Append(
 }
 
 template<typename Frame>
-void ContinuousTrajectory<Frame>::ForgetBefore(Instant const& time) {
-  if (time < t_min()) {
-    // TODO(phl): test for this case, it yielded a check failure in
-    // |FindPolynomialForInstant|.
-    return;
-  }
-  polynomials_.erase(polynomials_.begin(), FindPolynomialForInstant(time));
+void ContinuousTrajectory<Frame>::Prepend(ContinuousTrajectory&& prefix) {
+  absl::MutexLock l1(&lock_);
+  absl::MutexLock l2(&prefix.lock_);
 
-  // If there are no |polynomials_| left, clear everything.  Otherwise, update
-  // the first time.
-  if (polynomials_.empty()) {
-    first_time_ = std::nullopt;
-    last_points_.clear();
-    last_accessed_polynomial_ = 0;
+  CHECK_EQ(step_, prefix.step_);
+  CHECK_EQ(tolerance_, prefix.tolerance_);
+
+  if (prefix.polynomials_.empty()) {
+    // Nothing to do.
+  } else if (polynomials_.empty()) {
+    // All the data comes from |prefix|.  This must set all the fields of
+    // this object that are not set at construction.
+    adjusted_tolerance_ = prefix.adjusted_tolerance_;
+    is_unstable_ = prefix.is_unstable_;
+    degree_ = prefix.degree_;
+    degree_age_ = prefix.degree_age_;
+    polynomials_ = std::move(prefix.polynomials_);
+    last_accessed_polynomial_ = prefix.last_accessed_polynomial_;
+    first_time_ = prefix.first_time_;
+    last_points_ = prefix.last_points_;
   } else {
-    first_time_ = time;
-    last_accessed_polynomial_ = polynomials_.size() - 1;
+    // The polynomials must be aligned, because the time computations only use
+    // basic arithmetic and are platform-independent.  The space computations,
+    // on the other may depend on characteristics of the hardware and/or math
+    // library, so we cannot check that the trajectories are "continuous" at the
+    // junction.
+    CHECK_EQ(*first_time_, prefix.polynomials_.back().t_max);
+    // This operation is in O(prefix.size()).
+    std::move(polynomials_.begin(),
+              polynomials_.end(),
+              std::back_inserter(prefix.polynomials_));
+    polynomials_.swap(prefix.polynomials_);
+    first_time_ = prefix.first_time_;
+    // Note that any |last_points_| in |prefix| are irrelevant because they
+    // correspond to a time interval covered by the first polynomial of this
+    // object.
   }
 }
 
 template<typename Frame>
 Instant ContinuousTrajectory<Frame>::t_min() const {
-  if (polynomials_.empty()) {
-    return astronomy::InfiniteFuture;
-  }
-  return *first_time_;
+  absl::ReaderMutexLock l(&lock_);
+  return t_min_locked();
 }
 
 template<typename Frame>
 Instant ContinuousTrajectory<Frame>::t_max() const {
-  if (polynomials_.empty()) {
-    return astronomy::InfinitePast;
-  }
-  return polynomials_.crbegin()->t_max;
+  absl::ReaderMutexLock l(&lock_);
+  return t_max_locked();
 }
 
 template<typename Frame>
 Position<Frame> ContinuousTrajectory<Frame>::EvaluatePosition(
     Instant const& time) const {
-  CHECK_LE(t_min(), time);
-  CHECK_GE(t_max(), time);
+  absl::ReaderMutexLock l(&lock_);
+  CHECK_LE(t_min_locked(), time);
+  CHECK_GE(t_max_locked(), time);
   auto const it = FindPolynomialForInstant(time);
   CHECK(it != polynomials_.end());
-  auto const& polynomial = it->polynomial;
-  return polynomial->Evaluate(time) + Frame::origin;
+  auto const& polynomial = *it->polynomial;
+  return polynomial(time) + Frame::origin;
 }
 
 template<typename Frame>
 Velocity<Frame> ContinuousTrajectory<Frame>::EvaluateVelocity(
     Instant const& time) const {
-  CHECK_LE(t_min(), time);
-  CHECK_GE(t_max(), time);
+  absl::ReaderMutexLock l(&lock_);
+  CHECK_LE(t_min_locked(), time);
+  CHECK_GE(t_max_locked(), time);
   auto const it = FindPolynomialForInstant(time);
   CHECK(it != polynomials_.end());
-  auto const& polynomial = it->polynomial;
-  return polynomial->EvaluateDerivative(time);
+  auto const& polynomial = *it->polynomial;
+  return polynomial.EvaluateDerivative(time);
 }
 
 template<typename Frame>
 DegreesOfFreedom<Frame> ContinuousTrajectory<Frame>::EvaluateDegreesOfFreedom(
     Instant const& time) const {
-  CHECK_LE(t_min(), time);
-  CHECK_GE(t_max(), time);
+  absl::ReaderMutexLock l(&lock_);
+  CHECK_LE(t_min_locked(), time);
+  CHECK_GE(t_max_locked(), time);
   auto const it = FindPolynomialForInstant(time);
   CHECK(it != polynomials_.end());
-  auto const& polynomial = it->polynomial;
-  return DegreesOfFreedom<Frame>(polynomial->Evaluate(time) + Frame::origin,
-                                 polynomial->EvaluateDerivative(time));
+  auto const& polynomial = *it->polynomial;
+  return DegreesOfFreedom<Frame>(polynomial(time) + Frame::origin,
+                                 polynomial.EvaluateDerivative(time));
 }
 
+#if PRINCIPIA_CONTINUOUS_TRAJECTORY_SUPPORTS_PIECEWISE_POISSON_SERIES
+
 template<typename Frame>
-typename ContinuousTrajectory<Frame>::Checkpoint
-ContinuousTrajectory<Frame>::GetCheckpoint() const {
-  return {t_max(),
-          adjusted_tolerance_,
-          is_unstable_,
-          degree_,
-          degree_age_,
-          last_points_};
+int ContinuousTrajectory<Frame>::PiecewisePoissonSeriesDegree(
+    Instant const& t_min,
+    Instant const& t_max) const {
+  absl::ReaderMutexLock l(&lock_);
+  CHECK_LE(t_min_locked(), t_min);
+  CHECK_GE(t_max_locked(), t_max);
+  auto const it_min = FindPolynomialForInstant(t_min);
+  auto const it_max = FindPolynomialForInstant(t_max);
+  int degree = min_degree;
+  for (auto it = it_min;; ++it) {
+    degree = std::max(degree, it->polynomial->degree());
+    if (it == it_max) {
+      break;
+    }
+  }
+  return degree;
 }
+
+
+// Casts the polynomial to one of degree d1, and then increases the degree to
+// d2.
+#define PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(polynomial, d1, d2)     \
+  case d1: {                                                                   \
+    if constexpr (d1 <= d2) {                                                  \
+      return PolynomialInMonomialBasis<Displacement<Frame>, Instant,           \
+                                       d2, EstrinEvaluator>(                   \
+          *dynamic_cast_not_null<                                              \
+              PolynomialInMonomialBasis<Displacement<Frame>, Instant,          \
+                                        d1, EstrinEvaluator> const*>(          \
+                                        polynomial));                          \
+    } else {                                                                   \
+      LOG(FATAL) << "Inconsistent degrees " << d1 << " and " << d2;            \
+    }                                                                          \
+  }
+
+template<typename Frame>
+template<int aperiodic_degree, int periodic_degree>
+PiecewisePoissonSeries<Displacement<Frame>,
+                        aperiodic_degree, periodic_degree,
+                        EstrinEvaluator>
+ContinuousTrajectory<Frame>::ToPiecewisePoissonSeries(
+    Instant const& t_min,
+    Instant const& t_max) const {
+  static_assert(aperiodic_degree >= min_degree &&
+                aperiodic_degree <= max_degree);
+  // No check on the periodic degree, it plays no role here.
+  CHECK(!polynomials_.empty());
+  using PiecewisePoisson =
+      PiecewisePoissonSeries<Displacement<Frame>,
+                             aperiodic_degree, periodic_degree,
+                             EstrinEvaluator>;
+  using Poisson = PoissonSeries<Displacement<Frame>,
+                                aperiodic_degree, periodic_degree,
+                                EstrinEvaluator>;
+
+  auto cast_to_degree =
+      [](not_null<Polynomial<Displacement<Frame>, Instant> const*> const
+             polynomial)
+      -> PolynomialInMonomialBasis<Displacement<Frame>, Instant,
+                                   aperiodic_degree, EstrinEvaluator> {
+    switch (polynomial->degree()) {
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 3, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 4, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 5, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 6, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 7, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 8, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 9, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 10, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 11, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 12, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 13, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 14, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 15, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 16, aperiodic_degree);
+      PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS(
+          polynomial, 17, aperiodic_degree);
+      default:
+        LOG(FATAL) << "Unexpected degree " << polynomial->degree();
+    }
+  };
+
+  std::unique_ptr<PiecewisePoisson> result;
+
+  absl::ReaderMutexLock l(&lock_);
+  auto const it_min = FindPolynomialForInstant(t_min);
+  auto const it_max = FindPolynomialForInstant(t_max);
+  Instant current_t_min = t_min;
+  for (auto it = it_min;; ++it) {
+    Instant const current_t_max = std::min(t_max, it->t_max);
+    Interval<Instant> interval;
+    interval.Include(current_t_min);
+    interval.Include(current_t_max);
+    auto const polynomial_cast_to_degree = cast_to_degree(it->polynomial.get());
+    if (result == nullptr) {
+      result = std::make_unique<PiecewisePoisson>(
+          interval, Poisson(polynomial_cast_to_degree, {{}}));
+    } else {
+      result->Append(interval, Poisson(polynomial_cast_to_degree, {{}}));
+    }
+    current_t_min = current_t_max;
+    if (it == it_max) {
+      break;
+    }
+  }
+  return *result;
+}
+
+#undef PRINCIPIA_CAST_TO_POLYNOMIAL_IN_MONOMIAL_BASIS
+#endif
 
 template<typename Frame>
 void ContinuousTrajectory<Frame>::WriteToMessage(
       not_null<serialization::ContinuousTrajectory*> const message) const {
-  WriteToMessage(message, GetCheckpoint());
-}
-
-template<typename Frame>
-void ContinuousTrajectory<Frame>::WriteToMessage(
-      not_null<serialization::ContinuousTrajectory*> const message,
-      Checkpoint const& checkpoint) const {
+  absl::ReaderMutexLock l(&lock_);
+  CHECK_LT(checkpointer_->oldest_checkpoint(), InfiniteFuture);
+  checkpointer_->WriteToMessage(message->mutable_checkpoint());
   step_.WriteToMessage(message->mutable_step());
   tolerance_.WriteToMessage(message->mutable_tolerance());
-  checkpoint.adjusted_tolerance_.WriteToMessage(
-      message->mutable_adjusted_tolerance());
-  message->set_is_unstable(checkpoint.is_unstable_);
-  message->set_degree(checkpoint.degree_);
-  message->set_degree_age(checkpoint.degree_age_);
   for (auto const& pair : polynomials_) {
     Instant const& t_max = pair.t_max;
     auto const& polynomial = pair.polynomial;
-    if (t_max <= checkpoint.t_max_) {
+    if (t_max <= checkpointer_->oldest_checkpoint()) {
       auto* const pair = message->add_instant_polynomial_pair();
       t_max.WriteToMessage(pair->mutable_t_max());
       polynomial->WriteToMessage(pair->mutable_polynomial());
-    }
-    if (t_max == checkpoint.t_max_) {
+    } else {
       break;
     }
-    CHECK_LT(t_max, checkpoint.t_max_);
   }
   if (first_time_) {
     first_time_->WriteToMessage(message->mutable_first_time());
   }
-  for (auto const& pair : checkpoint.last_points_) {
-    Instant const& instant = pair.first;
-    DegreesOfFreedom<Frame> const& degrees_of_freedom = pair.second;
-    not_null<
-        serialization::ContinuousTrajectory::InstantaneousDegreesOfFreedom*>
-        const instantaneous_degrees_of_freedom = message->add_last_point();
-    instant.WriteToMessage(instantaneous_degrees_of_freedom->mutable_instant());
-    degrees_of_freedom.WriteToMessage(
-        instantaneous_degrees_of_freedom->mutable_degrees_of_freedom());
-  }
 }
 
 template<typename Frame>
+template<typename, typename>
 not_null<std::unique_ptr<ContinuousTrajectory<Frame>>>
 ContinuousTrajectory<Frame>::ReadFromMessage(
       serialization::ContinuousTrajectory const& message) {
   bool const is_pre_cohen = message.series_size() > 0;
+  bool const is_pre_fatou = !message.has_checkpoint_time();
+  bool const is_pre_grassmann = message.has_adjusted_tolerance() &&
+                                message.has_is_unstable() &&
+                                message.has_degree() &&
+                                message.has_degree_age();
+
   not_null<std::unique_ptr<ContinuousTrajectory<Frame>>> continuous_trajectory =
       std::make_unique<ContinuousTrajectory<Frame>>(
           Time::ReadFromMessage(message.step()),
           Length::ReadFromMessage(message.tolerance()));
-  continuous_trajectory->adjusted_tolerance_ =
-      Length::ReadFromMessage(message.adjusted_tolerance());
-  continuous_trajectory->is_unstable_ = message.is_unstable();
-  continuous_trajectory->degree_ = message.degree();
-  continuous_trajectory->degree_age_ = message.degree_age();
   if (is_pre_cohen) {
     for (auto const& s : message.series()) {
       // Read the series, evaluate it and use the resulting values to build a
@@ -293,37 +423,53 @@ ContinuousTrajectory<Frame>::ReadFromMessage(
     continuous_trajectory->first_time_ =
         Instant::ReadFromMessage(message.first_time());
   }
-  for (auto const& l : message.last_point()) {
-    continuous_trajectory->last_points_.push_back(
-        {Instant::ReadFromMessage(l.instant()),
-         DegreesOfFreedom<Frame>::ReadFromMessage(l.degrees_of_freedom())});
+
+  if (is_pre_grassmann) {
+    serialization::ContinuousTrajectory serialized_continuous_trajectory;
+    auto* const checkpoint = serialized_continuous_trajectory.add_checkpoint();
+    if (is_pre_fatou) {
+      *checkpoint->mutable_time() =
+          message.last_point()[message.last_point_size() - 1].instant();
+    } else {
+      *checkpoint->mutable_time() = message.checkpoint_time();
+    }
+    *checkpoint->mutable_adjusted_tolerance() = message.adjusted_tolerance();
+    checkpoint->set_is_unstable(message.is_unstable());
+    checkpoint->set_degree(message.degree());
+    checkpoint->set_degree_age(message.degree_age());
+    for (const auto& last_point : message.last_point()) {
+      *checkpoint->add_last_point() = last_point;
+    }
+    continuous_trajectory->checkpointer_ =
+        Checkpointer<serialization::ContinuousTrajectory>::ReadFromMessage(
+            continuous_trajectory->MakeCheckpointerWriter(),
+            continuous_trajectory->MakeCheckpointerReader(),
+            serialized_continuous_trajectory.checkpoint());
+  } else {
+    continuous_trajectory->checkpointer_ =
+        Checkpointer<serialization::ContinuousTrajectory>::ReadFromMessage(
+            continuous_trajectory->MakeCheckpointerWriter(),
+            continuous_trajectory->MakeCheckpointerReader(),
+            message.checkpoint());
   }
+  CHECK_OK(continuous_trajectory->checkpointer_->ReadFromOldestCheckpoint());
+
   return continuous_trajectory;
 }
 
 template<typename Frame>
-bool ContinuousTrajectory<Frame>::Checkpoint::IsAfter(
-    Instant const& time) const {
-  return time < t_max_;
+Checkpointer<serialization::ContinuousTrajectory>&
+ContinuousTrajectory<Frame>::checkpointer() {
+  return *checkpointer_;
 }
 
 template<typename Frame>
-ContinuousTrajectory<Frame>::Checkpoint::Checkpoint(
-    Instant const& t_max,
-    Length const& adjusted_tolerance,
-    bool const is_unstable,
-    int const degree,
-    int const degree_age,
-    std::vector<std::pair<Instant, DegreesOfFreedom<Frame>>> const& last_points)
-    : t_max_(t_max),
-      adjusted_tolerance_(adjusted_tolerance),
-      is_unstable_(is_unstable),
-      degree_(degree),
-      degree_age_(degree_age),
-      last_points_(last_points) {}
-
-template<typename Frame>
-ContinuousTrajectory<Frame>::ContinuousTrajectory() {}
+ContinuousTrajectory<Frame>::ContinuousTrajectory()
+    : checkpointer_(
+          make_not_null_unique<
+              Checkpointer<serialization::ContinuousTrajectory>>(
+          /*reader=*/nullptr,
+          /*writer=*/nullptr)) {}
 
 template<typename Frame>
 ContinuousTrajectory<Frame>::InstantPolynomialPair::InstantPolynomialPair(
@@ -332,6 +478,80 @@ ContinuousTrajectory<Frame>::InstantPolynomialPair::InstantPolynomialPair(
         polynomial)
     : t_max(t_max),
       polynomial(std::move(polynomial)) {}
+
+template<typename Frame>
+Checkpointer<serialization::ContinuousTrajectory>::Writer
+ContinuousTrajectory<Frame>::MakeCheckpointerWriter() {
+  if constexpr (base::is_serializable_v<Frame>) {
+    return [this](
+        not_null<
+            serialization::ContinuousTrajectory::Checkpoint*> const message) {
+      absl::ReaderMutexLock l(&lock_);
+      adjusted_tolerance_.WriteToMessage(message->mutable_adjusted_tolerance());
+      message->set_is_unstable(is_unstable_);
+      message->set_degree(degree_);
+      message->set_degree_age(degree_age_);
+      for (auto const& [instant, degrees_of_freedom] : last_points_) {
+        not_null<serialization::ContinuousTrajectory::
+                     InstantaneousDegreesOfFreedom*> const
+            instantaneous_degrees_of_freedom = message->add_last_point();
+        instant.WriteToMessage(
+            instantaneous_degrees_of_freedom->mutable_instant());
+        degrees_of_freedom.WriteToMessage(
+            instantaneous_degrees_of_freedom->mutable_degrees_of_freedom());
+      }
+    };
+  } else {
+    return nullptr;
+  }
+}
+
+template<typename Frame>
+Checkpointer<serialization::ContinuousTrajectory>::Reader
+ContinuousTrajectory<Frame>::MakeCheckpointerReader() {
+  if constexpr (base::is_serializable_v<Frame>) {
+    return [this](
+               serialization::ContinuousTrajectory::Checkpoint const& message) {
+      absl::MutexLock l(&lock_);
+      adjusted_tolerance_ =
+          Length::ReadFromMessage(message.adjusted_tolerance());
+      is_unstable_ = message.is_unstable();
+      degree_ = message.degree();
+      degree_age_ = message.degree_age();
+      last_points_.clear();
+      for (auto const& l : message.last_point()) {
+        last_points_.push_back(
+            {Instant::ReadFromMessage(l.instant()),
+             DegreesOfFreedom<Frame>::ReadFromMessage(l.degrees_of_freedom())});
+      }
+      return Status::OK;
+    };
+  } else {
+    return nullptr;
+  }
+}
+
+template<typename Frame>
+Instant ContinuousTrajectory<Frame>::t_min_locked() const {
+#if defined(_DEBUG)
+  lock_.AssertReaderHeld();
+#endif
+  if (polynomials_.empty()) {
+    return astronomy::InfiniteFuture;
+  }
+  return *first_time_;
+}
+
+template<typename Frame>
+Instant ContinuousTrajectory<Frame>::t_max_locked() const {
+#if defined(_DEBUG)
+  lock_.AssertReaderHeld();
+#endif
+  if (polynomials_.empty()) {
+    return astronomy::InfinitePast;
+  }
+  return polynomials_.crbegin()->t_max;
+}
 
 template<typename Frame>
 not_null<std::unique_ptr<Polynomial<Displacement<Frame>, Instant>>>
@@ -354,6 +574,7 @@ Status ContinuousTrajectory<Frame>::ComputeBestNewhallApproximation(
     Instant const& time,
     std::vector<Displacement<Frame>> const& q,
     std::vector<Velocity<Frame>> const& v) {
+  lock_.AssertHeld();
   Length const previous_adjusted_tolerance = adjusted_tolerance_;
 
   // If the degree is too old, restart from the lowest degree.  This ensures
@@ -455,6 +676,9 @@ template<typename Frame>
 typename ContinuousTrajectory<Frame>::InstantPolynomialPairs::const_iterator
 ContinuousTrajectory<Frame>::FindPolynomialForInstant(
     Instant const& time) const {
+#if defined(_DEBUG)
+  lock_.AssertReaderHeld();
+#endif
   // This returns the first polynomial |p| such that |time <= p.t_max|.
   {
     auto const begin = polynomials_.begin();

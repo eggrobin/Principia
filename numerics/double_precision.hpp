@@ -12,14 +12,14 @@ namespace numerics {
 namespace internal_double_precision {
 
 using base::not_null;
+using quantities::Angle;
 using quantities::Difference;
 using quantities::Product;
+using quantities::Quotient;
 using quantities::Sum;
 
 // A simple container for accumulating a value using double precision.  The
-// type of the value must be an affine space.  The notations follow
-// Hida, Li and Bailey (2007), Library for Double-Double and Quad-Double
-// Arithmetic.
+// type of the value must be an affine space.  The notations follow [HLB08].
 template<typename T>
 struct DoublePrecision final {
   constexpr DoublePrecision() = default;
@@ -55,10 +55,12 @@ DoublePrecision<Product<T, U>> Scale(T const& scale,
 template<typename T, typename U>
 DoublePrecision<Product<T, U>> TwoProduct(T const& a, U const& b);
 
-// The arguments must be such that |a| >= |b| or a == 0.
+// Computes the exact sum of a and b.  The arguments must be such that
+// |a| >= |b| or a == 0.
 template<typename T, typename U>
 DoublePrecision<Sum<T, U>> QuickTwoSum(T const& a, U const& b);
 
+// Computes the exact sum of a and b.
 template<typename T, typename U>
 DoublePrecision<Sum<T, U>> TwoSum(T const& a, U const& b);
 
@@ -76,6 +78,8 @@ DoublePrecision<Difference<T, U>> TwoDifference(T const& a, U const& b);
 
 template<typename T, typename U, typename = Difference<Difference<T, U>, T>>
 DoublePrecision<Difference<T, U>> TwoDifference(T const& a, U const& b);
+
+DoublePrecision<Angle> Mod2π(DoublePrecision<Angle> const& θ);
 
 template<typename T>
 bool operator==(DoublePrecision<T> const& left,
@@ -101,6 +105,14 @@ template<typename T, typename U>
 DoublePrecision<Difference<T, U>> operator-(DoublePrecision<T> const& left,
                                             DoublePrecision<U> const& right);
 
+template<typename T, typename U>
+DoublePrecision<Product<T, U>> operator*(DoublePrecision<T> const& left,
+                                         DoublePrecision<U> const& right);
+
+template<typename T, typename U>
+DoublePrecision<Quotient<T, U>> operator/(DoublePrecision<T> const& left,
+                                          DoublePrecision<U> const& right);
+
 template<typename T>
 std::string DebugString(DoublePrecision<T> const& double_precision);
 
@@ -111,6 +123,8 @@ std::ostream& operator<<(std::ostream& os,
 }  // namespace internal_double_precision
 
 using internal_double_precision::DoublePrecision;
+using internal_double_precision::Mod2π;
+using internal_double_precision::TwoDifference;
 using internal_double_precision::TwoProduct;
 using internal_double_precision::TwoSum;
 

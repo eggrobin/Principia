@@ -1,32 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace principia {
 namespace ksp_plugin_adapter {
 
 class RenderingActions : UnityEngine.MonoBehaviour {
-  internal Action post_render {
-    private get;
-    set;
-  }
+  internal Action post_render { private get; set; }
 
   private void OnPostRender() {
-    if (post_render != null) {
-      post_render();
-    }
+    post_render?.Invoke();
   }
 
-  internal Action pre_cull {
-    private get;
-    set;
-  }
+  internal Action pre_cull { private get; set; }
 
   private void OnPreCull() {
-    if (pre_cull != null) {
-      pre_cull();
-    }
+    pre_cull?.Invoke();
   }
 }
 

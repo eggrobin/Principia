@@ -34,9 +34,13 @@ using quantities::Acceleration;
 // the intersection of the equator and the prime meridian.  The Z axis is the
 // |polar_axis|.  The Y axis in on the equator so that the frame has the same
 // orientation as |InertialFrame|.
+// The X, Y, Z axes are the same as those shown on figure 1 of the 2015 report
+// of the IAU WGCCRE if |polar_axis| is the north pole, or figure 2 if
+// |polar_axis| is the positive pole.
 template<typename InertialFrame, typename ThisFrame>
-class BodySurfaceDynamicFrame
-    : public DynamicFrame<InertialFrame, ThisFrame> {
+class BodySurfaceDynamicFrame : public DynamicFrame<InertialFrame, ThisFrame> {
+  static_assert(ThisFrame::may_rotate);
+
  public:
   BodySurfaceDynamicFrame(not_null<Ephemeris<InertialFrame> const*> ephemeris,
                           not_null<RotatingBody<InertialFrame> const*> centre);

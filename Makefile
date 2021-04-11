@@ -6,8 +6,7 @@ UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
 
 CXX := clang++
-
-# TODO(egg): build benchmarks
+MSBUILD := msbuild
 
 VERSION_TRANSLATION_UNIT := base/version.generated.cc
 
@@ -20,8 +19,12 @@ TEST_TRANSLATION_UNITS                 := $(wildcard */*_test.cpp)
 TEST_OR_FAKE_OR_MOCK_TRANSLATION_UNITS := $(TEST_TRANSLATION_UNITS) $(FAKE_OR_MOCK_TRANSLATION_UNITS)
 TOOLS_TRANSLATION_UNITS                := $(wildcard tools/*.cpp)
 LIBRARY_TRANSLATION_UNITS              := $(filter-out $(TEST_OR_FAKE_OR_MOCK_TRANSLATION_UNITS) $(BENCHMARK_TRANSLATION_UNITS), $(wildcard */*.cpp))
-JOURNAL_LIB_TRANSLATION_UNITS          := $(filter-out $(TEST_OR_FAKE_OR_MOCK_TRANSLATION_UNITS), $(wildcard journal/*.cpp))
+ASTRONOMY_LIB_TRANSLATION_UNITS        := $(filter-out $(TEST_OR_FAKE_OR_MOCK_TRANSLATION_UNITS), $(wildcard astronomy/*.cpp))
 BASE_LIB_TRANSLATION_UNITS             := $(filter-out $(TEST_OR_FAKE_OR_MOCK_TRANSLATION_UNITS), $(wildcard base/*.cpp))
+JOURNAL_LIB_TRANSLATION_UNITS          := $(filter-out $(TEST_OR_FAKE_OR_MOCK_TRANSLATION_UNITS), $(wildcard journal/*.cpp))
+MATHEMATICA_LIB_TRANSLATION_UNITS      := $(filter-out $(TEST_OR_FAKE_OR_MOCK_TRANSLATION_UNITS), $(wildcard mathematica/*.cpp))
+NUMERICS_LIB_TRANSLATION_UNITS         := $(filter-out $(TEST_OR_FAKE_OR_MOCK_TRANSLATION_UNITS), $(wildcard numerics/*.cpp))
+PHYSICS_LIB_TRANSLATION_UNITS          := $(filter-out $(TEST_OR_FAKE_OR_MOCK_TRANSLATION_UNITS), $(wildcard physics/*.cpp))
 PROTO_FILES                            := $(wildcard */*.proto)
 PROTO_TRANSLATION_UNITS                := $(PROTO_FILES:.proto=.pb.cc)
 PROTO_HEADERS                          := $(PROTO_FILES:.proto=.pb.h)
@@ -35,8 +38,8 @@ TOOLS_BIN     := $(BIN_DIRECTORY)tools
 
 GMOCK_TRANSLATION_UNITS := \
 	$(DEP_DIR)googletest/googlemock/src/gmock-all.cc  \
-	$(DEP_DIR)googletest/googlemock/src/gmock_main.cc \
 	$(DEP_DIR)googletest/googletest/src/gtest-all.cc
+GMOCK_MAIN_TRANSLATION_UNIT := $(DEP_DIR)googletest/googlemock/src/gmock_main.cc
 
 GENERATED_PROFILES := \
 	journal/profiles.generated.h     \
@@ -59,20 +62,38 @@ ifeq ($(UNAME_S),Darwin)
     PLUGIN_DIRECTORY      := $(FINAL_PRODUCTS_DIR)GameData/Principia/MacOS64/
 endif
 
-TEST_LIBS     := $(DEP_DIR)benchmark/src/libbenchmark.a $(DEP_DIR)/protobuf/src/.libs/libprotobuf.a
-LIBS          := $(DEP_DIR)/protobuf/src/.libs/libprotobuf.a \
-	$(DEP_DIR)/glog/.libs/libglog.a -lpthread -lc++ -lc++abi
+TEST_LIBS     := $(DEP_DIR)benchmark/src/libbenchmark.a $(DEP_DIR)protobuf/src/.libs/libprotobuf.a
+LIBS          := $(DEP_DIR)protobuf/src/.libs/libprotobuf.a \
+	$(DEP_DIR)gipfeli/libgipfeli.a \
+	$(DEP_DIR)abseil-cpp/absl/strings/libabsl_strings.a \
+	$(DEP_DIR)abseil-cpp/absl/synchronization/libabsl_synchronization.a \
+	$(DEP_DIR)abseil-cpp/absl/time/libabsl_*.a \
+	$(DEP_DIR)abseil-cpp/absl/debugging/libabsl_*.a \
+	$(DEP_DIR)abseil-cpp/absl/numeric/libabsl_*.a \
+	$(DEP_DIR)abseil-cpp/absl/base/libabsl_*.a \
+	$(DEP_DIR)zfp/build/lib/libzfp.a \
+	$(DEP_DIR)glog/.libs/libglog.a -lpthread -lc++ -lc++abi
 TEST_INCLUDES := \
 	-I$(DEP_DIR)googletest/googlemock/include -I$(DEP_DIR)googletest/googletest/include \
 	-I$(DEP_DIR)googletest/googlemock/ -I$(DEP_DIR)googletest/googletest/ -I$(DEP_DIR)benchmark/include
-INCLUDES      := -I. -I$(DEP_DIR)glog/src -I$(DEP_DIR)protobuf/src -I$(DEP_DIR)compatibility/filesystem
+INCLUDES      := -I. -I$(DEP_DIR)glog/src \
+	-I$(DEP_DIR)protobuf/src \
+	-I$(DEP_DIR)gipfeli/include \
+	-I$(DEP_DIR)abseil-cpp \
+	-I$(DEP_DIR)zfp/include
 SHARED_ARGS   := \
-	-std=c++1z -stdlib=libc++ -O3 -g                           \
-	-fPIC -fexceptions -ferror-limit=1 -fno-omit-frame-pointer \
-	-Wall -Wpedantic                                           \
-	-DPROJECT_DIR='std::filesystem::path("$(PROJECT_DIR)")'    \
-	-DSOLUTION_DIR='std::filesystem::path("$(SOLUTION_DIR)")'  \
-	-DTEMP_DIR='std::filesystem::path("/tmp")'                 \
+	-std=c++1z -stdlib=libc++ -O3 -g                              \
+	-fPIC -fexceptions -ferror-limit=1000 -fno-omit-frame-pointer \
+	-Wall -Wpedantic                                              \
+	-Wno-char-subscripts                                          \
+	-Wno-gnu-anonymous-struct                                     \
+	-Wno-c99-extensions                                           \
+	-Wno-gnu-zero-variadic-macro-arguments                        \
+	-Wno-nested-anon-types                                        \
+	-Wno-unknown-pragmas                                          \
+	-DPROJECT_DIR='std::filesystem::path("$(PROJECT_DIR)")'       \
+	-DSOLUTION_DIR='std::filesystem::path("$(SOLUTION_DIR)")'     \
+	-DTEMP_DIR='std::filesystem::path("/tmp")'                    \
 	-DNDEBUG
 
 ifeq ($(UNAME_S),Linux)
@@ -81,15 +102,17 @@ ifeq ($(UNAME_S),Linux)
     else
         SHARED_ARGS += -m32
     endif
-    MDTOOL := mdtool
-    LIBS += -lsupc++
+    LIBS += -lsupc++ -lc++fs
     TEST_LIBS += -lsupc++
     SHAREDFLAG := -shared
 endif
 ifeq ($(UNAME_S),Darwin)
-    INCLUDES += -I$(DEP_DIR)compatibility/optional -I$(DEP_DIR)Optional
-    SHARED_ARGS += -mmacosx-version-min=10.11 -arch x86_64
-    MDTOOL ?= "/Applications/Xamarin Studio.app/Contents/MacOS/mdtool"
+    INCLUDES += \
+			-I$(DEP_DIR)compatibility/filesystem \
+			-I$(DEP_DIR)compatibility/optional \
+			-I$(DEP_DIR)Optional \
+			-include "base/macos_allocator_replacement.hpp"
+    SHARED_ARGS += -mmacosx-version-min=10.12 -arch x86_64 -D_LIBCPP_STD_VER=16
     SHAREDFLAG := -dynamiclib
 endif
 
@@ -101,6 +124,7 @@ LDFLAGS := $(SHARED_ARGS)
 BUILD_DIRECTORY := build/
 
 TEST_OR_MOCK_DEPENDENCIES := $(addprefix $(BUILD_DIRECTORY), $(TEST_OR_FAKE_OR_MOCK_TRANSLATION_UNITS:.cpp=.d))
+BENCHMARK_DEPENDENCIES    := $(addprefix $(BUILD_DIRECTORY), $(BENCHMARK_TRANSLATIONS_UNITS:.cpp=.d))
 TOOLS_DEPENDENCIES        := $(addprefix $(BUILD_DIRECTORY), $(TOOLS_TRANSLATION_UNITS:.cpp=.d))
 LIBRARY_DEPENDENCIES      := $(addprefix $(BUILD_DIRECTORY), $(LIBRARY_TRANSLATION_UNITS:.cpp=.d))
 PLUGIN_DEPENDENCIES       := $(addprefix $(BUILD_DIRECTORY), $(PLUGIN_TRANSLATION_UNITS:.cpp=.d))
@@ -154,11 +178,17 @@ TEST_OR_FAKE_OR_MOCK_OBJECTS := $(addprefix $(OBJ_DIRECTORY), $(TEST_OR_FAKE_OR_
 LIBRARY_OBJECTS              := $(addprefix $(OBJ_DIRECTORY), $(LIBRARY_TRANSLATION_UNITS:.cpp=.o))
 PROTO_OBJECTS                := $(addprefix $(OBJ_DIRECTORY), $(PROTO_TRANSLATION_UNITS:.cc=.o))
 GMOCK_OBJECTS                := $(addprefix $(OBJ_DIRECTORY), $(GMOCK_TRANSLATION_UNITS:.cc=.o))
+GMOCK_MAIN_OBJECT            := $(addprefix $(OBJ_DIRECTORY), $(GMOCK_MAIN_TRANSLATION_UNIT:.cc=.o))
+BENCHMARK_OBJECTS            := $(addprefix $(OBJ_DIRECTORY), $(BENCHMARK_TRANSLATION_UNITS:.cpp=.o))
 TOOLS_OBJECTS                := $(addprefix $(OBJ_DIRECTORY), $(TOOLS_TRANSLATION_UNITS:.cpp=.o))
 PLUGIN_OBJECTS               := $(addprefix $(OBJ_DIRECTORY), $(PLUGIN_TRANSLATION_UNITS:.cpp=.o))
-JOURNAL_LIB_OBJECTS          := $(addprefix $(OBJ_DIRECTORY), $(JOURNAL_LIB_TRANSLATION_UNITS:.cpp=.o))
 VERSION_OBJECTS              := $(addprefix $(OBJ_DIRECTORY), $(VERSION_TRANSLATION_UNIT:.cc=.o))
+ASTRONOMY_LIB_OBJECTS        := $(addprefix $(OBJ_DIRECTORY), $(ASTRONOMY_LIB_TRANSLATION_UNITS:.cpp=.o)) $(VERSION_OBJECTS)
 BASE_LIB_OBJECTS             := $(addprefix $(OBJ_DIRECTORY), $(BASE_LIB_TRANSLATION_UNITS:.cpp=.o)) $(VERSION_OBJECTS)
+JOURNAL_LIB_OBJECTS          := $(addprefix $(OBJ_DIRECTORY), $(JOURNAL_LIB_TRANSLATION_UNITS:.cpp=.o))
+MATHEMATICA_LIB_OBJECTS      := $(addprefix $(OBJ_DIRECTORY), $(MATHEMATICA_LIB_TRANSLATION_UNITS:.cpp=.o))
+NUMERICS_LIB_OBJECTS         := $(addprefix $(OBJ_DIRECTORY), $(NUMERICS_LIB_TRANSLATION_UNITS:.cpp=.o)) $(VERSION_OBJECTS)
+PHYSICS_LIB_OBJECTS          := $(addprefix $(OBJ_DIRECTORY), $(PHYSICS_LIB_TRANSLATION_UNITS:.cpp=.o))
 TEST_OBJECTS                 := $(addprefix $(OBJ_DIRECTORY), $(TEST_TRANSLATION_UNITS:.cpp=.o))
 FAKE_OR_MOCK_OBJECTS         := $(addprefix $(OBJ_DIRECTORY), $(FAKE_OR_MOCK_TRANSLATION_UNITS:.cpp=.o))
 
@@ -166,7 +196,11 @@ $(TEST_OR_FAKE_OR_MOCK_OBJECTS): $(OBJ_DIRECTORY)%.o: %.cpp
 	@mkdir -p $(@D)
 	$(CXX) $(COMPILER_OPTIONS) $(TEST_INCLUDES) $< -o $@
 
-$(GMOCK_OBJECTS): $(OBJ_DIRECTORY)%.o: %.cc
+$(GMOCK_OBJECTS) $(GMOCK_MAIN_OBJECT): $(OBJ_DIRECTORY)%.o: %.cc
+	@mkdir -p $(@D)
+	$(CXX) $(COMPILER_OPTIONS) $(TEST_INCLUDES) $< -o $@
+
+$(BENCHMARK_OBJECTS): $(OBJ_DIRECTORY)%.o: %.cpp
 	@mkdir -p $(@D)
 	$(CXX) $(COMPILER_OPTIONS) $(TEST_INCLUDES) $< -o $@
 
@@ -186,7 +220,7 @@ $(PROTO_OBJECTS): $(OBJ_DIRECTORY)%.o: %.cc
 
 ##### tools
 
-$(TOOLS_BIN): $(TOOLS_OBJECTS) $(PROTO_OBJECTS)
+$(TOOLS_BIN): $(TOOLS_OBJECTS) $(PROTO_OBJECTS) $(NUMERICS_LIB_OBJECTS)
 	@mkdir -p $(@D)
 	$(CXX) $(LDFLAGS) $^ $(LIBS) -o $@
 
@@ -194,7 +228,7 @@ $(TOOLS_BIN): $(TOOLS_OBJECTS) $(PROTO_OBJECTS)
 
 KSP_PLUGIN := $(PLUGIN_DIRECTORY)principia.so
 
-$(KSP_PLUGIN) : $(PROTO_OBJECTS) $(PLUGIN_OBJECTS) $(JOURNAL_LIB_OBJECTS) $(BASE_LIB_OBJECTS)
+$(KSP_PLUGIN) : $(PROTO_OBJECTS) $(PLUGIN_OBJECTS) $(JOURNAL_LIB_OBJECTS) $(BASE_LIB_OBJECTS) $(NUMERICS_LIB_OBJECTS) $(PHYSICS_LIB_OBJECTS)
 	@mkdir -p $(@D)
 	$(CXX) $(SHAREDFLAG) $(LDFLAGS) $^ $(LIBS) -o $@
 
@@ -212,21 +246,18 @@ $(TEST_BINS)          : $(BIN_DIRECTORY)% : $(OBJ_DIRECTORY)%.o
 $(PACKAGE_TEST_BINS)  : $(BIN_DIRECTORY)%test : $$(filter $(OBJ_DIRECTORY)%$$(PERCENT), $(TEST_OBJECTS))
 $(PRINCIPIA_TEST_BIN) : $(TEST_OBJECTS)
 
-$(PLUGIN_INDEPENDENT_PACKAGE_TEST_BINS) $(PLUGIN_INDEPENDENT_TEST_BINS) : $(GMOCK_OBJECTS) $(PROTO_OBJECTS) $(BASE_LIB_OBJECTS)
+$(PLUGIN_INDEPENDENT_PACKAGE_TEST_BINS) $(PLUGIN_INDEPENDENT_TEST_BINS) : $(GMOCK_OBJECTS) $(GMOCK_MAIN_OBJECT) $(PROTO_OBJECTS) $(ASTRONOMY_LIB_OBJECTS) $(MATHEMATICA_LIB_OBJECTS) $(PHYSICS_LIB_OBJECTS) $(BASE_LIB_OBJECTS) $(NUMERICS_LIB_OBJECTS)
 	@mkdir -p $(@D)
 	$(CXX) $(LDFLAGS) $^ $(LIBS) -o $@
 
 # For tests that depend on the plugin, we link against the principia shared
-# library instead of statically linking the objects.  Also note that we do not
-# link the $(LIBS), since they are in the $(KSP_PLUGIN).  We still need pthread
-# though.
+# library instead of statically linking the objects.
 # NOTE(egg): this assumes that only the plugin-dependent tests need to be linked
 # against mock objects.  The classes further up that are big enough to be mocked
 # are likely to be highly templatized, so this will probably hold for a while.
-
-$(PRINCIPIA_TEST_BIN) $(PLUGIN_DEPENDENT_PACKAGE_TEST_BINS) $(PLUGIN_DEPENDENT_TEST_BINS) : $(FAKE_OR_MOCK_OBJECTS) $(GMOCK_OBJECTS) $(KSP_PLUGIN) $(BASE_LIB_OBJECTS)
+$(PRINCIPIA_TEST_BIN) $(PLUGIN_DEPENDENT_PACKAGE_TEST_BINS) $(PLUGIN_DEPENDENT_TEST_BINS) : $(FAKE_OR_MOCK_OBJECTS) $(GMOCK_OBJECTS) $(GMOCK_MAIN_OBJECT) $(KSP_PLUGIN) $(ASTRONOMY_LIB_OBJECTS) $(MATHEMATICA_LIB_OBJECTS) $(PHYSICS_LIB_OBJECTS) $(BASE_LIB_OBJECTS) $(NUMERICS_LIB_OBJECTS)
 	@mkdir -p $(@D)
-	$(CXX) $(LDFLAGS) $^ $(TEST_LIBS) -lpthread -o $@
+	$(CXX) $(LDFLAGS) $^ $(TEST_LIBS) $(LIBS) -lpthread -o $@
 
 ########## Testing
 
@@ -235,24 +266,43 @@ PACKAGE_TEST_TARGETS := $(patsubst $(BIN_DIRECTORY)%, %, $(PACKAGE_TEST_BINS))
 
 # make base/not_null_test compiles bin/base/not_null_test and runs it.
 $(TEST_TARGETS) : % : $(BIN_DIRECTORY)%
-	-$^
+	$^
 
 # make base/test compiles bin/base/test and runs it.
 $(PACKAGE_TEST_TARGETS) : % : $(BIN_DIRECTORY)%
-	-$^
+	$^
 
 test: $(PRINCIPIA_TEST_BIN)
 	@echo "Cake, and grief counseling, will be available at the conclusion of the test."
+	$^
+
+########## Benchmarks
+
+PACKAGE_BENCHMARK_BINS := $(addprefix $(BIN_DIRECTORY), $(addsuffix benchmarks, $(sort $(dir $(BENCHMARK_TRANSLATION_UNITS)))))
+PACKAGE_BENCHMARK_TARGET := $(patsubst $(BIN_DIRECTORY)%, %, $(PACKAGE_BENCHMARK_BINS))
+
+PRINCIPIA_BENCHMARK_BIN := $(BIN_DIRECTORY)benchmark
+
+$(PRINCIPIA_BENCHMARK_BIN) : $(BENCHMARK_OBJECTS) $(FAKE_OR_MOCK_OBJECTS) $(GMOCK_OBJECTS) $(KSP_PLUGIN) $(BASE_LIB_OBJECTS) $(NUMERICS_LIB_OBJECTS) $(PHYSICS_LIB_OBJECTS) $(ASTRONOMY_LIB_OBJECTS)
+	@mkdir -p $(@D)
+	$(CXX) $(LDFLAGS) $^ $(TEST_LIBS) -lpthread -o $@
+
+benchmark: $(PRINCIPIA_BENCHMARK_BIN)
 	-$^
 
 ########## Adapter
 
 $(ADAPTER): $(GENERATED_PROFILES)
-	$(MDTOOL) build -c:$(ADAPTER_CONFIGURATION) ksp_plugin_adapter/ksp_plugin_adapter.csproj
+	$(MSBUILD) -p:Configuration=$(ADAPTER_CONFIGURATION) ksp_plugin_adapter/ksp_plugin_adapter.csproj
 
 ######### Distribution
 
-release: $(ADAPTER) $(KSP_PLUGIN)
+# Something got broken in Disco where building the adapter is no longer possible
+# because /usr/lib/mono/msbuild/15.0/bin/System.Reflection.Metadata.dll points
+# to a missing Roslyn directory.  We don't care, we don't use the adapter built
+# on Linux
+# release: $(ADAPTER) $(KSP_PLUGIN)
+release: $(KSP_PLUGIN)
 	cd $(FINAL_PRODUCTS_DIR); tar -c -z -f - GameData/ > principia_$(UNAME_S)-$(shell git describe --tags --always --dirty --abbrev=40 --long).tar.gz
 ########## Cleaning
 

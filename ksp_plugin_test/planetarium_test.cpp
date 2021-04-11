@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "base/not_null.hpp"
+#include "base/serialization.hpp"
 #include "geometry/affine_map.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/linear_map.hpp"
@@ -32,13 +33,20 @@ namespace internal_planetarium {
 using astronomy::InfinitePast;
 using astronomy::InfiniteFuture;
 using base::make_not_null_unique;
+using base::ParseFromBytes;
 using geometry::AngularVelocity;
+using geometry::Arbitrary;
 using geometry::Bivector;
+using geometry::DeduceSignReversingOrientation;
 using geometry::Displacement;
+using geometry::Frame;
+using geometry::Handedness;
 using geometry::LinearMap;
 using geometry::Perspective;
 using geometry::RigidTransformation;
 using geometry::Rotation;
+using geometry::Sign;
+using geometry::Signature;
 using geometry::Vector;
 using geometry::Velocity;
 using physics::MassiveBody;
@@ -69,6 +77,8 @@ using ::testing::ReturnRef;
 using ::testing::SizeIs;
 
 class PlanetariumTest : public ::testing::Test {
+  using LeftNavigation =
+    Frame<enum class LeftNavigationTag, Arbitrary, Handedness::Left>;
  protected:
   PlanetariumTest()
       :  // The camera is located as {0, 20, 0} and is looking along -y.
@@ -77,12 +87,16 @@ class PlanetariumTest : public ::testing::Test {
                 Navigation::origin + Displacement<Navigation>(
                                          {0 * Metre, 20 * Metre, 0 * Metre}),
                 Camera::origin,
-                Rotation<Navigation, Camera>(
-                    Vector<double, Navigation>({1, 0, 0}),
-                    Vector<double, Navigation>({0, 0, 1}),
-                    Bivector<double, Navigation>({0, -1, 0}))
-                    .Forget()),
-            /*focal=*/5 * Metre),
+                Rotation<LeftNavigation, Camera>(
+                    Vector<double, LeftNavigation>({ 1, 0, 0 }),
+                    Vector<double, LeftNavigation>({ 0, 0, 1 }),
+                    Bivector<double, LeftNavigation>({ 0, -1, 0 }))
+                    .Forget<OrthogonalMap>() *
+                Signature<Navigation, LeftNavigation>(
+                    Sign::Positive(),
+                    Sign::Positive(),
+                    DeduceSignReversingOrientation{}).Forget<OrthogonalMap>()),
+          /*focal=*/5 * Metre),
         // A body of radius 1 m located at the origin.
         body_(MassiveBody::Parameters(1 * Kilogram),
               RotatingBody<Barycentric>::Parameters(
@@ -90,7 +104,7 @@ class PlanetariumTest : public ::testing::Test {
                   /*reference_angle=*/0 * Radian,
                   /*reference_instant=*/t0_,
                   /*angular_frequency=*/10 * Radian / Second,
-                  /*ascension_of_pole=*/0 * Radian,
+                  /*right_ascension_of_pole=*/0 * Radian,
                   /*declination_of_pole=*/π / 2 * Radian)),
         bodies_({&body_}) {
     ON_CALL(plotting_frame_, t_min()).WillByDefault(Return(InfinitePast));
@@ -98,8 +112,8 @@ class PlanetariumTest : public ::testing::Test {
     EXPECT_CALL(plotting_frame_, ToThisFrameAtTime(_))
         .WillRepeatedly(Return(RigidMotion<Barycentric, Navigation>(
             RigidTransformation<Barycentric, Navigation>::Identity(),
-            AngularVelocity<Barycentric>(),
-            Velocity<Barycentric>())));
+            Barycentric::nonrotating,
+            Barycentric::unmoving)));
     EXPECT_CALL(ephemeris_, bodies()).WillRepeatedly(ReturnRef(bodies_));
     EXPECT_CALL(ephemeris_, trajectory(_))
         .WillRepeatedly(Return(&continuous_trajectory_));
@@ -150,8 +164,8 @@ TEST_F(PlanetariumTest, PlotMethod0) {
   Planetarium planetarium(
       parameters, perspective_, &ephemeris_, &plotting_frame_);
   auto const rp2_lines =
-      planetarium.PlotMethod0(discrete_trajectory->Begin(),
-                              discrete_trajectory->End(),
+      planetarium.PlotMethod0(discrete_trajectory->begin(),
+                              discrete_trajectory->end(),
                               t0_ + 10 * Second,
                               /*reverse=*/false);
 
@@ -161,7 +175,7 @@ TEST_F(PlanetariumTest, PlotMethod0) {
   EXPECT_THAT(rp2_lines[0].front().x() - rp2_lines[1].back().x(),
               VanishesBefore(1 * Metre, 6));
   EXPECT_THAT(rp2_lines[0].back().x() - rp2_lines[1].front().x(),
-              AlmostEquals(10.0 / Sqrt(399.0) * Metre, 48, 94));
+              AlmostEquals(10.0 / Sqrt(399.0) * Metre, 47, 94));
 
   for (auto const& rp2_line : rp2_lines) {
     for (auto const& rp2_point : rp2_line) {
@@ -170,7 +184,7 @@ TEST_F(PlanetariumTest, PlotMethod0) {
       EXPECT_THAT(rp2_point.x(),
                   AllOf(Ge(-5.0 / Sqrt(3.0) * Metre),
                         Le(5.0 / Sqrt(3.0) * Metre)));
-      EXPECT_THAT(rp2_point.y(), VanishesBefore(1 * Metre, 5, 13));
+      EXPECT_THAT(rp2_point.y(), VanishesBefore(1 * Metre, 0, 13));
     }
   }
 }
@@ -191,8 +205,8 @@ TEST_F(PlanetariumTest, PlotMethod1) {
   Planetarium planetarium(
       parameters, perspective_, &ephemeris_, &plotting_frame_);
   auto const rp2_lines =
-      planetarium.PlotMethod1(discrete_trajectory->Begin(),
-                              discrete_trajectory->End(),
+      planetarium.PlotMethod1(discrete_trajectory->begin(),
+                              discrete_trajectory->end(),
                               t0_ + 10 * Second,
                               /*reverse=*/false);
 
@@ -222,8 +236,8 @@ TEST_F(PlanetariumTest, PlotMethod2) {
   Planetarium planetarium(
       parameters, perspective_, &ephemeris_, &plotting_frame_);
   auto const rp2_lines =
-      planetarium.PlotMethod2(discrete_trajectory->Begin(),
-                              discrete_trajectory->End(),
+      planetarium.PlotMethod2(discrete_trajectory->begin(),
+                              discrete_trajectory->end(),
                               t0_ + 10 * Second,
                               /*reverse=*/false);
 
@@ -239,31 +253,28 @@ TEST_F(PlanetariumTest, PlotMethod2) {
 
 #if !defined(_DEBUG)
 TEST_F(PlanetariumTest, RealSolarSystem) {
-  serialization::DiscreteTrajectory discrete_trajectory_message;
-  discrete_trajectory_message.ParseFromString(ReadFromBinaryFile(
-      SOLUTION_DIR / "ksp_plugin_test" / "planetarium_trajectory.proto.bin"));
-  auto discrete_trajectory =
-      DiscreteTrajectory<Barycentric>::ReadFromMessage(
-          discrete_trajectory_message, {});
+  auto discrete_trajectory = DiscreteTrajectory<Barycentric>::ReadFromMessage(
+      ParseFromBytes<serialization::DiscreteTrajectory>(
+          ReadFromBinaryFile(SOLUTION_DIR / "ksp_plugin_test" /
+                             "planetarium_trajectory.proto.bin")),
+      /*forks=*/{});
 
-  serialization::Ephemeris ephemeris_message;
-  ephemeris_message.ParseFromString(ReadFromBinaryFile(
-      SOLUTION_DIR / "ksp_plugin_test" / "planetarium_ephemeris.proto.bin"));
-  auto ephemeris = Ephemeris<Barycentric>::ReadFromMessage(ephemeris_message);
+  auto ephemeris = Ephemeris<Barycentric>::ReadFromMessage(
+      ParseFromBytes<serialization::Ephemeris>(
+          ReadFromBinaryFile(SOLUTION_DIR / "ksp_plugin_test" /
+                             "planetarium_ephemeris.proto.bin")));
 
-  serialization::DynamicFrame plotting_frame_message;
-  plotting_frame_message.ParseFromString(
-      ReadFromBinaryFile(SOLUTION_DIR / "ksp_plugin_test" /
-                         "planetarium_plotting_frame.proto.bin"));
-  auto plotting_frame =
-      NavigationFrame::ReadFromMessage(plotting_frame_message, ephemeris.get());
+  auto plotting_frame = NavigationFrame::ReadFromMessage(
+      ParseFromBytes<serialization::DynamicFrame>(
+          ReadFromBinaryFile(SOLUTION_DIR / "ksp_plugin_test" /
+                             "planetarium_plotting_frame.proto.bin")),
+      ephemeris.get());
 
-  serialization::AffineMap affine_map_message;
-  affine_map_message.ParseFromString(ReadFromBinaryFile(
-      SOLUTION_DIR / "ksp_plugin_test" / "planetarium_to_camera.proto.bin"));
   auto rigid_transformation =
       RigidTransformation<Navigation, Camera>::ReadFromMessage(
-          affine_map_message);
+          ParseFromBytes<serialization::AffineMap>(
+              ReadFromBinaryFile(SOLUTION_DIR / "ksp_plugin_test" /
+                                 "planetarium_to_camera.proto.bin")));
 
   EXPECT_EQ(23423, discrete_trajectory->Size());
 
@@ -277,9 +288,9 @@ TEST_F(PlanetariumTest, RealSolarSystem) {
                           ephemeris.get(),
                           plotting_frame.get());
   auto const rp2_lines =
-      planetarium.PlotMethod2(discrete_trajectory->Begin(),
-                              discrete_trajectory->End(),
-                              discrete_trajectory->last().time(),
+      planetarium.PlotMethod2(discrete_trajectory->begin(),
+                              discrete_trajectory->end(),
+                              discrete_trajectory->back().time,
                               /*reverse=*/false);
 
   EXPECT_EQ(2, rp2_lines.size());

@@ -4,7 +4,6 @@
 
 #include "astronomy/epoch.hpp"
 #include "astronomy/frames.hpp"
-#include "base/file.hpp"
 #include "base/macros.hpp"
 #include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
@@ -23,15 +22,16 @@
 #include "quantities/numbers.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
+#include "testing_utilities/approximate_quantity.hpp"
+#include "testing_utilities/is_near.hpp"
 #include "testing_utilities/numerics.hpp"
 #include "testing_utilities/statistics.hpp"
 
 namespace principia {
 
-using astronomy::ICRFJ2000Equator;
+using astronomy::ICRS;
 using astronomy::J2000;
 using base::dynamic_cast_not_null;
-using base::OFStream;
 using geometry::Instant;
 using geometry::Position;
 using integrators::SymmetricLinearMultistepIntegrator;
@@ -60,9 +60,11 @@ using quantities::si::Milli;
 using quantities::si::Minute;
 using quantities::si::Radian;
 using quantities::si::Second;
+using testing_utilities::IsNear;
 using testing_utilities::PearsonProductMomentCorrelationCoefficient;
 using testing_utilities::RelativeError;
 using testing_utilities::Slope;
+using testing_utilities::operator""_⑴;
 
 namespace astronomy {
 
@@ -71,29 +73,29 @@ class МолнияOrbitTest : public ::testing::Test {
   static void SetUpTestCase() {
     google::LogToStderr();
     ephemeris_ = solar_system_2000_.MakeEphemeris(
-        /*fitting_tolerance=*/5 * Milli(Metre),
-        Ephemeris<ICRFJ2000Equator>::FixedStepParameters(
+        /*accuracy_parameters=*/{/*fitting_tolerance=*/5 * Milli(Metre),
+                                 /*geopotential_tolerance=*/0x1p-24},
+        Ephemeris<ICRS>::FixedStepParameters(
             SymmetricLinearMultistepIntegrator<QuinlanTremaine1990Order12,
-                                               Position<ICRFJ2000Equator>>(),
+                                               Position<ICRS>>(),
             /*step=*/10 * Minute));
   }
 
-  static SolarSystem<ICRFJ2000Equator> solar_system_2000_;
-  static std::unique_ptr<Ephemeris<ICRFJ2000Equator>> ephemeris_;
+  static SolarSystem<ICRS> solar_system_2000_;
+  static std::unique_ptr<Ephemeris<ICRS>> ephemeris_;
 };
 
-SolarSystem<ICRFJ2000Equator> МолнияOrbitTest::solar_system_2000_(
+SolarSystem<ICRS> МолнияOrbitTest::solar_system_2000_(
     SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
     SOLUTION_DIR / "astronomy" /
         "sol_initial_state_jd_2451545_000000000.proto.txt");
-std::unique_ptr<Ephemeris<ICRFJ2000Equator>> МолнияOrbitTest::ephemeris_;
+std::unique_ptr<Ephemeris<ICRS>> МолнияOrbitTest::ephemeris_;
 
 #if !defined(_DEBUG)
 
-TEST_F(МолнияOrbitTest, Satellite) {
-  auto const earth_body =
-      dynamic_cast_not_null<OblateBody<ICRFJ2000Equator> const*>(
-          solar_system_2000_.massive_body(*ephemeris_, "Earth"));
+TEST_F(МолнияOrbitTest, DISABLED_Satellite) {
+  auto const earth_body = dynamic_cast_not_null<OblateBody<ICRS> const*>(
+      solar_system_2000_.massive_body(*ephemeris_, "Earth"));
   auto const earth_degrees_of_freedom =
       solar_system_2000_.degrees_of_freedom("Earth");
 
@@ -103,7 +105,7 @@ TEST_F(МолнияOrbitTest, Satellite) {
 
   // These data are from https://en.wikipedia.org/wiki/Molniya_orbit.  The
   // eccentricity is from the "External links" section.
-  KeplerianElements<ICRFJ2000Equator> initial_elements;
+  KeplerianElements<ICRS> initial_elements;
   initial_elements.eccentricity = 0.74105;
   initial_elements.mean_motion = 2.0 * π * Radian / (sidereal_day / 2.0);
   initial_elements.inclination = ArcSin(2.0 / Sqrt(5.0));
@@ -112,18 +114,18 @@ TEST_F(МолнияOrbitTest, Satellite) {
   initial_elements.mean_anomaly = 2 * Radian;
 
   MasslessBody const satellite{};
-  KeplerOrbit<ICRFJ2000Equator> initial_orbit(
+  KeplerOrbit<ICRS> initial_orbit(
       *earth_body, satellite, initial_elements, J2000);
   auto const satellite_state_vectors = initial_orbit.StateVectors(J2000);
 
-  DiscreteTrajectory<ICRFJ2000Equator> trajectory;
+  DiscreteTrajectory<ICRS> trajectory;
   trajectory.Append(J2000, earth_degrees_of_freedom + satellite_state_vectors);
   auto const instance = ephemeris_->NewInstance(
       {&trajectory},
-      Ephemeris<ICRFJ2000Equator>::NoIntrinsicAccelerations,
-      Ephemeris<ICRFJ2000Equator>::FixedStepParameters(
+      Ephemeris<ICRS>::NoIntrinsicAccelerations,
+      Ephemeris<ICRS>::FixedStepParameters(
           SymmetricLinearMultistepIntegrator<Quinlan1999Order8A,
-                                             Position<ICRFJ2000Equator>>(),
+                                             Position<ICRS>>(),
           integration_step));
 
   // Remember that because of #228 we need to loop over FlowWithFixedStep.
@@ -133,26 +135,19 @@ TEST_F(МолнияOrbitTest, Satellite) {
     ephemeris_->FlowWithFixedStep(t, *instance);
   }
 
-  // Drop the units when logging to Mathematica, because it is ridiculously slow
-  // at parsing them.
-  base::OFStream file(SOLUTION_DIR / "mathematica" /
-                      UNICODE_PATH("молния_orbit.generated.wl"));
-  std::vector<geometry::Vector<double, ICRFJ2000Equator>> mma_displacements;
-  std::vector<double> mma_arguments_of_periapsis;
-  std::vector<double> mma_longitudes_of_ascending_nodes;
+  mathematica::Logger logger(
+      SOLUTION_DIR / "mathematica" / UNICODE_PATH("молния_orbit.generated.wl"),
+      /*make_unique=*/false);
 
   std::vector<Angle> longitudes_of_ascending_nodes;
   std::vector<Time> times;
 
   for (Instant t = J2000; t <= J2000 + integration_duration;
        t += integration_duration / 100000.0) {
-    RelativeDegreesOfFreedom<ICRFJ2000Equator> const relative_dof =
+    RelativeDegreesOfFreedom<ICRS> const relative_dof =
         trajectory.EvaluateDegreesOfFreedom(t) -
         ephemeris_->trajectory(earth_body)->EvaluateDegreesOfFreedom(t);
-    KeplerOrbit<ICRFJ2000Equator> actual_orbit(*earth_body,
-                                               satellite,
-                                               relative_dof,
-                                               t);
+    KeplerOrbit<ICRS> actual_orbit(*earth_body, satellite, relative_dof, t);
     auto actual_elements = actual_orbit.elements_at_epoch();
 
     if (actual_elements.longitude_of_ascending_node >
@@ -175,11 +170,15 @@ TEST_F(МолнияOrbitTest, Satellite) {
                   *actual_elements.argument_of_periapsis),
               0.0026);
 
-    mma_displacements.push_back(relative_dof.displacement() / Metre);
-    mma_arguments_of_periapsis.push_back(
-        *actual_elements.argument_of_periapsis / Radian);
-    mma_longitudes_of_ascending_nodes.push_back(
-        actual_elements.longitude_of_ascending_node / Radian);
+    logger.Append("ppaDisplacements",
+                  relative_dof.displacement(),
+                  mathematica::ExpressIn(Metre));
+    logger.Append("ppaArguments",
+                  *actual_elements.argument_of_periapsis,
+                  mathematica::ExpressIn(Radian));
+    logger.Append("ppaLongitudes",
+                  actual_elements.longitude_of_ascending_node,
+                  mathematica::ExpressIn(Radian));
   }
 
   // Check that we have a regular precession of the longitude.
@@ -197,16 +196,9 @@ TEST_F(МолнияOrbitTest, Satellite) {
   Angle const ΔΩ_per_period = -2.0 * π * Radian * earth_body->j2_over_μ() /
                               (semilatus_rectum * semilatus_rectum) *
                               (3.0 / 2.0) * Cos(initial_elements.inclination);
-  EXPECT_LT(RelativeError(ΔΩ_per_period / (sidereal_day / 2.0),
-                          actual_precession_speed),
-            0.076);
-
-  file << mathematica::Assign("ppaDisplacements",
-                              mma_displacements);
-  file << mathematica::Assign("ppaArguments",
-                              mma_arguments_of_periapsis);
-  file << mathematica::Assign("ppaLongitudes",
-                              mma_longitudes_of_ascending_nodes);
+  EXPECT_THAT(RelativeError(ΔΩ_per_period / (sidereal_day / 2.0),
+                            actual_precession_speed),
+              IsNear(0.076_⑴));
 }
 
 #endif

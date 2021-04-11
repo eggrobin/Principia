@@ -16,7 +16,7 @@ class QuaternionTest : public testing::Test {
  protected:
   using R3 = R3Element<double>;
 
-  void SetUp() override {
+  QuaternionTest() {
     q1_ = Quaternion(1, {1, -1, -1});
     q2_ = Quaternion(-2, {1, -3, 4});
     q3_ = Quaternion(-8);
@@ -149,6 +149,10 @@ TEST_F(QuaternionTest, Serialization) {
   EXPECT_EQ(4.0, message.imaginary_part().z().double_());
   Quaternion const q = Quaternion::ReadFromMessage(message);
   EXPECT_EQ(q2_, q);
+}
+
+TEST_F(QuaternionTest, Output) {
+  std::cout << q2_ << "\n";
 }
 
 }  // namespace geometry

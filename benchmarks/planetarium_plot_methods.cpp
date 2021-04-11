@@ -19,9 +19,11 @@ using astronomy::operator""_TT;
 using base::make_not_null_unique;
 using base::not_null;
 using geometry::Bivector;
+using geometry::DeduceSignReversingOrientation;
 using geometry::Perspective;
 using geometry::RigidTransformation;
 using geometry::RP2Lines;
+using geometry::Signature;
 using geometry::Vector;
 using geometry::Velocity;
 using integrators::SymmetricLinearMultistepIntegrator;
@@ -66,29 +68,43 @@ constexpr Length focal = 1 * Metre;
 
 Perspective<Navigation, Camera> PolarPerspective(
     Length const distance_from_earth) {
+  using LeftNavigation =
+      Frame<enum class LeftNavigationTag, Arbitrary, Handedness::Left>;
   return {
       RigidTransformation<Navigation, Camera>(
           Navigation::origin + Displacement<Navigation>(
                                    {0 * Metre, 0 * Metre, distance_from_earth}),
           Camera::origin,
-          Rotation<Navigation, Camera>(Vector<double, Navigation>({1, 0, 0}),
-                                       Vector<double, Navigation>({0, -1, 0}),
-                                       Bivector<double, Navigation>({0, 0, -1}))
-              .Forget()),
+          Rotation<LeftNavigation, Camera>(
+              Vector<double, LeftNavigation>({1, 0, 0}),
+              Vector<double, LeftNavigation>({0, -1, 0}),
+              Bivector<double, LeftNavigation>({0, 0, -1}))
+              .Forget<OrthogonalMap>() *
+          Signature<Navigation, LeftNavigation>(
+              Sign::Positive(),
+              Sign::Positive(),
+              DeduceSignReversingOrientation{}).Forget<OrthogonalMap>()),
       focal};
 }
 
 Perspective<Navigation, Camera> EquatorialPerspective(
     Length const distance_from_earth) {
+  using LeftNavigation =
+      Frame<enum class LeftNavigationTag, Arbitrary, Handedness::Left>;
   return {
       RigidTransformation<Navigation, Camera>(
           Navigation::origin + Displacement<Navigation>(
                                    {0 * Metre, distance_from_earth, 0 * Metre}),
           Camera::origin,
-          Rotation<Navigation, Camera>(Vector<double, Navigation>({1, 0, 0}),
-                                       Vector<double, Navigation>({0, 0, 1}),
-                                       Bivector<double, Navigation>({0, -1, 0}))
-              .Forget()),
+          Rotation<LeftNavigation, Camera>(
+              Vector<double, LeftNavigation>({1, 0, 0}),
+              Vector<double, LeftNavigation>({0, 0, 1}),
+              Bivector<double, LeftNavigation>({0, -1, 0}))
+              .Forget<OrthogonalMap>() *
+          Signature<Navigation, LeftNavigation>(
+              Sign::Positive(),
+              Sign::Positive(),
+              DeduceSignReversingOrientation{}).Forget<OrthogonalMap>()),
       focal};
 }
 
@@ -100,9 +116,10 @@ class Satellites {
             SOLUTION_DIR / "astronomy" /
                 "sol_initial_state_jd_2451545_000000000.proto.txt",
             /*ignore_frame=*/true)),
-        ephemeris_(
-            solar_system_->MakeEphemeris(/*fitting_tolerance=*/1 * Milli(Metre),
-                                         EphemerisParameters())),
+        ephemeris_(solar_system_->MakeEphemeris(
+            /*accuracy_parameters=*/{/*fitting_tolerance=*/1 * Milli(Metre),
+                                     /*geopotential_tolerance=*/0x1p-24},
+            EphemerisParameters())),
         earth_(solar_system_->massive_body(
             *ephemeris_,
             SolarSystemFactory::name(SolarSystemFactory::Earth))),
@@ -189,17 +206,17 @@ void RunBenchmark(benchmark::State& state,
   // This is the time of a lunar eclipse in January 2000.
   constexpr Instant now = "2000-01-21T04:41:30,5"_TT;
   while (state.KeepRunning()) {
-    lines = planetarium.PlotMethod2(satellites.goes_8_trajectory().Begin(),
-                                    satellites.goes_8_trajectory().End(),
+    lines = planetarium.PlotMethod2(satellites.goes_8_trajectory().begin(),
+                                    satellites.goes_8_trajectory().end(),
                                     now,
                                     /*reverse=*/false);
     total_lines += lines.size();
     ++iterations;
   }
-  Length min_x = Infinity<Length>();
-  Length min_y = Infinity<Length>();
-  Length max_x = -Infinity<Length>();
-  Length max_y = -Infinity<Length>();
+  Length min_x = Infinity<Length>;
+  Length min_y = Infinity<Length>;
+  Length max_x = -Infinity<Length>;
+  Length max_y = -Infinity<Length>;
   int points = 0;
   for (auto const& line : lines) {
     points += line.size();

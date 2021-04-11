@@ -15,6 +15,9 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{2f348d01-8c8d-4e0d-8ad2-c4e1d1a62595}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Standard Product 3">
+      <UniqueIdentifier>{5013cac9-94fd-404a-9590-be599c20b5ab}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="query.f">
@@ -43,6 +46,99 @@
     </None>
     <None Include="sol_numerics_blueprint.cfg">
       <Filter>Resource Files</Filter>
+    </None>
+    <None Include="trappist_gravity_model.cfg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="trappist_initial_state_jd_2457000_000000000.cfg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="trappist_numerics_blueprint.cfg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="trappist_gravity_model_slippist1.cfg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="trappist_rss_time_formatter.cfg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="standard_product_3\asi.orb.etalon2.171209.v70.sp3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\COD0MGXFIN_20181260000_01D_05M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\COD0MGXFIN_20183640000_01D_05M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\esa11802.eph">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\ilrsa.orb.lageos2.160319.v35.sp3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\ilrsa.orb.lageos2.180804.v70.sp3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\ilrsb.orb.lageos2.160319.v35.sp3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\mcc14000.sp3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\nga20342.eph">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\README.md">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\grgja203.b08243.e08247.D_S.sp3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\grgtop03.b97344.e97348.D_S.sp3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\ssaja102.b03007.e03017.DGS.sp3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\WUM0MGXFIN_20190270000_01D_15M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\WUM0MGXFIN_20190970000_01D_15M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\WUM0MGXFIN_20190980000_01D_15M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\WUM0MGXFIN_20190990000_01D_15M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\WUM0MGXFIN_20191000000_01D_15M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\WUM0MGXFIN_20191010000_01D_15M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\WUM0MGXFIN_20191020000_01D_15M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\WUM0MGXFIN_20191030000_01D_15M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\WUM0MGXFIN_20191040000_01D_15M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\WUM0MGXFIN_20191050000_01D_15M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\WUM0MGXFIN_20191060000_01D_15M_ORB.SP3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\ssasp501.b10170.e10181.D__.sp3">
+      <Filter>Resource Files\Standard Product 3</Filter>
+    </None>
+    <None Include="standard_product_3\ssas3a20.b18358.e19003.DG_.sp3">
+      <Filter>Resource Files\Standard Product 3</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -97,6 +193,18 @@
     <Text Include="sol_numerics_blueprint.proto.txt">
       <Filter>Resource Files</Filter>
     </Text>
+    <Text Include="trappist_gravity_model.proto.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="trappist_initial_state_jd_2457000_000000000.proto.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="trappist_preoptimization_initial_state_jd_2457000_000000000.proto.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="trappist_numerics_blueprint.proto.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="frames.hpp">
@@ -123,9 +231,6 @@
     <ClInclude Include="date_time.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="epoch_body.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="stabilize_ksp.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -134,6 +239,33 @@
     </ClInclude>
     <ClInclude Include="solar_system_fingerprints.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fortran_astrodynamics_toolkit.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fortran_astrodynamics_toolkit_body.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="standard_product_3.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="orbit_recurrence.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="orbit_recurrence_body.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="orbital_elements_body.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="orbital_elements.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="orbit_ground_track.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="orbit_ground_track_body.hpp">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -165,6 +297,39 @@
       <Filter>Test Files</Filter>
     </ClCompile>
     <ClCompile Include="ksp_fingerprint_test.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\numerics\cbrt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="trappist_dynamics_test.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\base\bundle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="geodesy_test.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
+    <ClCompile Include="lunar_orbit_test.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
+    <ClCompile Include="standard_product_3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="standard_product_3_test.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\physics\protector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="orbit_recurrence_test.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
+    <ClCompile Include="orbital_elements_test.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
+    <ClCompile Include="orbit_analysis_test.cpp">
       <Filter>Test Files</Filter>
     </ClCompile>
   </ItemGroup>

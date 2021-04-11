@@ -4,13 +4,17 @@
 #include <cfloat>
 #include <cstdint>
 
+#include <complex>
 #include <string>
 
+#include "geometry/complexification.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
 #include "geometry/quaternion.hpp"
 #include "geometry/r3_element.hpp"
+#include "geometry/r3x3_matrix.hpp"
 #include "gmock/gmock.h"
+#include "numerics/unbounded_arrays.hpp"
 
 namespace principia {
 namespace testing_utilities {
@@ -48,8 +52,13 @@ class AlmostEqualsMatcher final {
                        testing::MatchResultListener* listener) const;
   bool MatchAndExplain(double actual,
                        testing::MatchResultListener* listener) const;
+  bool MatchAndExplain(geometry::Complexification<double> actual,
+                       testing::MatchResultListener* listener) const;
   template<typename Scalar>
   bool MatchAndExplain(geometry::R3Element<Scalar> const& actual,
+                       testing::MatchResultListener* listener) const;
+  template<typename Scalar>
+  bool MatchAndExplain(geometry::R3x3Matrix<Scalar> const& actual,
                        testing::MatchResultListener* listener) const;
   bool MatchAndExplain(geometry::Quaternion const& actual,
                        testing::MatchResultListener* listener) const;
@@ -65,6 +74,17 @@ class AlmostEqualsMatcher final {
   template<typename Vector>
   bool MatchAndExplain(geometry::Point<Vector> const& actual,
                        testing::MatchResultListener* listener) const;
+  template<typename Scalar>
+  bool MatchAndExplain(numerics::UnboundedVector<Scalar> const& actual,
+                       testing::MatchResultListener* listener) const;
+  template<typename Scalar>
+  bool MatchAndExplain(
+      numerics::UnboundedLowerTriangularMatrix<Scalar> const& actual,
+      testing::MatchResultListener* listener) const;
+  template<typename Scalar>
+  bool MatchAndExplain(
+      numerics::UnboundedUpperTriangularMatrix<Scalar> const& actual,
+      testing::MatchResultListener* listener) const;
 
   void DescribeTo(std::ostream* out) const;
   void DescribeNegationTo(std::ostream* out) const;

@@ -20,14 +20,16 @@
 
 #include <cstdint>
 
+#include "base/array.hpp"
+
 namespace principia {
 namespace base {
 
 inline std::uint64_t FingerprintCat2011(std::uint64_t const fp1,
                                         std::uint64_t const fp2) {
   // Two big prime numbers.
-  std::uint64_t const mul1 = 0xC6A4A7935BD1E995u;
-  std::uint64_t const mul2 = 0x228876A7198B743u;
+  std::uint64_t const mul1 = 0xC6A4A7935BD1E995;
+  std::uint64_t const mul2 = 0x228876A7198B743;
   std::uint64_t const a = fp1 * mul1 + fp2 * mul2;
   // Note: The following line also makes sure we never return 0 or 1, because we
   // will only add something to 'a' if there are any MSBs (the remaining bits
@@ -37,9 +39,10 @@ inline std::uint64_t FingerprintCat2011(std::uint64_t const fp1,
 
 // This should be better (collision-wise) than the default hash<std::string>,
 // without being much slower. It never returns 0 or 1.
+// TODO(egg): benchmark and remove the gratuitous strict aliasing violation.
 inline std::uint64_t Fingerprint2011(char const* bytes, std::size_t const len) {
-  // Some big prime numer.
-  std::uint64_t fp = 0xA5B85C5E198ED849u;
+  // Some big prime number.
+  std::uint64_t fp = 0xA5B85C5E198ED849;
   char const* end = bytes + len;
   while (bytes + 8 <= end) {
     fp = FingerprintCat2011(
@@ -55,6 +58,10 @@ inline std::uint64_t Fingerprint2011(char const* bytes, std::size_t const len) {
     bytes++;
   }
   return FingerprintCat2011(fp, last_bytes);
+}
+
+inline std::uint64_t Fingerprint2011(Array<std::uint8_t const> const bytes) {
+  return Fingerprint2011(reinterpret_cast<char const*>(bytes.data), bytes.size);
 }
 
 }  // namespace base

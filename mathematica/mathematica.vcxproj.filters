@@ -12,11 +12,11 @@
     <Filter Include="Scripts">
       <UniqueIdentifier>{4e3369e9-9c33-43ea-8662-581a7f97470b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Test Files">
+      <UniqueIdentifier>{148dae9a-4f1b-44c1-892c-dd534b1cee4f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="integrator_plots.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -29,8 +29,17 @@
     <ClCompile Include="retrobop_dynamical_stability.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="local_error_analysis.cpp">
+    <ClCompile Include="..\numerics\cbrt.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\physics\protector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mathematica_test.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
+    <ClCompile Include="error_analysis_test.cpp">
+      <Filter>Test Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -48,6 +57,9 @@
     </ClInclude>
     <ClInclude Include="local_error_analysis.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="local_error_analysis_body.hpp">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -67,6 +79,15 @@
       <Filter>Scripts</Filter>
     </None>
     <None Include="solar_systems_convergence.wl">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="associated_legendre_function.wl">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="elliptic_integrals.wl">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="fukushima_elliptic_bd.wl">
       <Filter>Scripts</Filter>
     </None>
   </ItemGroup>

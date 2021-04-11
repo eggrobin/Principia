@@ -1,16 +1,18 @@
 ﻿
 #pragma once
 
+#include "base/hexadecimal.hpp"
+
 #include <cstdint>
 #include <cstring>
 
-#include "base/hexadecimal.hpp"
 #include "glog/logging.h"
 
 namespace principia {
 namespace base {
+namespace internal_hexadecimal {
 
-static char const byte_to_hexadecimal_digits[] =
+constexpr char byte_to_hexadecimal_digits[] =
     "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F2021222324"
     "25262728292A2B2C2D2E2F303132333435363738393A3B3C3D3E3F40414243444546474849"
     "4A4B4C4D4E4F505152535455565758595A5B5C5D5E5F606162636465666768696A6B6C6D6E"
@@ -26,7 +28,7 @@ static char const byte_to_hexadecimal_digits[] =
 #define SKIP_26 SKIP_7, SKIP_7, SKIP_7, 0, 0, 0, 0, 0
 #define SKIP_48 SKIP_26, SKIP_7, SKIP_7, SKIP_7, 0
 
-static std::uint8_t const hexadecimal_digits_to_nibble[256] = {
+constexpr std::uint8_t hexadecimal_digits_to_nibble[256] = {
     SKIP_48, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
     SKIP_7, '\xa', '\xb', '\xc', '\xd', '\xe', '\xf',
     SKIP_26, '\xa', '\xb', '\xc', '\xd', '\xe', '\xf'};
@@ -36,8 +38,10 @@ static std::uint8_t const hexadecimal_digits_to_nibble[256] = {
 #undef SKIP_48
 #endif
 
-void HexadecimalEncode(Array<std::uint8_t const> input,
-                       Array<std::uint8_t> output) {
+template<bool null_terminated>
+void HexadecimalEncoder<null_terminated>::Encode(
+    Array<std::uint8_t const> input,
+    Array<char> output) {
   CHECK_NOTNULL(input.data);
   CHECK_NOTNULL(output.data);
   // We iterate backward.
@@ -46,12 +50,16 @@ void HexadecimalEncode(Array<std::uint8_t const> input,
   // after reading input[0].  Greater values of |output| would
   // overwrite input data before it is read, unless there is no overlap, i.e.,
   // |&output[input_size << 1] <= input|.
-  CHECK(input.data <= &output.data[1] ||
-        &output.data[input.size << 1] <= input.data) << "bad overlap";
-  CHECK_GE(output.size, input.size << 1) << "output too small";
+  CHECK(input.data <= static_cast<void*>(&output.data[1]) ||
+        static_cast<void*>(&output.data[input.size << 1]) <= input.data)
+      << "bad overlap";
+  CHECK_GE(output.size, EncodedLength(input)) << "output too small";
   // We want the result to start at |output.data[0]|.
-  output.data = output.data + ((input.size - 1) << 1);
-  input.data = input.data + input.size - 1;
+  output.data += ((input.size - 1) << 1);
+  if constexpr (null_terminated) {
+    output.data[2] = 0;
+  }
+  input.data += input.size - 1;
   for (std::uint8_t const* const input_rend = input.data - input.size;
        input.data != input_rend;
        --input.data, output.data -= 2) {
@@ -59,8 +67,29 @@ void HexadecimalEncode(Array<std::uint8_t const> input,
   }
 }
 
-void HexadecimalDecode(Array<std::uint8_t const> input,
-                       Array<std::uint8_t> output) {
+template<bool null_terminated>
+UniqueArray<char> HexadecimalEncoder<null_terminated>::Encode(
+    Array<std::uint8_t const> const input) {
+  UniqueArray<char> output(EncodedLength(input));
+  if (output.size > 0) {
+    Encode(input, output.get());
+  }
+  return output;
+}
+
+template<bool null_terminated>
+std::int64_t HexadecimalEncoder<null_terminated>::EncodedLength(
+    Array<std::uint8_t const> const input) {
+  if constexpr (null_terminated) {
+    return (input.size << 1) + 1;
+  } else {
+    return input.size << 1;
+  }
+}
+
+template<bool null_terminated>
+void HexadecimalEncoder<null_terminated>::Decode(Array<char const> input,
+                                                 Array<std::uint8_t> output) {
   CHECK_NOTNULL(input.data);
   CHECK_NOTNULL(output.data);
   input.size &= ~1;
@@ -69,10 +98,11 @@ void HexadecimalDecode(Array<std::uint8_t const> input,
   // input[0] and input[1].  Greater values of |output| would overwrite input
   // data before it is read, unless there is no overlap, i.e.,
   // |&input[input_size] <= output|.
-  CHECK(output.data <= &input.data[1] ||
-        &input.data[input.size] <= output.data) << "bad overlap";
+  CHECK(static_cast<void*>(output.data) <= &input.data[1] ||
+        &input.data[input.size] <= static_cast<void*>(output.data))
+      << "bad overlap";
   CHECK_GE(output.size, input.size / 2) << "output too small";
-  for (std::uint8_t const* const input_end = input.data + input.size;
+  for (char const* const input_end = input.data + input.size;
        input.data != input_end;
        input.data += 2, ++output.data) {
     *output.data = (hexadecimal_digits_to_nibble[*input.data] << 4) |
@@ -80,5 +110,22 @@ void HexadecimalDecode(Array<std::uint8_t const> input,
   }
 }
 
+template<bool null_terminated>
+UniqueArray<std::uint8_t> HexadecimalEncoder<null_terminated>::Decode(
+    Array<char const> const input) {
+  UniqueArray<std::uint8_t> output(DecodedLength(input));
+  if (output.size > 0) {
+    Decode({input.data, input.size & ~1}, output.get());
+  }
+  return output;
+}
+
+template<bool null_terminated>
+std::int64_t HexadecimalEncoder<null_terminated>::DecodedLength(
+    Array<char const> const input) {
+  return input.size >> 1;
+}
+
+}  // namespace internal_hexadecimal
 }  // namespace base
 }  // namespace principia

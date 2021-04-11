@@ -17,9 +17,6 @@
     <ClCompile Include="quantities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="hexadecimal.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="чебышёв_series.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -54,6 +51,45 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="cbrt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\numerics\cbrt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_sin_cos_2π_benchmark.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\numerics\fast_sin_cos_2π.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="geopotential.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="thread_pool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="encoder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\numerics\elliptic_integrals.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="elliptic_integrals_benchmark.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="elliptic_functions_benchmark.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\numerics\elliptic_functions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="apsides.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\astronomy\standard_product_3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\physics\protector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

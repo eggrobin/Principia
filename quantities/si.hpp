@@ -1,6 +1,8 @@
 ﻿
 #pragma once
 
+#include <string>
+
 #include "quantities/named_quantities.hpp"
 #include "quantities/numbers.hpp"
 #include "quantities/quantities.hpp"
@@ -12,6 +14,13 @@ namespace quantities {
 // Becquerel, Gray and Sievert), as well as the Non-SI units accepted for use
 // with the SI.
 namespace si {
+
+// Returns the base or derived SI unit of |Q|.
+// For instance, |si::Unit<Action>() == Joule * Second|.
+template<typename Q>
+constexpr Q Unit = internal_quantities::SIUnit<Q>();
+template<>
+inline constexpr double Unit<double> = 1;
 
 // Prefixes
 template<typename D> constexpr Quantity<D> Yotta(Quantity<D>);
@@ -41,15 +50,15 @@ template<typename D> constexpr Quantity<D> Yocto(Quantity<D>);
 // SI base units
 // From the BIPM's SI brochure 8, section 2.1.2, table 1,
 // http://www.bipm.org/en/si/si_brochure/chapter2/2-1/.
-constexpr Length            Metre    = SIUnit<Length>();
-constexpr Mass              Kilogram = SIUnit<Mass>();
-constexpr Time              Second   = SIUnit<Time>();
-constexpr Current           Ampere   = SIUnit<Current>();
-constexpr Temperature       Kelvin   = SIUnit<Temperature>();
-constexpr Amount            Mole     = SIUnit<Amount>();
-constexpr LuminousIntensity Candela  = SIUnit<LuminousIntensity>();
+constexpr Length            Metre    = Unit<Length>;
+constexpr Mass              Kilogram = Unit<Mass>;
+constexpr Time              Second   = Unit<Time>;
+constexpr Current           Ampere   = Unit<Current>;
+constexpr Temperature       Kelvin   = Unit<Temperature>;
+constexpr Amount            Mole     = Unit<Amount>;
+constexpr LuminousIntensity Candela  = Unit<LuminousIntensity>;
 // Not a base unit in the SI.
-constexpr Angle Radian = SIUnit<Angle>();
+constexpr Angle Radian = Unit<Angle>;
 
 // Gram, for use with prefixes.
 constexpr Mass Gram = 1e-3 * Kilogram;
@@ -91,13 +100,6 @@ constexpr Angle  ArcSecond = π / 648000 * Radian;
 constexpr Area   Hectare   = 1e4 * Metre * Metre;
 constexpr Volume Litre     = 1e-3 * Metre * Metre * Metre;
 constexpr Mass   Tonne     = 1e3 * Kilogram;
-
-// Non-SI units whose values must be obtained experimentally
-// From the BIPM's SI brochure 8, section 4.1, table 7,
-// Units accepted for use with the SI.
-constexpr Energy ElectronVolt     = 1.602176565e-19 * Joule;
-constexpr Mass   Dalton           = 1.660538921e-27 * Kilogram;
-constexpr Length AstronomicalUnit = 149597870700 * si::Metre;
 
 }  // namespace si
 }  // namespace quantities

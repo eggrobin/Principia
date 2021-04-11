@@ -3,16 +3,41 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A3F94607-2666-408F-AF98-0E47D61C98BB}</ProjectGuid>
     <RootNamespace>ksp_plugin</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(SolutionDir)principia.props" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="..\third_party_zfp.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="..\third_party_zfp.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release_LLVM|x64'">
+    <Import Project="..\third_party_zfp.props" />
+  </ImportGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Manifest>
+      <AdditionalManifestFiles>$(ProjectDir)principia.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Manifest>
+      <AdditionalManifestFiles>$(ProjectDir)principia.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_LLVM|x64'">
+    <Manifest>
+      <AdditionalManifestFiles>$(ProjectDir)principia.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="burn.hpp" />
     <ClInclude Include="celestial.hpp" />
+    <ClInclude Include="equator_relevance_threshold.hpp" />
     <ClInclude Include="identification.hpp" />
     <ClInclude Include="integrators.hpp" />
     <ClInclude Include="iterators.hpp" />
     <ClInclude Include="iterators_body.hpp" />
+    <ClInclude Include="orbit_analyser.hpp" />
     <ClInclude Include="part_subsets.hpp" />
     <ClInclude Include="pile_up.hpp" />
     <ClInclude Include="flight_plan.hpp" />
@@ -36,12 +61,18 @@
     <ClInclude Include="vessel.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\base\flags.cpp" />
     <ClCompile Include="..\base\status.cpp" />
     <ClCompile Include="..\base\version.generated.cc" />
+    <ClCompile Include="..\base\zfp_compressor.cpp" />
     <ClCompile Include="..\journal\profiles.cpp" />
     <ClCompile Include="..\journal\recorder.cpp" />
-    <ClCompile Include="burn.cpp" />
+    <ClCompile Include="..\numerics\cbrt.cpp" />
+    <ClCompile Include="..\numerics\elliptic_functions.cpp" />
+    <ClCompile Include="..\numerics\elliptic_integrals.cpp" />
+    <ClCompile Include="..\physics\protector.cpp" />
     <ClCompile Include="celestial.cpp" />
+    <ClCompile Include="equator_relevance_threshold.cpp" />
     <ClCompile Include="flight_plan.cpp" />
     <ClCompile Include="identification.cpp" />
     <ClCompile Include="integrators.cpp" />
@@ -51,9 +82,11 @@
     <ClCompile Include="interface_future.cpp" />
     <ClCompile Include="interface_iterator.cpp" />
     <ClCompile Include="interface_monitor.cpp" />
+    <ClCompile Include="interface_part.cpp" />
     <ClCompile Include="interface_planetarium.cpp" />
     <ClCompile Include="interface_renderer.cpp" />
     <ClCompile Include="interface_vessel.cpp" />
+    <ClCompile Include="orbit_analyser.cpp" />
     <ClCompile Include="part.cpp" />
     <ClCompile Include="part_subsets.cpp" />
     <ClCompile Include="pile_up.cpp" />
@@ -70,5 +103,8 @@
       <Message>$([System.String]::Format($(PrincipiaGenerateProfilesMessage), %(FullPath)))</Message>
       <Outputs>$(PrincipiaGenerateProfilesOutputs)</Outputs>
     </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="principia.manifest" />
   </ItemGroup>
 </Project>

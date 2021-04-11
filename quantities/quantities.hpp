@@ -10,6 +10,7 @@
 
 #include "base/not_constructible.hpp"
 #include "base/not_null.hpp"
+#include "base/tags.hpp"
 #include "quantities/dimensions.hpp"
 #include "quantities/generators.hpp"
 #include "quantities/traits.hpp"
@@ -22,6 +23,7 @@ namespace internal_quantities {
 
 using base::not_constructible;
 using base::not_null;
+using base::uninitialized_t;
 using internal_dimensions::Dimensions;
 using internal_generators::ProductGenerator;
 using internal_generators::QuotientGenerator;
@@ -52,7 +54,8 @@ class Quantity final {
  public:
   using Dimensions = D;
 
-  constexpr Quantity();
+  constexpr Quantity() = default;
+  explicit constexpr Quantity(uninitialized_t);
 
   constexpr Quantity operator+() const;
   constexpr Quantity operator-() const;
@@ -79,7 +82,7 @@ class Quantity final {
 
  private:
   explicit constexpr Quantity(double magnitude);
-  double magnitude_;
+  double magnitude_ = 0;
 
   template<typename LDimensions, typename RDimensions>
   friend constexpr Product<Quantity<LDimensions>,
@@ -101,10 +104,6 @@ class Quantity final {
       Quantity<RDimensions> const& right);
 
   template<typename Q>
-  friend constexpr Q Infinity();
-  template<typename Q>
-  friend constexpr Q NaN();
-  template<typename Q>
   friend constexpr Q SIUnit();
 
   template<typename U>
@@ -124,23 +123,26 @@ template<typename RDimensions>
 constexpr Quotient<double, Quantity<RDimensions>>
 operator/(double, Quantity<RDimensions> const&);
 
-// Returns the base or derived SI Unit of |Q|.
-// For instance, |SIUnit<Action>() == Joule * Second|.
+// Used for implementing |si::Unit|.  Don't call directly, don't export from
+// this namespace.  Defined here to break circular dependencies.
 template<typename Q>
-constexpr Q SIUnit();
-// Returns 1.
-template<>
-constexpr double SIUnit<double>();
+constexpr Q SIUnit() { return Q(1); };
 
-// Returns a positive infinity of |Q|.
+// A positive infinity of |Q|.
 template<typename Q>
-constexpr Q Infinity();
+CONSTEXPR_INFINITY Q Infinity =
+    SIUnit<Q>() * std::numeric_limits<double>::infinity();
+// A quiet NaN of |Q|.
+template<typename Q>
+CONSTEXPR_INFINITY Q NaN =
+    SIUnit<Q>() * std::numeric_limits<double>::quiet_NaN();
+
 template<typename Q>
 constexpr bool IsFinite(Q const& x);
 
-// Returns a quiet NaN of |Q|.
-template<typename Q>
-constexpr Q NaN();
+
+template<typename D>
+std::string Format();
 
 std::string DebugString(
     double number,
@@ -159,6 +161,7 @@ using internal_quantities::Amount;
 using internal_quantities::Angle;
 using internal_quantities::Current;
 using internal_quantities::DebugString;
+using internal_quantities::Format;
 using internal_quantities::Infinity;
 using internal_quantities::IsFinite;
 using internal_quantities::Length;
@@ -166,7 +169,6 @@ using internal_quantities::LuminousIntensity;
 using internal_quantities::Mass;
 using internal_quantities::NaN;
 using internal_quantities::Quantity;
-using internal_quantities::SIUnit;
 using internal_quantities::Temperature;
 using internal_quantities::Time;
 

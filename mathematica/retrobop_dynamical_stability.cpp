@@ -32,9 +32,8 @@ using base::Bundle;
 using base::not_null;
 using base::Status;
 using base::GetLine;
-using base::HexadecimalDecode;
 using base::OFStream;
-using base::UniqueBytes;
+using base::UniqueArray;
 using geometry::BarycentreCalculator;
 using geometry::Instant;
 using geometry::Position;
@@ -143,24 +142,6 @@ constexpr std::array<Celestial, 6> jool_system =
     {Jool, Laythe, Vall, Tylo, Bop, Pol};
 constexpr std::array<Celestial, 5> jool_moons = {Laythe, Vall, Tylo, Bop, Pol};
 
-template<typename Message>
-std::unique_ptr<Message> Read(std::ifstream& file) {
-  std::string const line = GetLine(file);
-  if (line.empty()) {
-    return nullptr;
-  }
-  std::uint8_t const* const hexadecimal =
-      reinterpret_cast<std::uint8_t const*>(line.data());
-  int const hexadecimal_size = line.size();
-  UniqueBytes bytes(hexadecimal_size >> 1);
-  HexadecimalDecode({hexadecimal, hexadecimal_size},
-                    {bytes.data.get(), bytes.size});
-  auto message = std::make_unique<Message>();
-  CHECK(
-      message->ParseFromArray(bytes.data.get(), static_cast<int>(bytes.size)));
-  return std::move(message);
-}
-
 HierarchicalSystem<Barycentric>::BarycentricSystem MakeStabilizedKSPSystem() {
   static auto const& system = *[]() {
     auto* const system = new physics::SolarSystem<Barycentric>(
@@ -210,7 +191,9 @@ not_null<std::unique_ptr<Ephemeris<Barycentric>>> MakeEphemeris(
       std::move(system.bodies),
       system.degrees_of_freedom,
       ksp_epoch,
-      /*fitting_tolerance=*/1 * Milli(Metre),
+      Ephemeris<Barycentric>::AccuracyParameters(
+          /*fitting_tolerance=*/1 * Milli(Metre),
+          /*geopotential_tolerance=*/0x1p-24),
       Ephemeris<Barycentric>::FixedStepParameters(integrator, step));
 }
 
@@ -294,7 +277,7 @@ void ProduceCenturyPlots(Ephemeris<Barycentric>& ephemeris) {
   std::map<Celestial, Length> record_separation;
 
   for (Celestial const moon : jool_moons) {
-    last_separation_changes.emplace(moon, Sign(+1));
+    last_separation_changes.emplace(moon, Sign::Positive());
   }
   for (int n = 0; t < a_century_hence; ++n, t = ksp_epoch + n * Hour) {
     auto const jool_position = EvaluatePosition(ephemeris, Jool, t);
@@ -368,33 +351,46 @@ void ProduceCenturyPlots(Ephemeris<Barycentric>& ephemeris) {
   }
 
   OFStream file(TEMP_DIR / "retrobop_century.generated.wl");
-  file << Assign("laytheTimes", ExpressIn(Second, times_from_epoch[Laythe]));
-  file << Assign("vallTimes", ExpressIn(Second, times_from_epoch[Vall]));
-  file << Assign("tyloTimes", ExpressIn(Second, times_from_epoch[Tylo]));
-  file << Assign("polTimes", ExpressIn(Second, times_from_epoch[Pol]));
-  file << Assign("bopTimes", ExpressIn(Second, times_from_epoch[Bop]));
+  file << Assign("laytheTimes",
+                 times_from_epoch[Laythe], ExpressIn(Second));
+  file << Assign("vallTimes",
+                 times_from_epoch[Vall], ExpressIn(Second));
+  file << Assign("tyloTimes",
+                 times_from_epoch[Tylo], ExpressIn(Second));
+  file << Assign("polTimes",
+                 times_from_epoch[Pol], ExpressIn(Second));
+  file << Assign("bopTimes",
+                 times_from_epoch[Bop], ExpressIn(Second));
   file << Assign("laytheSeparations",
-                 ExpressIn(Metre, extremal_separations[Laythe]));
+                 extremal_separations[Laythe], ExpressIn(Metre));
   file << Assign("vallSeparations",
-                 ExpressIn(Metre, extremal_separations[Vall]));
+                 extremal_separations[Vall], ExpressIn(Metre));
   file << Assign("tyloSeparations",
-                 ExpressIn(Metre, extremal_separations[Tylo]));
-  file << Assign("polSeparations", ExpressIn(Metre, extremal_separations[Pol]));
-  file << Assign("bopSeparations", ExpressIn(Metre, extremal_separations[Bop]));
+                 extremal_separations[Tylo], ExpressIn(Metre));
+  file << Assign("polSeparations",
+                 extremal_separations[Pol], ExpressIn(Metre));
+  file << Assign("bopSeparations",
+                 extremal_separations[Bop], ExpressIn(Metre));
 
   file << Assign("bopEccentricities", bop_eccentricities);
-  file << Assign("bopInclinations", ExpressIn(Degree, bop_inclinations));
-  file << Assign("bopNodes", ExpressIn(Degree, bop_nodes));
-  file << Assign("bopArguments", ExpressIn(Degree, bop_arguments_of_periapsis));
+  file << Assign("bopInclinations",
+                 bop_inclinations, ExpressIn(Degree));
+  file << Assign("bopNodes",
+                 bop_nodes, ExpressIn(Degree));
+  file << Assign("bopArguments",
+                 bop_arguments_of_periapsis, ExpressIn(Degree));
   file << Assign("bopJacobiEccentricities", bop_jacobi_eccentricities);
   file << Assign("bopJacobiInclinations",
-                 ExpressIn(Degree, bop_jacobi_inclinations));
-  file << Assign("bopJacobiNodes", ExpressIn(Degree, bop_jacobi_nodes));
+                 bop_jacobi_inclinations, ExpressIn(Degree));
+  file << Assign("bopJacobiNodes",
+                 bop_jacobi_nodes, ExpressIn(Degree));
   file << Assign("bopJacobiArguments",
-                 ExpressIn(Degree, bop_jacobi_arguments_of_periapsis));
+                 bop_jacobi_arguments_of_periapsis, ExpressIn(Degree));
 
-  file << Assign("tyloBop", ExpressIn(Metre, tylo_bop_separations));
-  file << Assign("polBop", ExpressIn(Metre, pol_bop_separations));
+  file << Assign("tyloBop",
+                 tylo_bop_separations, ExpressIn(Metre));
+  file << Assign("polBop",
+                 pol_bop_separations, ExpressIn(Metre));
 }
 
 void ComputeHighestMoonError(Ephemeris<Barycentric> const& left,
@@ -445,11 +441,11 @@ void PlotPredictableYears() {
 
   OFStream file(TEMP_DIR / "retrobop_predictable_years.generated.wl");
   file << Assign("barycentricPositions1",
-                 ExpressIn(Metre, barycentric_positions_1_year));
+                 barycentric_positions_1_year, ExpressIn(Metre));
   file << Assign("barycentricPositions2",
-                 ExpressIn(Metre, barycentric_positions_2_year));
+                 barycentric_positions_2_year, ExpressIn(Metre));
   file << Assign("barycentricPositions5",
-                 ExpressIn(Metre, barycentric_positions_5_year));
+                 barycentric_positions_5_year, ExpressIn(Metre));
 }
 
 void PlotCentury() {
@@ -486,25 +482,22 @@ void AnalyseGlobalError() {
 
   for (int year = 1;; ++year) {
     Instant const t = ksp_epoch + year * JulianYear;
-    Bundle bundle{static_cast<int>(std::thread::hardware_concurrency() - 1)};
+    Bundle bundle;
     if (reference_ephemeris != nullptr) {
       bundle.Add([&reference_ephemeris = *reference_ephemeris, t]() {
         reference_ephemeris.Prolong(t);
-        reference_ephemeris.ForgetBefore(t);
         return Status::OK;
       });
     }
     if (refined_ephemeris != nullptr) {
       bundle.Add([&refined_ephemeris = *refined_ephemeris, t]() {
         refined_ephemeris.Prolong(t);
-        refined_ephemeris.ForgetBefore(t);
         return Status::OK;
       });
     }
     for (auto const& ephemeris : perturbed_ephemerides) {
       bundle.Add([ephemeris = ephemeris.get(), t]() {
         ephemeris->Prolong(t);
-        ephemeris->ForgetBefore(t);
         return Status::OK;
       });
     }
@@ -584,7 +577,7 @@ void StatisticallyAnalyseStability() {
 
   for (int year = 1; year <= 200; ++year) {
     Instant const t = ksp_epoch + year * JulianYear;
-    Bundle bundle{7};
+    Bundle bundle;
     for (auto const& ephemeris : perturbed_ephemerides) {
       bundle.Add([
         &numerically_unsound,
@@ -603,13 +596,13 @@ void StatisticallyAnalyseStability() {
             std::move(system.bodies),
             system.degrees_of_freedom,
             ephemeris->t_min(),
-            1 * Milli(Metre),
+            /*accuracy_parameters=*/{1 * Milli(Metre),
+                                     /*geopotential_tolerance=*/0x1p-24},
             Ephemeris<Barycentric>::FixedStepParameters(
                 SymplecticRungeKuttaNyströmIntegrator<BlanesMoan2002SRKN14A,
                                                       Position<Barycentric>>(),
                 step / 2));
         ephemeris->Prolong(t);
-        ephemeris->ForgetBefore(t);
         refined.Prolong(t);
         Length numerical_error;
         Celestial most_erroneous_moon;

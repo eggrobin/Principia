@@ -41,9 +41,6 @@
     <ClInclude Include="flight_plan.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="burn.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="interface.generated.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -69,6 +66,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="iterators_body.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="equator_relevance_threshold.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="orbit_analyser.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -86,9 +89,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="flight_plan.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="burn.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="interface_flight_plan.cpp">
@@ -154,8 +154,38 @@
     <ClCompile Include="interface_external.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\numerics\cbrt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="equator_relevance_threshold.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\physics\protector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="orbit_analyser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="interface_part.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\numerics\elliptic_functions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\numerics\elliptic_integrals.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\base\flags.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\base\zfp_compressor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\serialization\journal.proto" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="principia.manifest" />
   </ItemGroup>
 </Project>

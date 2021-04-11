@@ -36,16 +36,20 @@ using quantities::Variation;
 // using an embedded Runge-Kutta-Nyström method.  We follow the standard
 // conventions for the coefficients, i.e.,
 //   c for the nodes;
-//   a for the Runge-Kutta matrix;
+//   a for the position Runge-Kutta matrix;
 //   b̂ for the position weights of the high-order method;
 //   b̂′ for the velocity weights of the high-order method;
 //   b for the position weights of the low-order method;
 //   b′ for the velocity weights of the low-order method.
-// See Dormand, El-Mikkawy and Prince (1986),
-// Families of Runge-Kutta-Nyström formulae, for an example.
+// See [DEP87a], for an example.
+// Note that other notations exist for the weights: [ER03] and [Som93] call the
+// velocity weights d instead of b′, and [ACM06] call the position and velocity
+// weights β and b instead of b and b′.  Further, [Dor96] uses ā for the
+// Runge-Kutta matrix, and b̄ and b for the position and velocity weights.
+
 // In the implementation, we follow Dormand, El-Mikkawy and Prince in calling
 // the results of the right-hand-side evaluations gᵢ.  The notations kᵢ or fᵢ
-// also appear in the litterature.
+// also appear in the literature.
 // Since we are interested in physical applications, we call the solution q and
 // its derivative v, rather than the more common y and y′ found in the
 // literature on Runge-Kutta-Nyström methods.
@@ -88,12 +92,27 @@ class EmbeddedExplicitRungeKuttaNyströmIntegrator
 
     void WriteToMessage(
         not_null<serialization::IntegratorInstance*> message) const override;
+    template<typename P = Position,
+             typename = std::enable_if_t<base::is_serializable_v<P>>>
+    static not_null<std::unique_ptr<Instance>> ReadFromMessage(
+        serialization::
+            EmbeddedExplicitRungeKuttaNystromIntegratorInstance const&
+                extension,
+        IntegrationProblem<ODE> const& problem,
+        AppendState const& append_state,
+        ToleranceToErrorRatio const& tolerance_to_error_ratio,
+        Parameters const& parameters,
+        Time const& time_step,
+        bool first_use,
+        EmbeddedExplicitRungeKuttaNyströmIntegrator const& integrator);
 
    private:
     Instance(IntegrationProblem<ODE> const& problem,
              AppendState const& append_state,
              ToleranceToErrorRatio const& tolerance_to_error_ratio,
-             Parameters const& adaptive_step_size,
+             Parameters const& parameters,
+             Time const& time_step,
+             bool first_use,
              EmbeddedExplicitRungeKuttaNyströmIntegrator const& integrator);
 
     EmbeddedExplicitRungeKuttaNyströmIntegrator const& integrator_;
@@ -111,21 +130,13 @@ class EmbeddedExplicitRungeKuttaNyströmIntegrator
       const override;
 
  private:
-  not_null<std::unique_ptr<typename Integrator<ODE>::Instance>>
-  ReadFromMessage(
-      serialization::AdaptiveStepSizeIntegratorInstance const& message,
-      IntegrationProblem<ODE> const& problem,
-      AppendState const& append_state,
-      ToleranceToErrorRatio const& tolerance_to_error_ratio,
-      Parameters const& parameters) const override;
-
   static constexpr auto stages_ = Method::stages;
   static constexpr auto c_ = Method::c;
   static constexpr auto a_ = Method::a;
-  static constexpr auto b_hat_ = Method::b_hat;
-  static constexpr auto b_prime_hat_ = Method::b_prime_hat;
+  static constexpr auto b̂_ = Method::b̂;
+  static constexpr auto b̂ʹ_ = Method::b̂ʹ;
   static constexpr auto b_ = Method::b;
-  static constexpr auto b_prime_ = Method::b_prime;
+  static constexpr auto bʹ_ = Method::bʹ;
 };
 
 }  // namespace internal_embedded_explicit_runge_kutta_nyström_integrator

@@ -22,29 +22,35 @@ class JournalProtoProcessor final {
  public:
   void ProcessMessages();
 
-  // ksp_plugin_adapter/interface.cs
+  // ksp_plugin_adapter/interface.generated.cs
   std::vector<std::string> GetCsInterfaceMethodDeclarations() const;
-  std::vector<std::string> GetCsInterfaceTypeDeclarations() const;
+  std::vector<std::string> GetCsInterchangeTypeDeclarations() const;
 
-  // ksp_plugin/interface.hpp
+  // ksp_plugin_adapter/marshalers.generated.cs
+  std::vector<std::string> GetCsCustomMarshalerClasses() const;
+
+  // ksp_plugin/interface.generated.h
   std::vector<std::string> GetCxxInterfaceMethodDeclarations() const;
-  std::vector<std::string> GetCxxInterfaceTypeDeclarations() const;
+  std::vector<std::string> GetCxxInterchangeTypeDeclarations() const;
 
-  // journal/profiles.{hpp,cpp}
+  // journal/profiles.generated.{h,cc}
   std::vector<std::string> GetCxxInterchangeImplementations() const;
   std::vector<std::string> GetCxxMethodImplementations() const;
   std::vector<std::string> GetCxxMethodTypes() const;
 
-  // journal/player.cpp
+  // journal/player.generated.cc
   std::vector<std::string> GetCxxPlayStatements() const;
 
  private:
   void ProcessRepeatedMessageField(FieldDescriptor const* descriptor);
+  void ProcessRepeatedStringField(FieldDescriptor const* descriptor);
 
   void ProcessOptionalNonStringField(FieldDescriptor const* descriptor,
                                      std::string const& cs_boxed_type,
                                      std::string const& cs_unboxed_type,
                                      std::string const& cxx_type);
+  void ProcessOptionalScalarField(FieldDescriptor const* descriptor,
+                                  std::string const& cxx_type);
   void ProcessOptionalDoubleField(FieldDescriptor const* descriptor);
   void ProcessOptionalInt32Field(FieldDescriptor const* descriptor);
   void ProcessOptionalMessageField(FieldDescriptor const* descriptor);
@@ -53,11 +59,13 @@ class JournalProtoProcessor final {
   void ProcessRequiredFixed64Field(FieldDescriptor const* descriptor);
   void ProcessRequiredMessageField(FieldDescriptor const* descriptor);
   void ProcessRequiredBoolField(FieldDescriptor const* descriptor);
+  void ProcessRequiredBytesField(FieldDescriptor const* descriptor);
   void ProcessRequiredDoubleField(FieldDescriptor const* descriptor);
   void ProcessRequiredInt32Field(FieldDescriptor const* descriptor);
   void ProcessRequiredInt64Field(FieldDescriptor const* descriptor);
   void ProcessRequiredUint32Field(FieldDescriptor const* descriptor);
 
+  void ProcessSingleMessageField(FieldDescriptor const* descriptor);
   void ProcessSingleStringField(FieldDescriptor const* descriptor);
 
   void ProcessOptionalField(FieldDescriptor const* descriptor);
@@ -66,12 +74,17 @@ class JournalProtoProcessor final {
 
   void ProcessField(FieldDescriptor const* descriptor);
 
+  void ProcessAddressOf(Descriptor const* descriptor);
+
   void ProcessInOut(Descriptor const* descriptor,
                     std::vector<FieldDescriptor const*>* field_descriptors);
   void ProcessReturn(Descriptor const* descriptor);
 
   void ProcessInterchangeMessage(Descriptor const* descriptor);
   void ProcessMethodExtension(Descriptor const* descriptor);
+
+  bool HasMarshaler(FieldDescriptor const* descriptor) const;
+  std::string MarshalAs(FieldDescriptor const* descriptor) const;
 
   // As the recursive methods above traverse the protocol buffer type
   // declarations, they enter in the following maps (and set) various pieces of
@@ -98,17 +111,23 @@ class JournalProtoProcessor final {
   // present in |in_out_| are not in |out_|.
   std::set<FieldDescriptor const*> out_;
 
-  // For fields that have a (size) option, the name of the size member variable
-  // in the In or Out struct.  Special processing is required when filling those
-  // fields from the struct members.  No data for other fields.  This map is
-  // language-independent.
-  std::map<FieldDescriptor const*, std::string> size_member_name_;
+  // The fields that are returned.
+  std::set<FieldDescriptor const*> return_;
+
+  // The fields that are part of interchange messages.
+  std::set<FieldDescriptor const*> interchange_;
+
+  // For a field that has an (address_of) option, field_cxx_address_of_ has that
+  // field as a key and the field designated by the option as its value.
+  // field_cxx_address_ is the inverse map.
+  std::map<FieldDescriptor const*, FieldDescriptor const*>
+      field_cxx_address_of_;
+  std::map<FieldDescriptor const*, FieldDescriptor const*> field_cxx_address_;
 
   // For all fields, a lambda that takes the name of a local variable containing
   // data extracted (and deserialized) from the field and returns a list of
-  // expressions to be passed to the interface.  Deals with passing address and
-  // size for fields that have a size member, and with passing by reference for
-  // fields that are in-out or optional.
+  // expressions to be passed to the interface.  Deals with passing by reference
+  // for fields that are in-out or optional.
   std::map<FieldDescriptor const*,
            std::function<std::vector<std::string>(
                              std::string const& identifier)>>
@@ -138,7 +157,8 @@ class JournalProtoProcessor final {
   // field (typically something like |message.in().bar()|) and returns an
   // expression for the deserialized form of |expr| suitable for storing in a
   // local variable (typically a call to some Deserialize function, but other
-  // transformations are possible).
+  // transformations are possible).  Deals with arrays of pointers for repeated
+  // fields.
   std::map<FieldDescriptor const*,
            std::function<std::string(std::string const& expr)>>
       field_cxx_deserializer_fn_;
@@ -180,7 +200,7 @@ class JournalProtoProcessor final {
                                      std::string const& stmt)>>
       field_cxx_optional_assignment_fn_;
 
-  // For all fields, a lambda that takes a condition to take for the presence
+  // For all fields, a lambda that takes a condition to check for the presence
   // of an optional field (typically something like |message.in().has_bar()|)
   // and a deserialized expression for reading the field (typically the result
   // of |field_cxx_deserializer_fn_|) and returns a conditional expression for
@@ -198,12 +218,34 @@ class JournalProtoProcessor final {
            std::function<std::string(std::string const& expr)>>
       field_cxx_serializer_fn_;
 
-  // The C# attribute for marshalling a field.
-  std::map<FieldDescriptor const*, std::string> field_cs_marshal_;
+  // For fields that are implemented using private members, a lambda that takes
+  // the names of the members and returns the C# implementation of the getter
+  // and setter.
+  std::map<FieldDescriptor const*,
+           std::function<
+              std::string(std::vector<std::string> const& identifiers)>>
+      field_cs_private_getter_fn_;
+  std::map<FieldDescriptor const*,
+           std::function<
+              std::string(std::vector<std::string> const& identifiers)>>
+      field_cs_private_setter_fn_;
+
+  // The C# class for marshalling a field.  This may be either a custom
+  // marshaler (derived from ICustomMarshaler) or one predefined by .Net.  At
+  // most one is set for a given field.
+  std::map<FieldDescriptor const*, std::string> field_cs_custom_marshaler_;
+  std::map<FieldDescriptor const*, std::string> field_cs_predefined_marshaler_;
 
   // The C# type for a field, suitable for use in a private member when the
   // actual data cannot be exposed directly (think bool).
   std::map<FieldDescriptor const*, std::string> field_cs_private_type_;
+
+  // For fields that require deserialization storage, the C++ type and name of
+  // the storage object.
+  std::map<FieldDescriptor const*, std::string>
+      field_cxx_deserialization_storage_name_;
+  std::map<FieldDescriptor const*, std::string>
+      field_cxx_deserialization_storage_type_;
 
   // The C#/C++ type for a field, suitable for use in a member or parameter
   // declaration, in a typedef, etc.
@@ -234,13 +276,49 @@ class JournalProtoProcessor final {
 
   // The C#/C++ definition of a type corresponding to an interchange message.
   // The key is a descriptor for an interchange message.
-  std::map<Descriptor const*, std::string> cs_interface_type_declaration_;
-  std::map<Descriptor const*, std::string> cxx_interface_type_declaration_;
+  std::map<Descriptor const*, std::string> cs_interchange_type_declaration_;
+  std::map<Descriptor const*, std::string> cxx_interchange_type_declaration_;
 
-  // The definitions of the Serialize and Deserialize functions for interchange
-  // messages.  The key is a descriptor for an interchange message.
+  // The name of the C# class that implements a custom marshaler for an
+  // interchange message.
+  std::map<Descriptor const*, std::string> cs_custom_marshaler_name_;
+
+  // The definition of the C# class that implements a custom marshaler for an
+  // interchange message.
+  std::map<Descriptor const*, std::string> cs_custom_marshaler_class_;
+
+  // The C# declarations of fields in the Representation struct of a custom
+  // marshaler.
+  std::map<Descriptor const*, std::string> cs_representation_type_declaration_;
+
+  // The C# statements in the CleanUpNative, MarshalManagedToNative and
+  // MarshalNativeToManaged functions of a custom marshaller.
+  std::map<Descriptor const*, std::string> cs_clean_up_native_definition_;
+  std::map<Descriptor const*, std::string> cs_managed_to_native_definition_;
+  std::map<Descriptor const*, std::string> cs_native_to_managed_definition_;
+
+  // The definitions of the Serialize, Deserialize and (if needed) Insert
+  // functions for interchange messages.  The key is a descriptor for an
+  // interchange message.
   std::map<Descriptor const*, std::string> cxx_deserialize_definition_;
   std::map<Descriptor const*, std::string> cxx_serialize_definition_;
+  std::map<Descriptor const*, std::string> cxx_insert_definition_;
+
+  // For interchange messages that require deserialization storage, the
+  // arguments for the storage in the call to the Deserialize function.  Starts
+  // with a comma, arguments are comma-separated.
+  std::map<Descriptor const*, std::string>
+      cxx_deserialization_storage_arguments_;
+
+  // For interchange messages that require deserialization storage, the
+  // declaration of the storage in the caller of the Deserialize function.
+  std::map<Descriptor const*, std::string>
+      cxx_deserialization_storage_declarations_;
+
+  // For interchange messages that require deserialization storage, the
+  // parameters for the storage in the Deserialize function.
+  std::map<Descriptor const*, std::string>
+      cxx_deserialization_storage_parameters_;
 
   // The statements to be included in the body of the Play function.
   std::map<Descriptor const*, std::string> cxx_play_statement_;

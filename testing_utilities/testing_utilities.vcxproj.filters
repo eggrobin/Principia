@@ -86,6 +86,18 @@
     <ClInclude Include="is_near_body.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="approximate_quantity.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="approximate_quantity_body.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="numerics_matchers.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="numerics_matchers_body.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="almost_equals_test.cpp">
@@ -110,6 +122,12 @@
       <Filter>Test Files</Filter>
     </ClCompile>
     <ClCompile Include="is_near_test.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\numerics\cbrt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="approximate_quantity_test.cpp">
       <Filter>Test Files</Filter>
     </ClCompile>
   </ItemGroup>

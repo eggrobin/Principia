@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "base/traits.hpp"
 #include "geometry/barycentre_calculator.hpp"
 #include "quantities/quantities.hpp"
 #include "serialization/geometry.pb.h"
@@ -15,7 +16,7 @@ namespace geometry {
 namespace internal_point {
 
 using base::not_null;
-using quantities::is_quantity;
+using quantities::is_quantity_v;
 
 // Point<Vector> is an affine space on the vector space Vector. Vector should
 // be equipped with operators +, -, +=, -=, ==, !=, as well as Vector * Weight
@@ -48,13 +49,15 @@ class Point final {
   constexpr bool operator!=(Point const& right) const;
 
   void WriteToMessage(not_null<serialization::Point*> message) const;
+  template<typename V = Vector,
+           typename = std::enable_if_t<base::is_serializable_v<V>>>
   static Point ReadFromMessage(serialization::Point const& message);
 
  private:
   // This constructor allows for C++11 functional constexpr operators, and
   // possibly move-magic.
   // TODO(egg): We may want to reconsider this after we truly have C++14.
-  constexpr Point(Vector const& coordinates);
+  constexpr explicit Point(Vector const& coordinates);
 
   Vector coordinates_;
 
@@ -62,17 +65,17 @@ class Point final {
   friend Point<V> operator+(V const& translation, Point<V> const& point);
 
   template<typename V>
-  friend typename std::enable_if_t<is_quantity<V>::value, bool> operator<(
-      Point<V> const& left, Point<V> const& right);
+  friend constexpr typename std::enable_if_t<is_quantity_v<V>, bool>
+  operator<(Point<V> const& left, Point<V> const& right);
   template<typename V>
-  friend typename std::enable_if_t<is_quantity<V>::value, bool> operator<=(
-      Point<V> const& left, Point<V> const& right);
+  friend constexpr typename std::enable_if_t<is_quantity_v<V>, bool>
+  operator<=(Point<V> const& left, Point<V> const& right);
   template<typename V>
-  friend typename std::enable_if_t<is_quantity<V>::value, bool> operator>=(
-      Point<V> const& left, Point<V> const& right);
+  friend constexpr typename std::enable_if_t<is_quantity_v<V>, bool>
+  operator>=(Point<V> const& left, Point<V> const& right);
   template<typename V>
-  friend typename std::enable_if_t<is_quantity<V>::value, bool> operator>(
-      Point<V> const& left, Point<V> const& right);
+  friend constexpr typename std::enable_if_t<is_quantity_v<V>, bool>
+  operator>(Point<V> const& left, Point<V> const& right);
 
   template<typename V>
   friend std::string DebugString(Point<V> const& point);
@@ -87,20 +90,20 @@ Point<Vector> operator+(Vector const& translation,
                         Point<Vector> const& point);
 
 template<typename Vector>
-typename std::enable_if_t<is_quantity<Vector>::value, bool> operator<(
-    Point<Vector> const& left, Point<Vector> const& right);
+constexpr typename std::enable_if_t<is_quantity_v<Vector>, bool>
+operator<(Point<Vector> const& left, Point<Vector> const& right);
 
 template<typename Vector>
-typename std::enable_if_t<is_quantity<Vector>::value, bool> operator<=(
-    Point<Vector> const& left, Point<Vector> const& right);
+constexpr typename std::enable_if_t<is_quantity_v<Vector>, bool>
+operator<=(Point<Vector> const& left, Point<Vector> const& right);
 
 template<typename Vector>
-typename std::enable_if_t<is_quantity<Vector>::value, bool> operator>=(
-    Point<Vector> const& left, Point<Vector> const& right);
+constexpr typename std::enable_if_t<is_quantity_v<Vector>, bool>
+operator>=(Point<Vector> const& left, Point<Vector> const& right);
 
 template<typename Vector>
-typename std::enable_if_t<is_quantity<Vector>::value, bool> operator>(
-    Point<Vector> const& left, Point<Vector> const& right);
+constexpr typename std::enable_if_t<is_quantity_v<Vector>, bool>
+operator>(Point<Vector> const& left, Point<Vector> const& right);
 
 template<typename Vector>
 std::string DebugString(Point<Vector> const& point);

@@ -5,6 +5,7 @@
 #include <fstream>  // NOLINT(readability/streams)
 #include <iostream>  // NOLINT(readability/streams)
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "base/bundle.hpp"
@@ -19,6 +20,7 @@
 #include "physics/massive_body.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/named_quantities.hpp"
+#include "quantities/si.hpp"
 #include "mathematica/mathematica.hpp"
 #include "serialization/integrators.pb.h"
 #include "testing_utilities/integration.hpp"
@@ -56,6 +58,7 @@ using base::OFStream;
 using base::Status;
 using geometry::BarycentreCalculator;
 using geometry::Displacement;
+using geometry::Inertial;
 using geometry::InnerProduct;
 using geometry::Instant;
 using geometry::Velocity;
@@ -72,11 +75,11 @@ using quantities::Length;
 using quantities::Mass;
 using quantities::Pow;
 using quantities::Sin;
-using quantities::SIUnit;
 using quantities::Speed;
 using quantities::SpecificEnergy;
 using quantities::Stiffness;
 using quantities::Time;
+using quantities::si::Degree;
 using quantities::si::Joule;
 using quantities::si::Kilogram;
 using quantities::si::Metre;
@@ -93,6 +96,7 @@ using testing_utilities::ComputeKeplerAcceleration;
 using ::std::placeholders::_1;
 using ::std::placeholders::_2;
 using ::std::placeholders::_3;
+namespace si = quantities::si;
 
 namespace mathematica {
 
@@ -203,13 +207,13 @@ class WorkErrorGraphGenerator {
       ODE::SystemState initial_state,
       std::function<Errors(ODE::SystemState const&)> compute_errors,
       Instant const& tmax,
-      std::string const& problem_name)
+      std::string problem_name)
       : methods_(Methods()),
-        compute_accelerations_(compute_accelerations),
-        initial_state_(initial_state),
-        compute_errors_(compute_errors),
+        compute_accelerations_(std::move(compute_accelerations)),
+        initial_state_(std::move(initial_state)),
+        compute_errors_(std::move(compute_errors)),
         tmax_(tmax),
-        problem_name_(problem_name) {
+        problem_name_(std::move(problem_name)) {
     q_errors_.resize(methods_.size());
     v_errors_.resize(methods_.size());
     e_errors_.resize(methods_.size());
@@ -225,7 +229,7 @@ class WorkErrorGraphGenerator {
   std::string GetMathematicaData() {
     LOG(INFO) << "Using " << std::thread::hardware_concurrency()
               << " worker threads";
-    Bundle bundle(/*workers=*/std::thread::hardware_concurrency());
+    Bundle bundle;
     for (int method_index = 0; method_index < methods_.size(); ++method_index) {
       for (int time_step_index = 0;
            time_step_index < integrations_per_integrator_;
@@ -249,7 +253,7 @@ class WorkErrorGraphGenerator {
           PlottableDataset(evaluations_[i], v_errors_[i]));
       e_error_data.emplace_back(
           PlottableDataset(evaluations_[i], e_errors_[i]));
-      names.emplace_back(Escape(methods_[i].name));
+      names.emplace_back(ToMathematica(methods_[i].name));
     }
     std::string result;
     result += Assign("qErrorData", q_error_data);
@@ -295,8 +299,8 @@ class WorkErrorGraphGenerator {
                           << amortized_evaluations << " amortized) with "
                           << method.name;
     // We plot the maximum error, i.e., the L∞ norm of the error.
-    // Blanes and Moan (2002), or Blanes, Casas and Ros (2001) tend to use
-    // the average error (the normalized L¹ norm) instead.
+    // [BM02] or [BCR01a] tend to use the average error (the normalized L¹ norm)
+    // instead.
     q_errors_[method_index][time_step_index] = max_q_error;
     v_errors_[method_index][time_step_index] = max_v_error;
     e_errors_[method_index][time_step_index] = max_e_error;
@@ -331,7 +335,7 @@ void GenerateSimpleHarmonicMotionWorkErrorGraphs() {
   Length const q_amplitude = 1 * Metre;
   Speed const v_amplitude = 1 * Metre / Second;
   AngularFrequency const ω = 1 * Radian / Second;
-  Stiffness const k = SIUnit<Stiffness>();
+  Stiffness const k = si::Unit<Stiffness>;
   Mass const m = 1 * Kilogram;
 
   initial_state.positions.emplace_back(q_amplitude);
@@ -364,16 +368,16 @@ void GenerateSimpleHarmonicMotionWorkErrorGraphs() {
 void GenerateKeplerProblemWorkErrorGraphs(double const eccentricity) {
   ODE::SystemState initial_state;
   Instant const t0;
-  GravitationalParameter const μ = SIUnit<GravitationalParameter>();
+  GravitationalParameter const μ = si::Unit<GravitationalParameter>;
   MassiveBody b1(μ);
   MasslessBody b2;
 
-  using World = geometry::Frame<serialization::Frame::TestTag,
-                                serialization::Frame::TEST,
-                                /*frame_is_inertial=*/true>;
+  using World = geometry::Frame<enum class WorldTag, Inertial>;
   KeplerianElements<World> elements;
   elements.semimajor_axis = 1 * Metre;
   elements.eccentricity = eccentricity;
+  elements.argument_of_periapsis = 0 * Degree;
+  elements.true_anomaly = 0 * Degree;
   KeplerOrbit<World> const orbit(b1, b2, elements, t0);
 
   auto const initial_dof = orbit.StateVectors(t0);

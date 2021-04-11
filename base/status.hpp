@@ -40,6 +40,9 @@
 
 #include "glog/logging.h"
 
+// TODO(phl): Many of the functions in this file should be made constexpr.
+// Also, we should use string_view.
+
 namespace principia {
 namespace base {
 
@@ -65,12 +68,15 @@ enum class Error {
   DATA_LOSS = 15,
 };
 
-std::string ErrorToString(Error const error);
+Error operator|(Error left, Error right);
+Error& operator|=(Error& left, Error right);
+
+std::string ErrorToString(Error error);
 
 class Status final {
  public:
   // Creates a "successful" status.
-  Status();
+  Status() = default;
 
   Status(Error error, std::string const& message);
 
@@ -93,9 +99,13 @@ class Status final {
   std::string ToString() const;
 
  private:
-  Error error_;
+  Error error_ = Error::OK;
   std::string message_;
 };
+
+inline Status const& GetStatus(Status const& s) {
+  return s;
+}
 
 // Prints a human-readable representation of |s| to |os|.
 std::ostream& operator<<(std::ostream& os, Status const& s);
@@ -107,7 +117,8 @@ std::ostream& operator<<(std::ostream& os, Status const& s);
 #define RETURN_IF_ERROR(expr)                                                \
   do {                                                                       \
     /* Using _status below to avoid capture problems if expr is "status". */ \
-    ::principia::base::Status const _status = (expr);                        \
+    ::principia::base::Status const _status =                                \
+        (::principia::base::GetStatus(expr));                                \
     if (!_status.ok())                                                       \
       return _status;                                                        \
   } while (false)

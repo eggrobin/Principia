@@ -21,12 +21,11 @@ class ParallelTestRunner {
     return (T)Enum.Parse(typeof(T), value, true);
   }
 
-  const string vsinstr =
-      @"C:\Program Files (x86)\Microsoft Visual Studio\Preview\Enterprise\" +
+  private const string vsinstr =
+      @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\" +
       @"Team Tools\Performance Tools\x64\vsinstr.exe";
 
   static Task RunProcessAsync(string file_name, string args) {
-    var task_completion_source = new TaskCompletionSource<bool>();
     var process = new Process{StartInfo = {FileName = file_name,
                                            Arguments = args,
                                            UseShellExecute = false,
@@ -45,7 +44,9 @@ class ParallelTestRunner {
   static void Main(string[] args) {
     Granularity? granularity_option = null;
     bool? instrument_option = null;
-    
+    bool? also_run_disabled_tests_option = null;
+    string filter_option = null;
+
     var death_test_processes = new List<Process>();
     var processes = new List<Process>();
     int test_process_counter = 0;
@@ -54,25 +55,36 @@ class ParallelTestRunner {
 
     foreach (string arg in args) {
       if (arg.StartsWith("--") && arg.Contains(":")) {
-        string[] split =
-            arg.Split(new string[]{"--", ":"}, StringSplitOptions.None);
+        string[] split = arg.Split(new []{"--", ":"}, StringSplitOptions.None);
         string option = split[1];
         string value = split[2];
         if (option == "granularity") {
           granularity_option = ParseEnum<Granularity>(value);
         } else if (option == "instrument") {
           instrument_option = bool.Parse(value);
+        } else if (option == "also_run_disabled_tests") {
+          also_run_disabled_tests_option = bool.Parse(value);
+        } else if (option == "filter") {
+          filter_option = value;
         } else {
           Console.WriteLine("Unknown option " + option);
           Environment.Exit(1);
         }
         continue;
       }
-      Granularity granularity =
-          granularity_option.GetValueOrDefault(Granularity.Test);
-      bool instrument = instrument_option.GetValueOrDefault(false);
+      Granularity granularity = granularity_option ?? Granularity.Test;
+      bool instrument = instrument_option ?? false;
+      bool also_run_disabled_tests = also_run_disabled_tests_option ?? false;
+      string filter = filter_option;
       granularity_option = null;
       instrument_option = null;
+      filter_option = null;
+
+      if (filter != null && granularity == Granularity.Package) {
+        Console.WriteLine(
+            "--filter is not supported with --granularity:Package");
+        Environment.Exit(1);
+      }
 
       string[] test_binaries = Directory.GetFiles(arg, "*_tests.exe");
       foreach (string test_binary in test_binaries) {
@@ -81,31 +93,45 @@ class ParallelTestRunner {
               RunProcessAsync(vsinstr, "/coverage \"" + test_binary + "\""));
         }
         if (granularity == Granularity.Package) {
-          var process = new Process();
-          process.StartInfo.UseShellExecute = false;
-          process.StartInfo.RedirectStandardOutput = true;
-          process.StartInfo.RedirectStandardError = true;
-          process.StartInfo.FileName = test_binary;
-          process.StartInfo.Arguments = "--gtest_filter=-*DeathTest.*";
+          var process = new Process{
+              StartInfo = {
+                  UseShellExecute = false,
+                  RedirectStandardOutput = true,
+                  RedirectStandardError = true,
+                  FileName = test_binary,
+                  Arguments = "--gtest_filter=-*DeathTest.*"
+              }
+          };
           process.StartInfo.Arguments +=
               " --gtest_output=xml:TestResults\\gtest_results_" +
               test_process_counter++ + ".xml";
           processes.Add(process);
-          process = new Process();
-          process.StartInfo.UseShellExecute = false;
-          process.StartInfo.RedirectStandardOutput = false;
-          process.StartInfo.RedirectStandardError = false;
-          process.StartInfo.FileName = test_binary;
-          process.StartInfo.Arguments = "--gtest_filter=*DeathTest.*";
+          process = new Process{
+              StartInfo = {
+                  UseShellExecute = false,
+                  RedirectStandardOutput = false,
+                  RedirectStandardError = false,
+                  FileName = test_binary,
+                  Arguments = "--gtest_filter=*DeathTest.*"
+              }
+          };
           process.StartInfo.Arguments +=
               " --gtest_output=xml:TestResults\\gtest_results_" +
               test_process_counter++ + ".xml";
+          if (also_run_disabled_tests) {
+            process.StartInfo.Arguments += " --gtest_also_run_disabled_tests";
+          }
           death_test_processes.Add(process);
           continue;
         }
-        var info = new ProcessStartInfo(test_binary, "--gtest_list_tests");
-        info.UseShellExecute = false;
-        info.RedirectStandardOutput = true;
+        var info = new ProcessStartInfo(
+            test_binary,
+            filter == null
+                ? "--gtest_list_tests"
+                : $"--gtest_list_tests --gtest_filter={filter}"){
+            UseShellExecute = false,
+            RedirectStandardOutput = true
+        };
         var list_tests = Process.Start(info);
         var output = list_tests.StandardOutput;
         string test_case = null;
@@ -116,15 +142,22 @@ class ParallelTestRunner {
             test_case = line;
             is_death_test = Regex.Match(line, ".*DeathTest").Success;
             if (granularity == Granularity.TestCase) {
-              var process = new Process();
-              process.StartInfo.UseShellExecute = false;
-              process.StartInfo.RedirectStandardOutput = true;
-              process.StartInfo.RedirectStandardError = true;
-              process.StartInfo.FileName = test_binary;
-              process.StartInfo.Arguments = "--gtest_filter=" + test_case + "*";
+              var process = new Process{
+                  StartInfo = {
+                      UseShellExecute = false,
+                      RedirectStandardOutput = true,
+                      RedirectStandardError = true,
+                      FileName = test_binary,
+                      Arguments = "--gtest_filter=" + test_case + "*"
+                  }
+              };
               process.StartInfo.Arguments +=
                   " --gtest_output=xml:TestResults\\gtest_results_" +
                   test_process_counter++ + ".xml";
+              if (also_run_disabled_tests) {
+                process.StartInfo.Arguments +=
+                    " --gtest_also_run_disabled_tests";
+              }
               if (is_death_test.Value) {
                 death_test_processes.Add(process);
               } else {
@@ -132,17 +165,23 @@ class ParallelTestRunner {
               }
             }
           } else if (granularity == Granularity.Test) {
-            var process = new Process();
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.RedirectStandardError = true;
-            process.StartInfo.FileName = test_binary;
-            process.StartInfo.Arguments =
-               Encoding.Default.GetString(Encoding.UTF8.GetBytes(
-                    "--gtest_filter=" + test_case + line.Split(' ')[2]));
+            var process = new Process{
+                StartInfo = {
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    FileName = test_binary,
+                    Arguments = Encoding.Default.GetString(
+                        Encoding.UTF8.GetBytes(
+                            "--gtest_filter=" + test_case + line.Split(' ')[2]))
+                }
+            };
             process.StartInfo.Arguments +=
                 " --gtest_output=xml:TestResults\\gtest_results_" +
                 test_process_counter++ + ".xml";
+            if (also_run_disabled_tests) {
+              process.StartInfo.Arguments += " --gtest_also_run_disabled_tests";
+            }
             if (is_death_test.Value) {
               death_test_processes.Add(process);
             } else {

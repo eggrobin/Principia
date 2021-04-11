@@ -16,13 +16,13 @@
 namespace principia {
 namespace quantities {
 
-using astronomy::EarthMass;
+using astronomy::JovianGravitationalParameter;
 using astronomy::JulianYear;
-using astronomy::JupiterMass;
 using astronomy::LightYear;
 using astronomy::Parsec;
-using astronomy::SolarMass;
+using astronomy::TerrestrialGravitationalParameter;
 using constants::ElectronMass;
+using constants::ProtonMass;
 using constants::SpeedOfLight;
 using si::Ampere;
 using si::Candela;
@@ -49,7 +49,8 @@ class QuantitiesTest : public testing::Test {};
 using QuantitiesDeathTest = QuantitiesTest;
 
 TEST_F(QuantitiesTest, DimensionfulComparisons) {
-  testing_utilities::TestOrder(EarthMass, JupiterMass);
+  testing_utilities::TestOrder(TerrestrialGravitationalParameter,
+                               JovianGravitationalParameter);
   testing_utilities::TestOrder(LightYear, Parsec);
   testing_utilities::TestOrder(-SpeedOfLight, SpeedOfLight);
   testing_utilities::TestOrder(SpeedOfLight * Day, LightYear);
@@ -59,10 +60,10 @@ TEST_F(QuantitiesTest, DimensionlfulOperations) {
   testing_utilities::TestVectorSpace(
       0 * Metre / Second, SpeedOfLight, 88 * Mile / Hour,
       -340.29 * Metre / Second, 0.0, 1.0, -2 * π, 1729.0, 0, 2);
-  // Dimensionful multiplication is a tensor product, see [Tao 2012].
+  // Dimensionful multiplication is a tensor product, see [Tao12].
   testing_utilities::TestBilinearMap(
-      std::multiplies<>(), SolarMass,
-      ElectronMass, SpeedOfLight, 1 * Furlong / JulianYear, -e, 0, 2);
+      std::multiplies<>(), ProtonMass, ElectronMass, SpeedOfLight,
+      1 * Furlong / JulianYear, -e, 0, 2);
 }
 
 // The Greek letters cause a warning when stringified by the macros, because
@@ -75,24 +76,24 @@ TEST_F(QuantitiesTest, Formatting) {
   std::string const expected = "+1e+00 m kg s A K mol^-1 cd^-1 rad^-3";
   std::string const actual = DebugString(all_the_units, 0);
   EXPECT_EQ(expected, actual);
-  std::string const π17 = "\\+3\\.1415926535897931.e\\+00";
+  std::string const π17 = R"(\+3\.1415926535897931.e\+00)";
   EXPECT_THAT(DebugString(π), MatchesRegex(π17));
-  std::string const minus_e17 = "\\-2\\.718281828459045..e\\+00";
+  std::string const minus_e17 = R"(\-2\.718281828459045..e\+00)";
   EXPECT_THAT(DebugString(-e), MatchesRegex(minus_e17));
 }
 
 #pragma warning(default: 4566)
 
 TEST_F(QuantitiesTest, RotationalUnits) {
-  EXPECT_THAT(SIUnit<AngularFrequency>(), Eq(Radian / Second));
-  EXPECT_THAT(SIUnit<AngularAcceleration>(), Eq(Radian / Pow<2>(Second)));
+  EXPECT_THAT(si::Unit<AngularFrequency>, Eq(Radian / Second));
+  EXPECT_THAT(si::Unit<AngularAcceleration>, Eq(Radian / Pow<2>(Second)));
   // SI Brochure 8th edition, 2006, updated in 2014, Section 2.2.2:
   // For example, the quantity torque may be thought of as the cross product of
   // force and distance, suggesting the unit newton metre, or it may be thought
   // of as energy per angle, suggesting the unit joule per radian.
   // But we do things differently, see the comment in the declaration of
   // MomentOfInertia.
-  EXPECT_THAT(SIUnit<Torque>(), Eq(Joule * Radian));
+  EXPECT_THAT(si::Unit<Torque>, Eq(Joule * Radian));
 }
 
 TEST_F(QuantitiesTest, IsFinite) {
@@ -112,7 +113,8 @@ TEST_F(QuantitiesDeathTest, SerializationError) {
     serialization::Quantity message;
     message.set_dimensions(0x7C00);
     message.set_magnitude(1.0);
-    Speed const speed_of_light = Speed::ReadFromMessage(message);
+    [[maybe_unused]] Speed const speed_of_light =
+        Speed::ReadFromMessage(message);
   }, "representation.*dimensions");
 }
 

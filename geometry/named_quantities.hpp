@@ -1,32 +1,17 @@
 ﻿
 #pragma once
 
-#include "base/void_if_exists.hpp"
+#include <type_traits>
+
 #include "geometry/affine_map.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
+#include "geometry/symmetric_bilinear_form.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 
 namespace principia {
 namespace geometry {
-
-// A trait to treat types that have a norm uniformly (using Abs for quantities
-// or double, and Norm for multivectors).
-template<typename T,
-         typename =
-             base::void_if_exists<decltype(quantities::Abs(std::declval<T>()))>>
-struct Normed : base::not_constructible {
-  using NormType = T;
-  static NormType Norm(T const& vector);
-};
-
-template<typename T>
-struct Normed<T, base::void_if_exists<decltype(std::declval<T>().Norm())>>
-    : base::not_constructible {
-  using NormType = decltype(std::declval<T>().Norm());
-  static NormType Norm(T const& vector);
-};
 
 using Instant = Point<quantities::Time>;
 template<typename Frame>
@@ -45,7 +30,9 @@ template<typename FromFrame, typename ToFrame>
 using RigidTransformation =
     AffineMap<FromFrame, ToFrame, quantities::Length, OrthogonalMap>;
 
+template<typename Frame>
+using InertiaTensor =
+    SymmetricBilinearForm<quantities::MomentOfInertia, Frame, Bivector>;
+
 }  // namespace geometry
 }  // namespace principia
-
-#include "geometry/named_quantities_body.hpp"

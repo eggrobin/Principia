@@ -37,7 +37,7 @@
 
 \RequirePackage{relsize}
 
-\RequirePackage[slash-delimiter=frac]{unicode-math}
+\RequirePackage[slash-delimiter=frac, mathrm=sym, mathit=sym, mathsf=sym, mathbf=sym, mathtt=sym]{unicode-math}
 \setmathfont[Scale=MatchLowercase, math-style=ISO]{Cambria Math}
 \setmathfont[Scale=MatchLowercase, range={\mathcal,\mathbfcal}]{TeX Gyre Pagella Math}
 
@@ -123,7 +123,7 @@
   \ifv@ \ht\tw@\ht\z@ \dp\tw@\dp\z@\fi
   \ifh@ \wd\tw@-\wd\z@\fi \box\tw@}
 
-% This is a well-known hack.
+% This is a well-known hack, see https://tex.stackexchange.com/a/2610.
 
 \newcommand\@delimiterWrapper[3]{\mathopen{}\mathclose\bgroup #1 #2\aftergroup\egroup #3}
 
@@ -140,52 +140,25 @@
 \fi
 }
 
-% The dance with \(n)phantoms typesets the content first,
-% then the left bracket and finally the right one. XeLaTeX
-% does weird stuff when mathmode starts with a delimiter 
-% containing only a vphantom.
 \def\DeclareDelimiterX#1[#2]#3#4#5 {
   \DeclareRobustCommand{#1}[#2]{
     \if@delimsize
       #5
     \else
       \begingroup
-        \mathopen{}
         \@delimsizetrue
-        \hphantom{
-          \@delimiterWrapper{\left#3}{
-            \vphantom{#5}
-            {\kern-\nulldelimiterspace}
-          }{\right.}
-          \kern-\nulldelimiterspace
-        }
-        \def\@delimcontent{#5}
-        \@delimsizefalse
-        {#5}
-        \nhphantom{#5}
-        \@delimsizetrue
-        \nhphantom{
-          \@delimiterWrapper{\left#3}{
-            \vphantom{#5}
-            {\kern-\nulldelimiterspace}
-          }{\right.}
-          \kern-\nulldelimiterspace
-        }
         \@delimiterWrapper{\left#3}{
           \vphantom{#5}
           {\kern-\nulldelimiterspace}
         }{\right.}
-        \kern-\nulldelimiterspace
+        \def\@delimcontent{#5}
         \@delimsizefalse
-        \hphantom{#5}
-        \mathclose{
+        {#5}
         \@delimsizetrue
-        \kern-\nulldelimiterspace
         \@delimiterWrapper{\left.}{
           {\kern-\nulldelimiterspace}
           \vphantom{#5}
         }{\right#4}
-        }
       \endgroup
     \fi
   }
@@ -206,7 +179,7 @@
 \@mathraisebox[\displaystyle]{.75pt}{
   \operatorname*{
     \left.{\kern-\nulldelimiterspace}
-    \vphantom{#3}\vphantom{\mathlarger{{\integralSign}}} 
+    \vphantom{#3}\vphantom{\mathlarger{{\integralSign}}}
     \middle
     \@delint
     \right.{\kern-\nulldelimiterspace}
@@ -230,12 +203,12 @@
 
 \makeatother
 
-%%% end Voodoo 
+%%% end Voodoo
 
 % We need ^ and _ to be active in order to ignore
-% them when sizing brackets. Beware that 
+% them when sizing brackets. Beware that
 % ^\frac{1}{2} will no longer work, use
-% ^{\frac{1}{2}} instead. (^, _, now work as normal 
+% ^{\frac{1}{2}} instead. (^, _, now work as normal
 % commands).
 
 \mathcode`\^="8000
@@ -280,11 +253,11 @@
 \let\@bar\bar
 \renewcommand\bar[1]{\if@delimsize{}\else\@bar{#1}\fi}
 \makeatother
- 
-\AtBeginDocument{   
+
+\AtBeginDocument{
 
 
-% Use the proper unicode line extender for long arrows in x*arrow, instead of 
+% Use the proper unicode line extender for long arrows in x*arrow, instead of
 % the minus sign which leads to holes in the arrows.
 \renewcommand{\relbar}{\mathrel{\harrowextender}}
 
@@ -316,7 +289,7 @@
 \DeclareDelimiterX\lsquareCommaLsquare[2]{[}{[}{#1, #2}
 \DeclareDelimiterX\rsquareCommaRsquare[2]{]}{]}{#1, #2}
 \DeclareDelimiterX\rsquareCommaLsquare[2]{]}{[}{#1, #2}
-\DeclareDelimiterX\langleBarRangle[2]{\langle}{\rangle}{#1\delimsize\vert #2} 
+\DeclareDelimiterX\langleBarRangle[2]{\langle}{\rangle}{#1\delimsize\vert #2}
 \DeclareDelimiterX\langleCommaRangle[2]{\langle}{\rangle}{#1, #2}
 \DeclareDelimiterX\lAngleCommaRAngle[2]{\lAngle}{\rAngle}{#1, #2}
 \DeclareDelimiterX\lparenCommaRparen[2]{\lparen}{\rparen}{#1, #2}
@@ -360,19 +333,35 @@
 
 %%% Operators, standard functions.
 %% Prefix operators and functions.
-% \DiracDelta[x] is the dirac delta distribution, with \DiracDelta[x]\of y = 0 
+% \DiracDelta[x] is the dirac delta distribution, with \DiracDelta[x]\of y = 0
 % for all x \neq 0. \DiracDelta is a shorter notation for \DiracDelta[0].
 \newcommand{\DiracDelta}[1][]{\operatorname{\delta}_{#1}}
 % \RiemannZeta is Riemann's zeta function.
 \newcommand{\RiemannZeta}{\operatorname{\StandardSymbol \zeta}}
 % \Gamma is the Euler's gamma function.
-\renewcommand{\Gamma}{\operatorname{\capitalGamma}}
-% \HyperbolicCosine is the hyperbolic cosine.
+\renewcommand{\Gamma}{\operatorname{\StandardSymbol \capitalGamma}}
+% Trigonometric functions.
+\DeclareMathOperator{\TrigonometricTangent}{tg}
+% Inverse trigonometric functions.
+\DeclareMathOperator{\InverseTrigonometricTangent}{arctg}
+% Hyperbolic functions.
 \DeclareMathOperator{\HyperbolicCosine}{ch}
-% \HyperbolicSine is the hyperbolic cosine.
 \DeclareMathOperator{\HyperbolicSine}{sh}
-% \HyperbolicTangent is the hyperbolic cosine.
 \DeclareMathOperator{\HyperbolicTangent}{th}
+\DeclareMathOperator{\HyperbolicSecant}{sech}
+% Inverse hyperbolic functions.
+\DeclareMathOperator{\InverseHyperbolicTangent}{argth}
+% SI units.
+\DeclareMathOperator{\Radian}{rad}
+% Jacobian elliptic functions.
+\DeclareMathOperator{\JacobiCN}{cn}
+\DeclareMathOperator{\JacobiDN}{dn}
+\DeclareMathOperator{\JacobiSC}{sc}
+\DeclareMathOperator{\JacobiSD}{sd}
+\DeclareMathOperator{\JacobiSN}{sn}
+\DeclareMathOperator{\JacobiAmplitude}{am}
+% Elliptic integrals.
+\DeclareMathOperator{\EllipticPi}{\StandardSymbol\capitalPi}
 % \Sign is the sign function.
 \DeclareMathOperator{\Sign}{sgn}
 % \Laplacian is the Laplacian.
@@ -426,9 +415,11 @@
 \newcommand{\Closure}[1]{\overline{#1}}
 % f\der is a compact notation for the derivative of f.
 \newcommand{\der}{'}
+% f\dersecond is the second derivative.
+\newcommand{\dersecond}{''}
 %% Many-argument operators.
 % \deriv[n] x f is the nth derivative of f with respect to x.
-% Use \deriv x f for the first derivative, and 
+% Use \deriv x f for the first derivative, and
 % \derivop[n] x for the operator 'nth derivative with respect to x.
 \newcommand\deriv[3][]{\frac{\diffd^{#1} {#3}}{{\diffd {#2}}^{#1}}}
 \newcommand{\derivop}[2][]{\deriv[#1]{#2}{}}
@@ -444,6 +435,12 @@
 \newcommand{\pdop}[1]{\partial^{#1}}
 % \int, \prod and \sum are respectively integration, product and summation over a space
 % indicated below. An optional second argument (upper bound) can follow, within square brackets.
+
+\newcommand{\LegendrePolynomial}[1]{\operatorname{\StandardSymbol P}_{#1}}
+% This is the non-ISO normalization, with both indices below.
+\newcommand{\AssociatedLegendreFunctionAstro}[2]{\operatorname{\StandardSymbol P}_{{#1}{#2}}}
+% This is the ISO normalization, with one index below and one above.
+\newcommand{\AssociatedLegendreFunctionQM}[2]{\operatorname{\StandardSymbol P}_{#1}^{#2}}
 
 \DeclareDocumentCommand\int{m O{}}{\mathchoice
 {\scalingIntegralSign{#1}{#2}{}}
@@ -554,7 +551,7 @@
 % we use \emptyDotEmpty as per ISO 80000-2:2009.
 \newcommand\InnerProduct[2]{\emptyDotEmpty{#1}{#2}}
 % \pascal is used for expressions which need to be parenthesised if the notation for the
-% scalar product \InnerProduct does not include delimiters, e.g. \emptyDotEmpty, but should not be if 
+% scalar product \InnerProduct does not include delimiters, e.g. \emptyDotEmpty, but should not be if
 % it does, e.g. \angleCommaAngle. 'pascal' stands for pa[rentheses] scal[ar].
 % Set \NeedPascal accordingly.
 \newif\ifNeedPascal \NeedPascaltrue
@@ -643,9 +640,12 @@
 \newcommand{\vx}{\VectorSymbol x}
 \newcommand{\vy}{\VectorSymbol y}
 \newcommand{\vz}{\VectorSymbol z}
+\newcommand{\vA}{\VectorSymbol A}
+\newcommand{\vB}{\VectorSymbol B}
 \newcommand{\vF}{\VectorSymbol F}
 \newcommand{\vQ}{\VectorSymbol Q}
 \newcommand{\vP}{\VectorSymbol P}
+\newcommand{\vX}{\VectorSymbol X}
 
 \newcommand{\miga}{{\MultiIndexSymbol \alpha}}
 \newcommand{\migb}{{\MultiIndexSymbol \beta}}
@@ -768,7 +768,7 @@
 % as in 'if f is linear, f\of{\gl\placeholder}=\gl f.'
 \newcommand\placeholder{\mbox{\:\cdot\:}}
 % \funcspec{f}{X}{Y} specifies that f is a function from X to Y.
-% \MapSpec [f] X Y does the same, in a more compact notation 
+% \MapSpec [f] X Y does the same, in a more compact notation
 % appropriate for chains, eg \MapSpec [f] X {\MapSpec [g] Y Z}
 \newcommand{\MapSpec}[3][]{
 \ifstrempty{#1}%
@@ -827,7 +827,7 @@
 \newcommand\Z\Integers
 \newcommand\Q\Rationals
 \newcommand\R\Reals
-\renewcommand\C\Complexes
+\newcommand\C\Complexes
 
 \newcommand{\FreeGroup}[1]{\operatorname{F}_{#1}}
 \newcommand{\GroupGeneratedBy}[1]{\angleBrackets{#1}}
@@ -853,13 +853,13 @@
 \newcommand{\Intersection}{\cap}
 \newcommand{\SymmetricDifference}{\bigtriangleup}
 \newcommand{\DefineAs}{\coloneq}
-% When using ComputerModern, Subset will be undefined, 
+% When using ComputerModern, Subset will be undefined,
 % but it will be defined when using Utopia, so we use
 % a \def.
 \def\Subset{\subseteq}
 \def\Superset{\supseteq}
 \newcommand{\StrictSubset}{\subsetneq}
-% \Character[\gr] is the character of the 
+% \Character[\gr] is the character of the
 % representation \gr. Use \Character when
 % \gr is implicit.
 \newcommand\Character[1][]{\mathrm{\chi}_{#1}}
@@ -928,6 +928,7 @@
 \end{aligned}
 }
 \newcommand{\Factorial}[1]{#1 !}
+\newcommand{\DoubleFactorial}[1]{#1 \Exclam}
 \newcommand{\Implies}{\implies}
 \newcommand\dder{^\dprime}
 \newcommand{\Identically}{\equiv}

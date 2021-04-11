@@ -88,6 +88,8 @@ class FixedStepSizeIntegrator : public Integrator<ODE_> {
 
     void WriteToMessage(
         not_null<serialization::IntegratorInstance*> message) const override;
+    template<typename S = typename ODE::SystemState,
+             typename = std::enable_if_t<base::is_serializable_v<S>>>
     static not_null<std::unique_ptr<typename Integrator<ODE>::Instance>>
     ReadFromMessage(serialization::IntegratorInstance const& message,
                     ODE const& equation,
@@ -114,16 +116,6 @@ class FixedStepSizeIntegrator : public Integrator<ODE_> {
       serialization::FixedStepSizeIntegrator const& message);
 
  protected:
-  // For convenience, deserialization is an instance member of the |Integrator|,
-  // not a static member of the |Instance|.  Which makes sense if you see
-  // |Integrator| as a factory for |Instance|.
-  virtual not_null<std::unique_ptr<typename Integrator<ODE>::Instance>>
-  ReadFromMessage(
-      serialization::FixedStepSizeIntegratorInstance const& message,
-      IntegrationProblem<ODE> const& problem,
-      AppendState const& append_state,
-      Time const& step) const = 0;
-
   FixedStepSizeIntegrator() = default;
 };
 
@@ -146,9 +138,8 @@ class AdaptiveStepSizeIntegrator : public Integrator<ODE_> {
   // In both cases, the new step size is chosen so as to try and make the
   // result of the next call to this functor close to |safety_factor|.
   using ToleranceToErrorRatio =
-      std::function<
-          double(Time const& current_step_size,
-                  typename ODE::SystemStateError const& error)>;
+      std::function<double(Time const& current_step_size,
+                           typename ODE::SystemStateError const& error)>;
 
   struct Parameters final {
     Parameters(Time first_time_step,
@@ -162,7 +153,7 @@ class AdaptiveStepSizeIntegrator : public Integrator<ODE_> {
 
     void WriteToMessage(
         not_null<serialization::AdaptiveStepSizeIntegratorInstance::
-                     Parameters*> const message) const;
+                     Parameters*> message) const;
     static Parameters ReadFromMessage(
         serialization::AdaptiveStepSizeIntegratorInstance::Parameters const&
             message);
@@ -190,6 +181,8 @@ class AdaptiveStepSizeIntegrator : public Integrator<ODE_> {
 
     void WriteToMessage(
         not_null<serialization::IntegratorInstance*> message) const override;
+    template<typename S = typename ODE::SystemState,
+             typename = std::enable_if_t<base::is_serializable_v<S>>>
     static not_null<std::unique_ptr<typename Integrator<ODE>::Instance>>
     ReadFromMessage(serialization::IntegratorInstance const& message,
                     ODE const& equation,
@@ -199,13 +192,15 @@ class AdaptiveStepSizeIntegrator : public Integrator<ODE_> {
    protected:
     Instance(IntegrationProblem<ODE> const& problem,
              AppendState const& append_state,
-             ToleranceToErrorRatio const& tolerance_to_error_ratio,
-             Parameters const& parameters);
+             ToleranceToErrorRatio tolerance_to_error_ratio,
+             Parameters const& parameters,
+             Time const& time_step,
+             bool first_use);
 
     ToleranceToErrorRatio const tolerance_to_error_ratio_;
     Parameters const parameters_;
     Time time_step_;
-    bool first_use_ = true;
+    bool first_use_;
   };
 
   // The factory function for |Instance|, above.  It ensures that the instance
@@ -222,17 +217,6 @@ class AdaptiveStepSizeIntegrator : public Integrator<ODE_> {
       serialization::AdaptiveStepSizeIntegrator const& message);
 
  protected:
-  // For convenience, deserialization is an instance member of the |Integrator|,
-  // not a static member of the |Instance|.  Which makes sense if you see
-  // |Integrator| as a factory for |Instance|.
-  virtual not_null<std::unique_ptr<typename Integrator<ODE>::Instance>>
-  ReadFromMessage(
-      serialization::AdaptiveStepSizeIntegratorInstance const& message,
-      IntegrationProblem<ODE> const& problem,
-      AppendState const& append_state,
-      ToleranceToErrorRatio const& tolerance_to_error_ratio,
-      Parameters const& parameters) const = 0;
-
   AdaptiveStepSizeIntegrator() = default;
 };
 

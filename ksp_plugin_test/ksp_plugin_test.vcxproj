@@ -3,16 +3,27 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A942ADF0-62F4-435C-85B2-934D5B666DB8}</ProjectGuid>
     <RootNamespace>ksp_plugin_test</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(SolutionDir)principia.props" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="..\third_party_zfp.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="..\third_party_zfp.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release_LLVM|x64'">
+    <Import Project="..\third_party_zfp.props" />
+  </ImportGroup>
   <ItemGroup>
+    <ClCompile Include="..\astronomy\standard_product_3.cpp" />
+    <ClCompile Include="..\base\flags.cpp" />
     <ClCompile Include="..\base\status.cpp" />
     <ClCompile Include="..\base\version.generated.cc" />
+    <ClCompile Include="..\base\zfp_compressor.cpp" />
     <ClCompile Include="..\journal\profiles.cpp" />
     <ClCompile Include="..\journal\recorder.cpp" />
-    <ClCompile Include="..\ksp_plugin\burn.cpp" />
     <ClCompile Include="..\ksp_plugin\celestial.cpp" />
+    <ClCompile Include="..\ksp_plugin\equator_relevance_threshold.cpp" />
     <ClCompile Include="..\ksp_plugin\flight_plan.cpp" />
     <ClCompile Include="..\ksp_plugin\identification.cpp" />
     <ClCompile Include="..\ksp_plugin\integrators.cpp" />
@@ -22,9 +33,11 @@
     <ClCompile Include="..\ksp_plugin\interface_future.cpp" />
     <ClCompile Include="..\ksp_plugin\interface_iterator.cpp" />
     <ClCompile Include="..\ksp_plugin\interface_monitor.cpp" />
+    <ClCompile Include="..\ksp_plugin\interface_part.cpp" />
     <ClCompile Include="..\ksp_plugin\interface_planetarium.cpp" />
     <ClCompile Include="..\ksp_plugin\interface_renderer.cpp" />
     <ClCompile Include="..\ksp_plugin\interface_vessel.cpp" />
+    <ClCompile Include="..\ksp_plugin\orbit_analyser.cpp" />
     <ClCompile Include="..\ksp_plugin\part.cpp" />
     <ClCompile Include="..\ksp_plugin\part_subsets.cpp" />
     <ClCompile Include="..\ksp_plugin\pile_up.cpp" />
@@ -32,8 +45,13 @@
     <ClCompile Include="..\ksp_plugin\plugin.cpp" />
     <ClCompile Include="..\ksp_plugin\renderer.cpp" />
     <ClCompile Include="..\ksp_plugin\vessel.cpp" />
+    <ClCompile Include="..\numerics\cbrt.cpp" />
+    <ClCompile Include="..\numerics\elliptic_functions.cpp" />
+    <ClCompile Include="..\numerics\elliptic_integrals.cpp" />
+    <ClCompile Include="..\physics\protector.cpp" />
     <ClCompile Include="benchmark.cpp" />
     <ClCompile Include="celestial_test.cpp" />
+    <ClCompile Include="equator_relevance_threshold_test.cpp" />
     <ClCompile Include="flight_plan_test.cpp" />
     <ClCompile Include="interface_external_test.cpp" />
     <ClCompile Include="interface_flight_plan_test.cpp" />
@@ -41,9 +59,9 @@
     <ClCompile Include="interface_renderer_test.cpp" />
     <ClCompile Include="interface_test.cpp" />
     <ClCompile Include="manœuvre_test.cpp" />
-    <ClCompile Include="mock_flight_plan.cpp" />
     <ClCompile Include="mock_plugin.cpp" />
     <ClCompile Include="mock_renderer.cpp" />
+    <ClCompile Include="orbit_analyser_test.cpp" />
     <ClCompile Include="part_test.cpp" />
     <ClCompile Include="pile_up_test.cpp" />
     <ClCompile Include="planetarium_test.cpp" />

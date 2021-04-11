@@ -5,6 +5,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "quantities/astronomy.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
@@ -15,7 +16,7 @@ using testing_utilities::AlmostEquals;
 
 namespace quantities {
 
-using si::AstronomicalUnit;
+using astronomy::AstronomicalUnit;
 using si::Day;
 using si::Degree;
 using si::Kilo;
@@ -138,6 +139,10 @@ TEST_F(ParserTest, ParseAngularFrequency) {
 TEST_F(ParserTest, ParseRadiance) {
   EXPECT_EQ(1.23 * Watt / (Steradian * Metre * Metre),
             ParseQuantity<Radiance>("1.23 W sr^-1 m^-2"));
+}
+
+TEST_F(ParserTest, ParseFrequency) {
+  EXPECT_EQ(1.23 / Second, ParseQuantity<Inverse<Time>>("1.23 / s"));
 }
 
 }  // namespace quantities

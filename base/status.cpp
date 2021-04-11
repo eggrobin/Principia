@@ -35,9 +35,9 @@
 
 #include "base/status.hpp"
 
+#include <cstdint>
+#include <cstdio>
 #include <ostream>
-#include <stdint.h>
-#include <stdio.h>
 #include <string>
 #include <utility>
 
@@ -46,7 +46,16 @@
 namespace principia {
 namespace base {
 
-inline std::string ErrorToString(Error const error) {
+Error operator|(Error const left, Error const right) {
+  return left == Error::OK ? right : left;
+}
+
+Error& operator|=(Error& left, Error const right) {
+  left = left | right;
+  return left;
+}
+
+std::string ErrorToString(Error const error) {
   switch (error) {
     case Error::OK:
       return "OK";
@@ -86,8 +95,6 @@ inline std::string ErrorToString(Error const error) {
   noreturn();
 }
 
-Status::Status() : error_(Error::OK) {}
-
 Status::Status(Error const error, std::string const& message)
     : error_(error),
       message_(error == Error::OK ? "" : message) {}
@@ -112,7 +119,7 @@ bool Status::operator!=(Status const& s) const {
   return !operator==(s);
 }
 
-void Status::Update(Status const & s) {
+void Status::Update(Status const& s) {
   if (error_ == Error::OK && s.error_ != Error::OK) {
     error_ = s.error_;
     message_ = s.message_;
@@ -134,7 +141,7 @@ std::ostream& operator<<(std::ostream& os, Status const& s) {
   return os;
 }
 
-const Status Status::OK = Status();
+const Status Status::OK;
 const Status Status::CANCELLED = Status(Error::CANCELLED, "");
 const Status Status::UNKNOWN = Status(Error::UNKNOWN, "");
 

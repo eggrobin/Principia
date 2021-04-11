@@ -11,6 +11,7 @@
 #include "gtest/gtest.h"
 #include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
+#include "testing_utilities/approximate_quantity.hpp"
 #include "testing_utilities/integration.hpp"
 #include "testing_utilities/is_near.hpp"
 #include "testing_utilities/matchers.hpp"
@@ -42,6 +43,7 @@ using testing_utilities::AlmostEquals;
 using testing_utilities::ComputeHarmonicOscillatorAcceleration1D;
 using testing_utilities::EqualsProto;
 using testing_utilities::IsNear;
+using testing_utilities::operator""_⑴;
 using ::std::placeholders::_1;
 using ::std::placeholders::_2;
 using ::std::placeholders::_3;
@@ -133,9 +135,9 @@ TEST_F(EmbeddedExplicitRungeKuttaNyströmIntegratorTest,
     EXPECT_EQ(termination_condition::Done, outcome.error());
   }
   EXPECT_THAT(AbsoluteError(x_initial, solution.back().positions[0].value),
-              IsNear(3.5e-4 * Metre));
+              IsNear(3.5e-4_⑴ * Metre));
   EXPECT_THAT(AbsoluteError(v_initial, solution.back().velocities[0].value),
-              IsNear(2.8e-3 * Metre / Second));
+              IsNear(2.8e-3_⑴ * Metre / Second));
   EXPECT_EQ(t_final, solution.back().time.value);
   EXPECT_EQ(steps_forward, solution.size());
   EXPECT_EQ((1 + initial_rejections) * 4 +
@@ -165,9 +167,9 @@ TEST_F(EmbeddedExplicitRungeKuttaNyströmIntegratorTest,
     EXPECT_EQ(termination_condition::Done, outcome.error());
   }
   EXPECT_THAT(AbsoluteError(x_initial, solution.back().positions[0].value),
-              IsNear(1.2e-3 * Metre));
+              IsNear(1.2e-3_⑴ * Metre));
   EXPECT_THAT(AbsoluteError(v_initial, solution.back().velocities[0].value),
-              IsNear(2.5e-3 * Metre / Second));
+              IsNear(2.5e-3_⑴ * Metre / Second));
   EXPECT_EQ(t_initial, solution.back().time.value);
   EXPECT_EQ(steps_backward, solution.size() - steps_forward);
   EXPECT_EQ((1 + initial_rejections) * 4 +
@@ -229,12 +231,12 @@ TEST_F(EmbeddedExplicitRungeKuttaNyströmIntegratorTest, MaxSteps) {
   EXPECT_THAT(AbsoluteError(
                   x_initial * Cos(ω * (solution.back().time.value - t_initial)),
                       solution.back().positions[0].value),
-              IsNear(9.0e-4 * Metre));
+              IsNear(9.0e-4_⑴ * Metre));
   EXPECT_THAT(AbsoluteError(
                   -v_amplitude *
                       Sin(ω * (solution.back().time.value - t_initial)),
                   solution.back().velocities[0].value),
-              IsNear(1.9e-3 * Metre / Second));
+              IsNear(1.9e-3_⑴ * Metre / Second));
   EXPECT_THAT(solution.back().time.value, Lt(t_final));
   EXPECT_EQ(100, solution.size());
 
@@ -246,7 +248,7 @@ TEST_F(EmbeddedExplicitRungeKuttaNyströmIntegratorTest, MaxSteps) {
     AdaptiveStepSizeIntegrator<ODE>::Parameters const parameters(
         /*first_time_step=*/t_final - t_initial,
         /*safety_factor=*/0.9,
-        /*max_steps=*/steps_forward,
+        /*max_steps=*/max_steps,
         /*last_step_is_exact=*/true);
     auto const instance = integrator.NewInstance(problem,
                                                  append_state,
@@ -255,9 +257,9 @@ TEST_F(EmbeddedExplicitRungeKuttaNyströmIntegratorTest, MaxSteps) {
     auto const outcome = instance->Solve(t_final);
     EXPECT_EQ(termination_condition::Done, outcome.error());
     EXPECT_THAT(AbsoluteError(x_initial, solution.back().positions[0].value),
-                IsNear(3.6e-4 * Metre));
+                IsNear(3.6e-4_⑴ * Metre));
     EXPECT_THAT(AbsoluteError(v_initial, solution.back().velocities[0].value),
-                IsNear(2.8e-3 * Metre / Second));
+                IsNear(2.8e-3_⑴ * Metre / Second));
     EXPECT_EQ(t_final, solution.back().time.value);
     EXPECT_EQ(steps_forward, solution.size());
   }
@@ -336,9 +338,7 @@ TEST_F(EmbeddedExplicitRungeKuttaNyströmIntegratorTest, Restart) {
           Length>();
   Length const x_initial = 1 * Metre;
   Speed const v_initial = 0 * Metre / Second;
-  Speed const v_amplitude = 1 * Metre / Second;
   Time const period = 2 * π * Second;
-  AngularFrequency const ω = 1 * Radian / Second;
   Instant const t_initial;
   Time const duration = 10 * period;
   Length const length_tolerance = 1 * Milli(Metre);
@@ -382,9 +382,10 @@ TEST_F(EmbeddedExplicitRungeKuttaNyströmIntegratorTest, Restart) {
 
     // Check that the time step has been updated.
     EXPECT_EQ(131, solution1.size());
-    EXPECT_THAT(solution1[solution1.size() - 1].time.value -
-                solution1[solution1.size() - 2].time.value,
-                AlmostEquals(0.00810677945075361400 * duration, 0));
+    EXPECT_THAT(
+        solution1[solution1.size() - 1].time.value -
+            solution1[solution1.size() - 2].time.value,
+        AlmostEquals(0.509'363'975'335'290'320 * Second, 0));
 
     // Restart the integration.
     outcome = instance->Solve(t_initial + 2.0 * duration);
@@ -392,9 +393,10 @@ TEST_F(EmbeddedExplicitRungeKuttaNyströmIntegratorTest, Restart) {
 
     // Check that the time step has been updated again.
     EXPECT_EQ(261, solution1.size());
-    EXPECT_THAT(solution1[solution1.size() - 1].time.value -
-                solution1[solution1.size() - 2].time.value,
-                AlmostEquals(0.00805976959833537384 * duration, 0, 128));
+    EXPECT_THAT(
+        solution1[solution1.size() - 1].time.value -
+            solution1[solution1.size() - 2].time.value,
+        AlmostEquals(0.506'410'259'195'249'068 * Second, 0));
   }
 
   // Do it again in one call to |Solve| and check associativity.

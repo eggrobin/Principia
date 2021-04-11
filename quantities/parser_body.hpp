@@ -5,6 +5,9 @@
 
 #include <array>
 #include <string>
+
+#include "quantities/astronomy.hpp"
+#include "quantities/bipm.hpp"
 #include "quantities/dimensions.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/si.hpp"
@@ -68,7 +71,7 @@ struct Unit {
 template<typename Q>
 Unit::Unit(Q const& quantity)
     : dimensions(ExtractDimensions<Q>::dimensions()),
-      scale(quantity / SIUnit<Q>()) {}
+      scale(quantity / si::Unit<Q>) {}
 
 inline Unit::Unit(RuntimeDimensions&& dimensions, double const scale)
     : dimensions(dimensions),
@@ -103,6 +106,8 @@ inline Unit ParseUnit(std::string const& s) {
   if (s == "") {
     return Unit(1.0);
   // Units of length.
+  } else if (s == u8"Å") {
+    return Unit(bipm::Ångström);
   } else if (s == u8"μm") {
     return Unit(si::Micro(si::Metre));
   } else if (s == "mm") {
@@ -113,8 +118,15 @@ inline Unit ParseUnit(std::string const& s) {
     return Unit(si::Metre);
   } else if (s == "km") {
     return Unit(si::Kilo(si::Metre));
+  } else if (s == u8"R🜨") {
+    return Unit(astronomy::TerrestrialEquatorialRadius);
+  } else if (s == u8"R☉") {
+    return Unit(astronomy::SolarRadius);
   } else if (s == "au") {
-    return Unit(si::AstronomicalUnit);
+    return Unit(astronomy::AstronomicalUnit);
+  // Units of mass.
+  } else if (s == "kg") {
+    return Unit(si::Kilogram);
   // Units of time.
   } else if (s == "ms") {
     return Unit(si::Milli(si::Second));
@@ -126,6 +138,11 @@ inline Unit ParseUnit(std::string const& s) {
     return Unit(si::Hour);
   } else if (s == "d") {
     return Unit(si::Day);
+  // Units of gravitational parameter.
+  } else if (s == u8"GM🜨") {
+    return Unit(astronomy::TerrestrialGravitationalParameter);
+  } else if (s == u8"GM☉") {
+    return Unit(astronomy::SolarGravitationalParameter);
   // Units of power.
   } else if (s == "W") {
     return Unit(si::Watt);
@@ -199,12 +216,16 @@ inline Unit ParseQuotientUnit(std::string const& s) {
     // Not a quotient.
     return ParseProductUnit(s);
   } else {
-    // A quotient.  Parse each half.
+    // A quotient.  Parse each half.  Note that there may not be a left half for
+    // input like 1.23 / s.
     int const first_nonblank = s.find_first_not_of(' ', last_slash + 1);
     CHECK_NE(std::string::npos, first_nonblank);
-    int const last_nonblank = s.find_last_not_of(' ', last_slash - 1);
-    CHECK_NE(std::string::npos, last_nonblank);
-    auto const left = ParseQuotientUnit(s.substr(0, last_nonblank + 1));
+    std::size_t const last_nonblank =
+        last_slash == 0 ? std::string::npos
+                        : s.find_last_not_of(' ', last_slash - 1);
+    auto const left = last_nonblank == std::string::npos
+                          ? Unit(1.0)
+                          : ParseQuotientUnit(s.substr(0, last_nonblank + 1));
     auto const right = ParseExponentiationUnit(s.substr(first_nonblank));
     return left / right;
   }
@@ -228,8 +249,8 @@ Q ParseQuantity(std::string const& s) {
   }
 
   Unit const unit = ParseQuotientUnit(unit_string);
-  CHECK(ExtractDimensions<Q>::dimensions() == unit.dimensions);
-  return magnitude * unit.scale * SIUnit<Q>();
+  CHECK(ExtractDimensions<Q>::dimensions() == unit.dimensions) << unit_string;
+  return magnitude * unit.scale * si::Unit<Q>;
 }
 
 }  // namespace internal_parser

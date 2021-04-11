@@ -19,6 +19,7 @@
     <CustomBuild Include="integrators.proto" />
     <CustomBuild Include="astronomy.proto" />
     <CustomBuild Include="journal.proto" />
+    <CustomBuild Include="testing_utilities.proto" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="geometry.pb.h">
@@ -43,6 +44,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="journal.pb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="testing_utilities.pb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -71,5 +75,11 @@
     <ClCompile Include="journal.pb.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="testing_utilities.pb.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="serialization.manifest" />
   </ItemGroup>
 </Project>

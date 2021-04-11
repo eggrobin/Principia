@@ -4,11 +4,14 @@
 #include <limits>
 #include <optional>
 #include <string>
+#include <vector>
 
-#include "astronomy/epoch.hpp"
+#include "astronomy/time_scales.hpp"
+#include "base/file.hpp"
 #include "base/not_null.hpp"
 #include "base/pull_serializer.hpp"
 #include "base/push_deserializer.hpp"
+#include "base/serialization.hpp"
 #include "geometry/named_quantities.hpp"
 #include "google/protobuf/text_format.h"
 #include "gmock/gmock.h"
@@ -21,6 +24,7 @@
 #include "ksp_plugin_test/mock_renderer.hpp"
 #include "ksp_plugin_test/mock_vessel.hpp"
 #include "physics/mock_dynamic_frame.hpp"
+#include "quantities/astronomy.hpp"
 #include "quantities/constants.hpp"
 #include "quantities/si.hpp"
 #include "testing_utilities/actions.hpp"
@@ -31,9 +35,11 @@
 namespace principia {
 namespace interface {
 
-using astronomy::ModifiedJulianDate;
+using astronomy::operator""_TT;
 using base::check_not_null;
 using base::make_not_null_unique;
+using base::OFStream;
+using base::ParseFromBytes;
 using base::PullSerializer;
 using base::PushDeserializer;
 using geometry::AngularVelocity;
@@ -47,7 +53,6 @@ using geometry::Velocity;
 using ksp_plugin::AliceSun;
 using ksp_plugin::Barycentric;
 using ksp_plugin::Index;
-using ksp_plugin::MakeNavigationManœuvre;
 using ksp_plugin::MockManœuvre;
 using ksp_plugin::MockPlugin;
 using ksp_plugin::MockRenderer;
@@ -70,11 +75,10 @@ using physics::RigidMotion;
 using quantities::GravitationalParameter;
 using quantities::Length;
 using quantities::Pow;
-using quantities::SIUnit;
 using quantities::Speed;
 using quantities::Time;
+using quantities::astronomy::AstronomicalUnit;
 using quantities::constants::StandardGravity;
-using quantities::si::AstronomicalUnit;
 using quantities::si::Day;
 using quantities::si::Degree;
 using quantities::si::Kilo;
@@ -86,7 +90,9 @@ using testing_utilities::AlmostEquals;
 using testing_utilities::EqualsProto;
 using testing_utilities::FillUniquePtr;
 using testing_utilities::ReadFromBinaryFile;
+using testing_utilities::ReadLinesFromBase64File;
 using testing_utilities::ReadFromHexadecimalFile;
+using testing_utilities::ReadLinesFromHexadecimalFile;
 using ::testing::AllOf;
 using ::testing::ByMove;
 using ::testing::DoAll;
@@ -105,6 +111,7 @@ using ::testing::SetArgReferee;
 using ::testing::SetArgPointee;
 using ::testing::StrictMock;
 using ::testing::_;
+namespace si = quantities::si;
 
 namespace {
 
@@ -142,6 +149,7 @@ class InterfaceTest : public testing::Test {
 
   InterfaceTest()
       : plugin_(make_not_null_unique<StrictMock<MockPlugin>>()),
+        // Use PluginTest.Serialization to create these files.
         hexadecimal_simple_plugin_(ReadFromHexadecimalFile(
             SOLUTION_DIR / "ksp_plugin_test" / "simple_plugin.proto.hex")),
         serialized_simple_plugin_(ReadFromBinaryFile(
@@ -149,7 +157,7 @@ class InterfaceTest : public testing::Test {
 
   not_null<std::unique_ptr<StrictMock<MockPlugin>>> plugin_;
   std::string const hexadecimal_simple_plugin_;
-  std::string const serialized_simple_plugin_;
+  std::vector<std::uint8_t> const serialized_simple_plugin_;
   Instant const t0_;
   static journal::Recorder* recorder_;
 };
@@ -193,8 +201,8 @@ TEST_F(InterfaceDeathTest, Errors) {
     principia__CelestialFromParent(plugin, celestial_index);
   }, "plugin.*non NULL");
   EXPECT_DEATH({
-    principia__LogFatal("a fatal error");
-  }, "a fatal error");
+    principia__LogFatal("a file", 1729, "a fatal error");
+  }, "a file:1729.*a fatal error");
 }
 
 TEST_F(InterfaceTest, InitGoogleLogging1) {
@@ -222,9 +230,9 @@ TEST_F(InterfaceDeathTest, ActivateRecorder) {
 }
 
 TEST_F(InterfaceTest, Log) {
-  principia__LogInfo("An info");
-  principia__LogWarning("A warning");
-  principia__LogError("An error");
+  principia__LogInfo("a file", 1, "An info");
+  principia__LogWarning("another file", 2, "A warning");
+  principia__LogError("yet another file", 3, "An error");
 }
 
 TEST_F(InterfaceTest, NewPlugin) {
@@ -247,7 +255,9 @@ TEST_F(InterfaceTest, InsertMassiveCelestialAbsoluteCartesian) {
       R"(name                    : "Brian"
          gravitational_parameter : "1.2345e6  m^3/s^2"
          reference_instant       : "JD2451545"
+         min_radius              : "0.5 m"
          mean_radius             : "1 m"
+         max_radius              : "1.5 m"
          axis_right_ascension    : "0 deg"
          axis_declination        : "90 deg"
          reference_angle         : "0 deg"
@@ -274,13 +284,16 @@ TEST_F(InterfaceTest, InsertMassiveCelestialAbsoluteCartesian) {
       "Brian",
       "1.2345e6  m^3/s^2",
       /*reference_instant=*/"JD2451545",
+      /*min_radius=*/"0.5 m",
       /*mean_radius=*/"1 m",
+      /*max_radius=*/"1.5 m",
       /*axis_right_ascension=*/"0 deg",
       /*axis_declination=*/"90 deg",
       /*reference_angle=*/"0 deg",
       /*angular_velocity=*/"1 rad/s",
+      /*reference_radius=*/nullptr,
       /*j2=*/nullptr,
-      /*reference_radius=*/nullptr};
+      /*geopotential=*/nullptr};
   principia__InsertCelestialAbsoluteCartesian(plugin_.get(),
                                               celestial_index,
                                               &parent_index,
@@ -297,15 +310,17 @@ TEST_F(InterfaceTest, InsertOblateCelestialAbsoluteCartesian) {
   serialization::GravityModel::Body gravity_model;
   CHECK(google::protobuf::TextFormat::ParseFromString(
       u8R"(name                    : "that is called Brian"
-         gravitational_parameter : "1.2345e6  km^3 / s^2"
-         reference_instant       : "JD2452545"
-         mean_radius             : "666 km"
-         axis_right_ascension    : "42 deg"
-         axis_declination        : "8°"
-         reference_angle         : "2 rad"
-         angular_frequency       : "0.3 rad / d"
-         j2                      : 123e-6
-         reference_radius        : "1000 km")",
+           gravitational_parameter : "1.2345e6  km^3 / s^2"
+           reference_instant       : "JD2452545"
+           min_radius              : "600 km"
+           mean_radius             : "666 km"
+           max_radius              : "700 km"
+           axis_right_ascension    : "42 deg"
+           axis_declination        : "8°"
+           reference_angle         : "2 rad"
+           angular_frequency       : "0.3 rad / d"
+           reference_radius        : "1000 km"
+           j2                      : 123e-6)",
       &gravity_model));
   serialization::InitialState::Cartesian::Body initial_state;
   CHECK(google::protobuf::TextFormat::ParseFromString(
@@ -327,13 +342,86 @@ TEST_F(InterfaceTest, InsertOblateCelestialAbsoluteCartesian) {
   BodyParameters const body_parameters = {"that is called Brian",
                                           "1.2345e6  km^3 / s^2",
                                           "JD2452545",
+                                          "600 km",
                                           "666 km",
+                                          "700 km",
                                           "42 deg",
                                           u8"8°",
                                           "2 rad",
                                           "0.3 rad / d",
+                                          "1000 km",
                                           "123e-6",
-                                          "1000 km"};
+                                          /*geopotential=*/nullptr};
+  principia__InsertCelestialAbsoluteCartesian(plugin_.get(),
+                                              celestial_index,
+                                              &parent_index,
+                                              body_parameters,
+                                              "0 m",
+                                              "23.456e-7 km",
+                                              "-1 au",
+                                              "1 au / d",
+                                              "  1 km/s",
+                                              "1  m / s");
+}
+
+TEST_F(InterfaceTest, InsertGeopotentialCelestialAbsoluteCartesian) {
+  serialization::GravityModel::Body gravity_model;
+  CHECK(google::protobuf::TextFormat::ParseFromString(
+      u8R"(name                    : "that is called Brian"
+           gravitational_parameter : "1.2345e6  km^3 / s^2"
+           reference_instant       : "JD2452545"
+           min_radius              : "600 km"
+           mean_radius             : "666 km"
+           max_radius              : "700 km"
+           axis_right_ascension    : "42 deg"
+           axis_declination        : "8°"
+           reference_angle         : "2 rad"
+           angular_frequency       : "0.3 rad / d"
+           reference_radius        : "1000 km"
+           geopotential            : {
+             row {
+               degree : 2,
+               column {order: 0, cos: 123e-6, sin: 456e-6}
+             }
+             row {
+               degree : 3,
+               column {order: 0, cos: 123e-7, sin: -456e-7}
+             }
+           })",
+      &gravity_model));
+  serialization::InitialState::Cartesian::Body initial_state;
+  CHECK(google::protobuf::TextFormat::ParseFromString(
+      R"(name : "that is called Brian"
+         x    : "0 m",
+         y    : "23.456e-7 km"
+         z    : "-1 au"
+         vx   : "1 au / d"
+         vy   : "  1 km/s"
+         vz   : "1  m / s")",
+      &initial_state));
+  EXPECT_CALL(*plugin_,
+              InsertCelestialAbsoluteCartesian(
+                  celestial_index,
+                  std::make_optional(parent_index),
+                  EqualsProto(gravity_model),
+                  EqualsProto(initial_state)));
+
+  BodyGeopotentialElement j2 = {"2", "0", "123e-6", nullptr, "456e-6"};
+  BodyGeopotentialElement j3 = {"3", "0", "123e-7", nullptr, "-456e-7"};
+  BodyGeopotentialElement* j[] = {&j2, &j3, nullptr};
+  BodyParameters const body_parameters = {"that is called Brian",
+                                          "1.2345e6  km^3 / s^2",
+                                          "JD2452545",
+                                          "600 km",
+                                          "666 km",
+                                          "700 km",
+                                          "42 deg",
+                                          u8"8°",
+                                          "2 rad",
+                                          "0.3 rad / d",
+                                          "1000 km",
+                                          /*j2=*/nullptr,
+                                          j};
   principia__InsertCelestialAbsoluteCartesian(plugin_.get(),
                                               celestial_index,
                                               &parent_index,
@@ -390,13 +478,13 @@ TEST_F(InterfaceTest, InsertUnloadedPart) {
                   vessel_guid,
                   RelativeDegreesOfFreedom<AliceSun>(
                       Displacement<AliceSun>(
-                          {parent_position.x * SIUnit<Length>(),
-                           parent_position.y * SIUnit<Length>(),
-                           parent_position.z * SIUnit<Length>()}),
+                          {parent_position.x * si::Unit<Length>,
+                           parent_position.y * si::Unit<Length>,
+                           parent_position.z * si::Unit<Length>}),
                       Velocity<AliceSun>(
-                          {parent_velocity.x * SIUnit<Speed>(),
-                           parent_velocity.y * SIUnit<Speed>(),
-                           parent_velocity.z * SIUnit<Speed>()}))));
+                          {parent_velocity.x * si::Unit<Speed>,
+                           parent_velocity.y * si::Unit<Speed>,
+                           parent_velocity.z * si::Unit<Speed>}))));
   principia__InsertUnloadedPart(plugin_.get(),
                                 part_id,
                                 part_name,
@@ -406,15 +494,9 @@ TEST_F(InterfaceTest, InsertUnloadedPart) {
 
 TEST_F(InterfaceTest, AdvanceTime) {
   EXPECT_CALL(*plugin_,
-              AdvanceTime(t0_ + time * SIUnit<Time>(),
+              AdvanceTime(t0_ + time * si::Unit<Time>,
                           planetarium_rotation * Degree));
   principia__AdvanceTime(plugin_.get(), time, planetarium_rotation);
-}
-
-TEST_F(InterfaceTest, ForgetAllHistoriesBefore) {
-  EXPECT_CALL(*plugin_,
-              ForgetAllHistoriesBefore(t0_ + time * SIUnit<Time>()));
-  principia__ForgetAllHistoriesBefore(plugin_.get(), time);
 }
 
 TEST_F(InterfaceTest, VesselFromParent) {
@@ -422,13 +504,13 @@ TEST_F(InterfaceTest, VesselFromParent) {
               VesselFromParent(celestial_index, vessel_guid))
       .WillOnce(Return(RelativeDegreesOfFreedom<AliceSun>(
                            Displacement<AliceSun>(
-                               {parent_position.x * SIUnit<Length>(),
-                                parent_position.y * SIUnit<Length>(),
-                                parent_position.z * SIUnit<Length>()}),
+                               {parent_position.x * si::Unit<Length>,
+                                parent_position.y * si::Unit<Length>,
+                                parent_position.z * si::Unit<Length>}),
                            Velocity<AliceSun>(
-                               {parent_velocity.x * SIUnit<Speed>(),
-                                parent_velocity.y * SIUnit<Speed>(),
-                                parent_velocity.z * SIUnit<Speed>()}))));
+                               {parent_velocity.x * si::Unit<Speed>,
+                                parent_velocity.y * si::Unit<Speed>,
+                                parent_velocity.z * si::Unit<Speed>}))));
   QP const result = principia__VesselFromParent(plugin_.get(),
                                                 celestial_index,
                                                 vessel_guid);
@@ -440,13 +522,13 @@ TEST_F(InterfaceTest, CelestialFromParent) {
               CelestialFromParent(celestial_index))
       .WillOnce(Return(RelativeDegreesOfFreedom<AliceSun>(
                            Displacement<AliceSun>(
-                               {parent_position.x * SIUnit<Length>(),
-                                parent_position.y * SIUnit<Length>(),
-                                parent_position.z * SIUnit<Length>()}),
+                               {parent_position.x * si::Unit<Length>,
+                                parent_position.y * si::Unit<Length>,
+                                parent_position.z * si::Unit<Length>}),
                            Velocity<AliceSun>(
-                               {parent_velocity.x * SIUnit<Speed>(),
-                                parent_velocity.y * SIUnit<Speed>(),
-                                parent_velocity.z * SIUnit<Speed>()}))));
+                               {parent_velocity.x * si::Unit<Speed>,
+                                parent_velocity.y * si::Unit<Speed>,
+                                parent_velocity.z * si::Unit<Speed>}))));
   QP const result = principia__CelestialFromParent(plugin_.get(),
                                                     celestial_index);
   EXPECT_THAT(result, Eq(parent_relative_degrees_of_freedom));
@@ -463,13 +545,14 @@ TEST_F(InterfaceTest, NewNavigationFrame) {
       celestial_index,
       parent_index};
 
+  MockRenderer renderer;
+  EXPECT_CALL(*plugin_, renderer()).WillRepeatedly(ReturnRef(renderer));
+
   EXPECT_CALL(
       *plugin_,
       FillBarycentricRotatingNavigationFrame(celestial_index, parent_index, _))
       .WillOnce(FillUniquePtr<2>(mock_navigation_frame));
-  std::unique_ptr<NavigationFrame> navigation_frame(
-      principia__NewNavigationFrame(plugin_.get(), parameters));
-  EXPECT_EQ(mock_navigation_frame, navigation_frame.get());
+  principia__SetPlottingFrame(plugin_.get(), parameters);
 
   parameters.extension =
       serialization::BodyCentredNonRotatingDynamicFrame::kExtensionFieldNumber;
@@ -478,10 +561,7 @@ TEST_F(InterfaceTest, NewNavigationFrame) {
   EXPECT_CALL(*plugin_,
               FillBodyCentredNonRotatingNavigationFrame(celestial_index, _))
       .WillOnce(FillUniquePtr<1>(mock_navigation_frame));
-  navigation_frame.release();
-  navigation_frame.reset(
-      principia__NewNavigationFrame(plugin_.get(), parameters));
-  EXPECT_EQ(mock_navigation_frame, navigation_frame.get());
+  principia__SetPlottingFrame(plugin_.get(), parameters);
 }
 
 TEST_F(InterfaceTest, NavballOrientation) {
@@ -498,21 +578,17 @@ TEST_F(InterfaceTest, NavballOrientation) {
       unused,
       celestial_index,
       parent_index};
-  NavigationFrame* navigation_frame =
-      principia__NewNavigationFrame(plugin_.get(), parameters);
-  EXPECT_EQ(mock_navigation_frame, navigation_frame);
 
   MockRenderer renderer;
   EXPECT_CALL(*plugin_, renderer()).WillRepeatedly(ReturnRef(renderer));
-  EXPECT_CALL(renderer, SetPlottingFrameConstRef(Ref(*navigation_frame)));
-  principia__SetPlottingFrame(plugin_.get(), &navigation_frame);
-  EXPECT_THAT(navigation_frame, IsNull());
+  EXPECT_CALL(renderer, SetPlottingFrameConstRef(Ref(*mock_navigation_frame)));
+  principia__SetPlottingFrame(plugin_.get(), parameters);
 
   Position<World> sun_position =
       World::origin + Displacement<World>(
-                          {1 * SIUnit<Length>(),
-                           2 * SIUnit<Length>(),
-                           3 * SIUnit<Length>()});
+                          {1 * si::Unit<Length>,
+                           2 * si::Unit<Length>,
+                           3 * si::Unit<Length>});
   EXPECT_CALL(*plugin_, NavballFrameField(sun_position))
       .WillOnce(Return(
           ByMove(std::make_unique<CoordinateFrameField<World, Navball>>())));
@@ -526,7 +602,7 @@ TEST_F(InterfaceTest, NavballOrientation) {
 }
 
 TEST_F(InterfaceTest, CurrentTime) {
-  Instant const mjd0 = ModifiedJulianDate(0);
+  Instant const mjd0 = "MJD0"_TT;
   EXPECT_CALL(*plugin_, CurrentTime()).WillOnce(Return(mjd0));
   double const current_time = principia__CurrentTime(plugin_.get());
   EXPECT_THAT(t0_ + current_time * Second, Eq(mjd0));
@@ -548,14 +624,21 @@ TEST_F(InterfaceTest, Apocalypse) {
 
 TEST_F(InterfaceTest, SerializePlugin) {
   PullSerializer* serializer = nullptr;
-  principia::serialization::Plugin message;
-  message.ParseFromString(serialized_simple_plugin_);
+  auto const message = ParseFromBytes<principia::serialization::Plugin>(
+      serialized_simple_plugin_);
 
   EXPECT_CALL(*plugin_, WriteToMessage(_)).WillOnce(SetArgPointee<0>(message));
   char const* serialization =
-      principia__SerializePlugin(plugin_.get(), &serializer);
+      principia__SerializePlugin(plugin_.get(),
+                                 &serializer,
+                                 /*compressor=*/"",
+                                 "hexadecimal");
   EXPECT_STREQ(hexadecimal_simple_plugin_.c_str(), serialization);
-  EXPECT_EQ(nullptr, principia__SerializePlugin(plugin_.get(), &serializer));
+  EXPECT_EQ(nullptr,
+            principia__SerializePlugin(plugin_.get(),
+                                       &serializer,
+                                       /*compressor=*/"",
+                                       "hexadecimal"));
   principia__DeleteString(&serialization);
   EXPECT_THAT(serialization, IsNull());
 }
@@ -563,34 +646,86 @@ TEST_F(InterfaceTest, SerializePlugin) {
 TEST_F(InterfaceTest, DeserializePlugin) {
   PushDeserializer* deserializer = nullptr;
   Plugin const* plugin = nullptr;
-  principia__DeserializePlugin(
-          hexadecimal_simple_plugin_.c_str(),
-          hexadecimal_simple_plugin_.size(),
-          &deserializer,
-          &plugin);
   principia__DeserializePlugin(hexadecimal_simple_plugin_.c_str(),
-                               0,
                                &deserializer,
-                               &plugin);
+                               &plugin,
+                               /*compressor=*/"",
+                               "hexadecimal");
+  principia__DeserializePlugin("",
+                               &deserializer,
+                               &plugin,
+                               /*compressor=*/"",
+                               "hexadecimal");
   EXPECT_THAT(plugin, NotNull());
   principia__DeletePlugin(&plugin);
 }
 
 // Use for debugging saves given by users.
-TEST_F(InterfaceTest, DISABLED_DeserializePluginDebug) {
-  PushDeserializer* deserializer = nullptr;
+TEST_F(InterfaceTest, DISABLED_SECULAR_DeserializePluginDebug) {
   Plugin const* plugin = nullptr;
-  std::string const hexadecimal_plugin = ReadFromHexadecimalFile(
-      R"(P:\Public Mockingbird\Principia\Crashes\1595\persistent.proto.hex)");
-  principia__DeserializePlugin(
-          hexadecimal_plugin.c_str(),
-          hexadecimal_plugin.size(),
-          &deserializer,
-          &plugin);
-  principia__DeserializePlugin(hexadecimal_plugin.c_str(),
-                               0,
-                               &deserializer,
-                               &plugin);
+
+  // Read a plugin from a file containing only the "serialized_plugin = " lines,
+  // with "serialized_plugin = " dropped.
+  {
+    PushDeserializer* deserializer = nullptr;
+    auto const lines = ReadLinesFromBase64File(
+        R"(P:\Public Mockingbird\Principia\Saves\2685\five-minute-scene-change-neptune.txt)");
+    LOG(ERROR) << "Deserialization starting";
+    int i = 0;
+    for (std::string const& line : lines) {
+      principia__DeserializePlugin(line.c_str(),
+                                   &deserializer,
+                                   &plugin,
+                                   /*compressor=*/"gipfeli",
+                                   "base64");
+    }
+    principia__DeserializePlugin("",
+                                 &deserializer,
+                                 &plugin,
+                                 /*compressor=*/"gipfeli",
+                                 "base64");
+    LOG(ERROR) << "Deserialization complete";
+  }
+  EXPECT_THAT(plugin, NotNull());
+
+  // Write that plugin back to another file with the same format.
+  {
+    OFStream file(TEMP_DIR / "serialized_plugin.proto.b64");
+    PullSerializer* serializer = nullptr;
+    char const* b64 = nullptr;
+    for (;;) {
+      b64 = principia__SerializePlugin(
+          plugin, &serializer, "gipfeli", "base64");
+      if (b64 == nullptr) {
+        break;
+      }
+      file << b64 << "\n";
+      principia__DeleteString(&b64);
+    }
+    LOG(ERROR) << "Serialization complete";
+  }
+  principia__DeletePlugin(&plugin);
+
+  // Read the plugin from the new file to make sure that it's fine.
+  {
+    PushDeserializer* deserializer = nullptr;
+    auto const lines =
+        ReadLinesFromBase64File(TEMP_DIR / "serialized_plugin.proto.b64");
+    for (std::string const& line : lines) {
+      principia__DeserializePlugin(line.c_str(),
+                                   &deserializer,
+                                   &plugin,
+                                   /*compressor=*/"gipfeli",
+                                   "base64");
+    }
+    principia__DeserializePlugin("",
+                                 &deserializer,
+                                 &plugin,
+                                 /*compressor=*/"gipfeli",
+                                 "base64");
+    LOG(ERROR) << "Deserialization complete";
+  }
+
   EXPECT_THAT(plugin, NotNull());
   principia__DeletePlugin(&plugin);
 }

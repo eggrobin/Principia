@@ -35,6 +35,7 @@ class Subset<ksp_plugin::Part>::Properties final {
   using PileUps = std::list<ksp_plugin::PileUp*>;
 
  public:
+  // |*part| must outlive the constructed object.
   explicit Properties(not_null<ksp_plugin::Part*> part);
 
   // If |*this| and |other| are subsets of different |PileUp|s, or one is a
@@ -92,11 +93,6 @@ class Subset<ksp_plugin::Part>::Properties final {
   int missing_;
   // The list of parts in this subset.
   std::list<not_null<ksp_plugin::Part*>> parts_;
-  // The sum of the masses of the |parts_|.
-  quantities::Mass total_mass_;
-  // The sum of the |intrinsic_force|s on the |parts_|.
-  geometry::Vector<quantities::Force, ksp_plugin::Barycentric>
-      total_intrinsic_force_;
   // Whether the subset touches the ground.
   bool grounded_ = false;
 };

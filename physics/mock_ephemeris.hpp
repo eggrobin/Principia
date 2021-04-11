@@ -38,7 +38,6 @@ class MockEphemeris : public Ephemeris<Frame> {
       planetary_integrator,
       FixedStepSizeIntegrator<NewtonianMotionEquation> const&());
 
-  MOCK_METHOD1_T(ForgetBefore, void(Instant const& t));
   MOCK_METHOD1_T(Prolong, void(Instant const& t));
   MOCK_METHOD3_T(
       NewInstance,
@@ -47,14 +46,13 @@ class MockEphemeris : public Ephemeris<Frame> {
           std::vector<not_null<DiscreteTrajectory<Frame>*>> const& trajectories,
           IntrinsicAccelerations const& intrinsic_accelerations,
           FixedStepParameters const& parameters));
-  MOCK_METHOD6_T(
+  MOCK_METHOD5_T(
       FlowWithAdaptiveStep,
       Status(not_null<DiscreteTrajectory<Frame>*> trajectory,
              IntrinsicAcceleration intrinsic_acceleration,
              Instant const& t,
              AdaptiveStepParameters const& parameters,
-             std::int64_t max_ephemeris_steps,
-             bool last_point_only));
+             std::int64_t max_ephemeris_steps));
   MOCK_METHOD2_T(
       FlowWithFixedStep,
       Status(Instant const& t,
@@ -88,6 +86,8 @@ class MockEphemeris : public Ephemeris<Frame> {
 
   MOCK_CONST_METHOD1_T(WriteToMessage,
                        void(not_null<serialization::Ephemeris*> message));
+
+  MOCK_CONST_METHOD0_T(t_min_locked, Instant());
 };
 
 }  // namespace internal_ephemeris

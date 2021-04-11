@@ -19,23 +19,23 @@
 namespace principia {
 namespace quantities {
 
-using astronomy::EarthMass;
+using astronomy::AstronomicalUnit;
 using astronomy::JulianYear;
-using astronomy::JupiterMass;
 using astronomy::LightYear;
-using astronomy::LunarDistance;
 using astronomy::Parsec;
-using astronomy::SolarMass;
+using astronomy::JovianGravitationalParameter;
+using astronomy::SolarGravitationalParameter;
+using astronomy::TerrestrialGravitationalParameter;
 using constants::GravitationalConstant;
 using constants::SpeedOfLight;
 using constants::StandardGravity;
 using constants::VacuumPermeability;
 using constants::VacuumPermittivity;
 using si::Ampere;
-using si::AstronomicalUnit;
 using si::Coulomb;
 using si::Day;
 using si::Degree;
+using si::Kilo;
 using si::Kilogram;
 using si::Mega;
 using si::Metre;
@@ -95,30 +95,30 @@ TEST_F(ElementaryFunctionsTest, DimensionlessExponentiation) {
 #pragma warning(disable: 4566)
 
 TEST_F(ElementaryFunctionsTest, PhysicalConstants) {
+  Length const lunar_distance = 384402 * Kilo(Metre);
   // By definition.
   EXPECT_THAT(1 / Pow<2>(SpeedOfLight),
               AlmostEquals(VacuumPermittivity * VacuumPermeability, 1));
   // The Keplerian approximation for the mass of the Sun
   // is fairly accurate.
   EXPECT_THAT(RelativeError(
-                  4 * Pow<2>(π) * Pow<3>(AstronomicalUnit) /
-                      (GravitationalConstant * Pow<2>(JulianYear)),
-                  SolarMass),
+                  4 * Pow<2>(π) * Pow<3>(AstronomicalUnit) / Pow<2>(JulianYear),
+                  SolarGravitationalParameter),
               Lt(4e-5));
   EXPECT_THAT(RelativeError(1 * Parsec, 3.26156 * LightYear), Lt(2e-6));
   // The Keplerian approximation for the mass of the Earth
   // is pretty bad, but the error is still only 1%.
-  EXPECT_THAT(RelativeError(
-                  4 * Pow<2>(π) * Pow<3>(LunarDistance) /
-                      (GravitationalConstant * Pow<2>(27.321582 * Day)),
-                  EarthMass),
+  EXPECT_THAT(RelativeError(4 * Pow<2>(π) * Pow<3>(lunar_distance) /
+                                Pow<2>(27.321582 * Day),
+                            TerrestrialGravitationalParameter),
               Lt(1e-2));
-  EXPECT_THAT(RelativeError(1 * SolarMass, 1047 * JupiterMass), Lt(4e-4));
+  EXPECT_THAT(RelativeError(1 * SolarGravitationalParameter,
+                            1047 * JovianGravitationalParameter),
+              Lt(6e-4));
   // Delambre & Méchain.
-  EXPECT_THAT(RelativeError(
-                  GravitationalConstant * EarthMass /
-                      Pow<2>(40 * Mega(Metre) / (2 * π)),
-                  StandardGravity),
+  EXPECT_THAT(RelativeError(TerrestrialGravitationalParameter /
+                                Pow<2>(40 * Mega(Metre) / (2 * π)),
+                            StandardGravity),
               Lt(4e-3));
   // Talleyrand.
   EXPECT_THAT(RelativeError(π * Sqrt(1 * Metre / StandardGravity), 1 * Second),
@@ -182,8 +182,10 @@ TEST_F(ElementaryFunctionsTest, HyperbolicFunctions) {
 }
 
 TEST_F(ElementaryFunctionsTest, ExpLogAndRoots) {
+  // The ULP distance is 1 if everything is correctly rounded.
   EXPECT_THAT(std::exp(std::log(2) / 2), AlmostEquals(Sqrt(2), 1));
-  EXPECT_THAT(std::exp(std::log(2) / 3), AlmostEquals(Cbrt(2), 1));
+  // The ULP distance is 0 if everything is correctly rounded.
+  EXPECT_THAT(std::exp(std::log(2) / 3), AlmostEquals(Cbrt(2), 0));
   EXPECT_THAT(
       Sqrt(Rood),
       AlmostEquals(std::exp(std::log(Rood / Pow<2>(Foot)) / 2) * Foot, 0));

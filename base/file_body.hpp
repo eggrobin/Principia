@@ -4,38 +4,27 @@
 
 #include <filesystem>
 #include <string>
+#include <system_error>
 
 #include "base/macros.hpp"
 #include "glog/logging.h"
-
-// In 15.7.0 preview 2 <filesystem> is not yet up to speed compared to
-// <experimental/filesystem>.
-#if PRINCIPIA_COMPILER_MSVC && _MSC_FULL_VER <= 191426316
-#include <experimental/filesystem>
-#endif
 
 namespace principia {
 namespace base {
 namespace internal_file {
 
-inline OFStream::OFStream() {}
-
 inline OFStream::OFStream(std::filesystem::path const& path) {
 #if PRINCIPIA_COMPILER_MSVC
   CHECK(path.has_filename()) << path;
-  std::filesystem::path directory = path;
-  directory.remove_filename();
-#if _MSC_FULL_VER <= 191426316
-  if (!std::experimental::filesystem::exists(directory.native())) {
-    CHECK(std::experimental::filesystem::create_directories(directory.native()))
-        << directory;
-  }
-#else
+  // Don't use |remove_filename| here as it leaves a trailing \.  See
+  // https://developercommunity.visualstudio.com/content/problem/278829/stdfilesystemcreate-directories-returns-false-if-p.html
+  // for a discussion of what happens in that case.
+  std::filesystem::path const directory = path.parent_path();
   if (!std::filesystem::exists(directory)) {
-    CHECK(std::filesystem::create_directories(directory))
-        << directory;
+    std::error_code e;
+    CHECK(std::filesystem::create_directories(directory, e))
+        << directory << " " << e << " " << e.message();
   }
-#endif
 #endif
   stream_.open(path);
   CHECK(stream_.good()) << path;

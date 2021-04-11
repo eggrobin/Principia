@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 
+#include "geometry/frame.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/r3_element.hpp"
 #include "glog/logging.h"
@@ -18,6 +19,7 @@ namespace principia {
 namespace testing_utilities {
 
 using geometry::Bivector;
+using geometry::Frame;
 using geometry::Point;
 using geometry::R3Element;
 using geometry::Trivector;
@@ -29,13 +31,9 @@ using ::testing::Eq;
 using ::testing::Gt;
 using ::testing::Ne;
 
-namespace {
-struct World;
-}  // namespace
-
 class NumericsTest : public testing::Test {
  protected:
-  struct World;
+  using World = Frame<enum class WorldTag>;
 
   R3Element<double> const i_ = {1, 0, 0};
   R3Element<double> const j_ = {0, 1, 0};
@@ -145,7 +143,7 @@ TEST_F(NumericsTest, DoubleRelativeError) {
   EXPECT_THAT(RelativeError(1.0, -1.0, DoubleAbs), Eq(2));
   EXPECT_THAT(RelativeError(2.0, 1.0, DoubleAbs), Eq(0.5));
   EXPECT_THAT(RelativeError(1.0, 2.0, DoubleAbs), Eq(1));
-  EXPECT_THAT(RelativeError(42.0, 6.0 * 9.0, DoubleAbs), IsNear(0.28));
+  EXPECT_THAT(RelativeError(42.0, 6.0 * 9.0, DoubleAbs), IsNear(0.28_⑴));
 }
 
 TEST_F(NumericsTest, DimensionlessRelativeError) {
@@ -153,7 +151,7 @@ TEST_F(NumericsTest, DimensionlessRelativeError) {
   EXPECT_THAT(RelativeError(1.0, -1.0), Eq(2));
   EXPECT_THAT(RelativeError(2.0, 1.0), Eq(0.5));
   EXPECT_THAT(RelativeError(1.0, 2.0), Eq(1));
-  EXPECT_THAT(RelativeError(42.0, 6.0 * 9.0), IsNear(0.28));
+  EXPECT_THAT(RelativeError(42.0, 6.0 * 9.0), IsNear(0.28_⑴));
 }
 
 TEST_F(NumericsTest, DimensionfulRelativeError) {
@@ -161,7 +159,7 @@ TEST_F(NumericsTest, DimensionfulRelativeError) {
   EXPECT_THAT(RelativeError(1 * Metre, -1 * Metre), Eq(2));
   EXPECT_THAT(RelativeError(2 * Metre, 1 * Metre), Eq(0.5));
   EXPECT_THAT(RelativeError(1 * Metre, 2 * Metre), Eq(1));
-  EXPECT_THAT(RelativeError(42 * Metre, 6 * 9 * Metre), IsNear(0.28));
+  EXPECT_THAT(RelativeError(42 * Metre, 6 * 9 * Metre), IsNear(0.28_⑴));
 }
 
 TEST_F(NumericsTest, R3ElementRelativeError) {
@@ -220,7 +218,7 @@ TEST_F(NumericsTest, TrivectorRelativeError) {
   EXPECT_THAT(
       RelativeError(Trivector<double, World>(42.0),
                     Trivector<double, World>(6.0 * 9.0)),
-      IsNear(0.28));
+      IsNear(0.28_⑴));
 }
 
 }  // namespace testing_utilities

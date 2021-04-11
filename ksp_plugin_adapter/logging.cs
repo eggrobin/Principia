@@ -1,13 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using KSP.Localization;
 
 namespace principia {
 namespace ksp_plugin_adapter {
 
 internal static class Log {
-  internal static String[] severity_names = {"INFO", "WARNING", "ERROR",
-                                             "FATAL"};
+  internal static string[] severity_names = {
+      Localizer.Format("#Principia_Logging_Info"),
+      Localizer.Format("#Principia_Logging_Warning"),
+      Localizer.Format("#Principia_Logging_Error"),
+      Localizer.Format("#Principia_Logging_Fatal")
+  };
 
   internal static void InitGoogleLogging() {
     Interface.InitGoogleLogging();
@@ -57,22 +61,30 @@ internal static class Log {
     return Interface.GetStderrLogging();
   }
 
-  internal static void Info(String message) {
-    Interface.LogInfo(message);
+  internal static void Info(string message,
+                            [CallerFilePath] string file = "",
+                            [CallerLineNumber] int line = -1) {
+    Interface.LogInfo(file, line, message);
   }
 
-  internal static void Warning(String message) {
-    Interface.LogWarning(message);
+  internal static void Warning(string message,
+                               [CallerFilePath] string file = "",
+                               [CallerLineNumber] int line = -1) {
+    Interface.LogWarning(file, line, message);
   }
 
-  internal static void Error(String message) {
-    Interface.LogError(message);
+  internal static void Error(string message,
+                             [CallerFilePath] string file = "",
+                             [CallerLineNumber] int line = -1) {
+    Interface.LogError(file, line, message);
   }
 
   // Returns an exception so it can be thrown so that the compiler doesn't
   // complain about non-returning code.
-  internal static Exception Fatal(String message) {
-    Interface.LogFatal(message);
+  internal static Exception Fatal(string message,
+                                  [CallerFilePath] string file = "",
+                                  [CallerLineNumber] int line = -1) {
+    Interface.LogFatal(file, line, message);
     return new Exception();
   }
 }

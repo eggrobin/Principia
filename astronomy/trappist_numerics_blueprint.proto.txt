@@ -1,0 +1,17 @@
+numerics_blueprint {
+  ephemeris {
+    integrator             : QUINLAN_1999_ORDER_8A
+    step                   : "30 min"
+    fitting_tolerance      : "1 mm"
+    geopotential_tolerance : "0x1p-24"
+  }
+  history {
+    integrator : QUINLAN_1999_ORDER_8A
+    step       : "10 s"
+  }
+  psychohistory {
+    integrator : DORMAND_ELMIKKAWY_PRINCE_1986_RKN_434FM
+    length_integration_tolerance : "1 mm"
+    speed_integration_tolerance  : "1 mm/s"
+  }
+}

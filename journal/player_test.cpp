@@ -3,7 +3,6 @@
 
 #include <list>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "benchmark/benchmark.h"
@@ -23,7 +22,7 @@ void BM_PlayForReal(benchmark::State& state) {
     Player player(
         R"(P:\Public Mockingbird\Principia\Journals\JOURNAL.20180311-192733)");
     int count = 0;
-    while (player.Play()) {
+    while (player.Play(count)) {
       ++count;
       LOG_IF(ERROR, (count % 100'000) == 0)
           << count << " journal entries replayed";
@@ -55,9 +54,7 @@ class PlayerTest : public ::testing::Test {
 };
 
 TEST_F(PlayerTest, PlayTiny) {
-  // Do the recording in a separate thread to make sure that it activates using
-  // a different static variable than the one in the plugin dynamic library.
-  std::thread recorder([this]() {
+  {
     Recorder* const r(new Recorder(test_name_ + ".journal.hex"));
     Recorder::Activate(r);
 
@@ -71,59 +68,57 @@ TEST_F(PlayerTest, PlayTiny) {
       m.Return();
     }
     Recorder::Deactivate();
-  });
-  recorder.join();
+  }
 
   Player player(test_name_ + ".journal.hex");
 
   // Replay the journal.
   int count = 0;
-  while (player.Play()) {
+  while (player.Play(count)) {
     ++count;
   }
-  EXPECT_EQ(2, count);
+  EXPECT_EQ(3, count);
 }
 
-TEST_F(PlayerTest, DISABLED_Benchmarks) {
+TEST_F(PlayerTest, DISABLED_SECULAR_Benchmarks) {
   benchmark::RunSpecifiedBenchmarks();
 }
 
-TEST_F(PlayerTest, DISABLED_Debug) {
+TEST_F(PlayerTest, DISABLED_SECULAR_Debug) {
+  google::LogToStderr();
   // An example of how journaling may be used for debugging.  You must set
   // |path| and fill the |method_in| and |method_out_return| protocol buffers.
   std::string path =
-      R"(\\venezia.mockingbirdnest.com\Namespaces\Public\Public Mockingbird\Principia\Crashes\1703\JOURNAL.20180130-000310)";  // NOLINT
+      R"(P:\Public Mockingbird\Principia\Crashes\2866\JOURNAL.20210121-220028)";  // NOLINT
   Player player(path);
   int count = 0;
-  while (player.Play()) {
+  while (player.Play(count)) {
     ++count;
     LOG_IF(ERROR, (count % 100'000) == 0) << count
                                           << " journal entries replayed";
   }
   LOG(ERROR) << count << " journal entries in total";
   LOG(ERROR) << "Last successful method in:\n"
-              << player.last_method_in().DebugString();
+             << player.last_method_in().DebugString();
   LOG(ERROR) << "Last successful method out/return: \n"
-              << player.last_method_out_return().DebugString();
+             << player.last_method_out_return().DebugString();
 
 #if 0
   serialization::Method method_in;
   {
     auto* extension = method_in.MutableExtension(
-        serialization::FutureWaitForVesselToCatchUp::extension);
+        serialization::CatchUpLaggingVessels::extension);
     auto* in = extension->mutable_in();
-    in->set_plugin(222367552);
-    in->set_future(6209463568);
+    in->set_plugin(1851148864528);
   }
   serialization::Method method_out_return;
   {
     auto* extension = method_out_return.MutableExtension(
-        serialization::FutureWaitForVesselToCatchUp::extension);
+        serialization::CatchUpLaggingVessels::extension);
   }
   LOG(ERROR) << "Running unpaired method:\n" << method_in.DebugString();
-  CHECK(RunIfAppropriate<FutureWaitForVesselToCatchUp>(method_in,
-                                                       method_out_return,
-                                                       player));
+  CHECK(RunIfAppropriate<CatchUpLaggingVessels>(
+      method_in, method_out_return, player));
 #endif
 }
 

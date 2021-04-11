@@ -1,6 +1,7 @@
 ﻿
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 #include <map>
 #include <string>
@@ -28,6 +29,11 @@ using geometry::Instant;
 using quantities::GravitationalParameter;
 using quantities::Length;
 
+serialization::GravityModel ParseGravityModel(
+    std::filesystem::path const& gravity_model_filename);
+serialization::InitialState ParseInitialState(
+    std::filesystem::path const& initial_state_filename);
+
 template<typename Frame>
 class SolarSystem final {
  public:
@@ -38,19 +44,26 @@ class SolarSystem final {
               bool ignore_frame = false);
 
   // Construct a solar system from the given messages.
-  SolarSystem(serialization::GravityModel const& gravity_model,
-              serialization::InitialState const& initial_state,
+  SolarSystem(serialization::GravityModel gravity_model,
+              serialization::InitialState initial_state,
               bool ignore_frame = false);
+
+  SolarSystem(SolarSystem const& other) = delete;
+  SolarSystem& operator=(const SolarSystem& other) = delete;
+
+  SolarSystem(SolarSystem&& other) = default;
+  SolarSystem& operator=(SolarSystem&& other) = default;
 
   // Constructs an ephemeris for this object using the specified parameters.
   // The bodies and initial state are constructed from the data passed to
   // |Initialize|.
-  std::unique_ptr<Ephemeris<Frame>> MakeEphemeris(
-      Length const& fitting_tolerance,
-      typename Ephemeris<Frame>::FixedStepParameters const& parameters);
+  not_null<std::unique_ptr<Ephemeris<Frame>>> MakeEphemeris(
+      typename Ephemeris<Frame>::AccuracyParameters const& accuracy_parameters,
+      typename Ephemeris<Frame>::FixedStepParameters const&
+          fixed_step_parameters) const;
 
   std::vector<not_null<std::unique_ptr<MassiveBody const>>>
-  MakeAllMassiveBodies();
+  MakeAllMassiveBodies() const;
 
   // The time origin for the initial state.
   Instant const& epoch() const;
@@ -91,10 +104,16 @@ class SolarSystem final {
   // The configuration protocol buffers for the body named |name|.
   serialization::GravityModel::Body const& gravity_model_message(
       std::string const& name) const;
+  bool has_cartesian_initial_state_message(std::string const& name) const;
   serialization::InitialState::Cartesian::Body const&
   cartesian_initial_state_message(std::string const& name) const;
+  bool has_keplerian_initial_state_message(std::string const& name) const;
   serialization::InitialState::Keplerian::Body const&
   keplerian_initial_state_message(std::string const& name) const;
+
+  // The fingerprint is independent from the order of bodies, geopotential
+  // parameters, and other repeated quantities.
+  std::uint64_t Fingerprint() const;
 
   // Factory functions for converting configuration protocol buffers into
   // structured objects.
@@ -115,8 +134,9 @@ class SolarSystem final {
       const;
 
   // Utilities for patching the internal protocol buffers after initialization.
+  void LimitOblatenessToDegree(std::string const& name, int max_degree);
+  void LimitOblatenessToZonal(std::string const& name);
   void RemoveMassiveBody(std::string const& name);
-  void RemoveOblateness(std::string const& name);
   void ReplaceElements(std::string const& name,
                        KeplerianElements<Frame> const& elements);
 
@@ -132,7 +152,7 @@ class SolarSystem final {
   static not_null<std::unique_ptr<typename OblateBody<Frame>::Parameters>>
   MakeOblateBodyParameters(serialization::GravityModel::Body const& body);
 
-  std::vector<DegreesOfFreedom<Frame>> MakeAllDegreesOfFreedom();
+  std::vector<DegreesOfFreedom<Frame>> MakeAllDegreesOfFreedom() const;
 
   // If a frame is specified in a message it must match the frame of this
   // instance.  Otherwise the frame of the instance is used.  This is convenient
@@ -158,6 +178,8 @@ class SolarSystem final {
 
 }  // namespace internal_solar_system
 
+using internal_solar_system::ParseGravityModel;
+using internal_solar_system::ParseInitialState;
 using internal_solar_system::SolarSystem;
 
 }  // namespace physics

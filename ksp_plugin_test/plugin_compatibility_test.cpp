@@ -23,8 +23,8 @@ namespace ksp_plugin {
 namespace internal_plugin {
 
 using base::Array;
-using base::UniqueBytes;
-using base::HexadecimalDecode;
+using base::UniqueArray;
+using base::HexadecimalEncoder;
 using geometry::Bivector;
 using geometry::Trivector;
 using geometry::Vector;
@@ -49,18 +49,15 @@ class TestablePlugin : public Plugin {
 };
 
 void TestablePlugin::KeepAllVessels() {
-  for (auto const& pair : vessels_) {
-    auto const& vessel = pair.second;
+  for (auto const& [_, vessel] : vessels_) {
     kept_vessels_.insert(vessel.get());
   }
 }
 
 std::map<GUID, not_null<Vessel const*>> TestablePlugin::vessels() const {
   std::map<GUID, not_null<Vessel const*>> result;
-  for (auto const& pair : vessels_) {
-    auto const& guid = pair.first;
-    Vessel const* const vessel = pair.second.get();
-    result.insert(std::make_pair(guid, vessel));
+  for (auto const& [guid, vessel] : vessels_) {
+    result.insert(std::make_pair(guid, vessel.get()));
   }
   return result;
 }
@@ -92,11 +89,8 @@ class PluginCompatibilityTest : public testing::Test {
     file.close();
 
     // Parse the hexadecimal data and convert it to binary data.
-    UniqueBytes bin(hex.size() / 2);
-    HexadecimalDecode(
-        Array<std::uint8_t const>(
-            reinterpret_cast<std::uint8_t const*>(hex.c_str()), hex.size()),
-        bin.get());
+    HexadecimalEncoder</*null_terminated=*/false> encoder;
+    auto const bin = encoder.Decode(hex);
 
     // Construct a protocol buffer from the binary data.
     google::protobuf::io::CodedInputStream coded_input_stream(
