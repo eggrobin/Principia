@@ -23,7 +23,6 @@ int __cdecl main(int argc, char const* argv[]) {
     return 1;
   }
   std::string command = argv[1];
-<<<<<<< HEAD
   if (command == "cbrt") {
     if (argc != 4) {
       std::cerr << "Usage: " << argv[0] << " cbrt methods iterations";
