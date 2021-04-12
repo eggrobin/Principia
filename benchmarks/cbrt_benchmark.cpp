@@ -132,7 +132,7 @@ double cbrt(double const IACA_VOLATILE input) {
 
 PRINCIPIA_REGISTER_CBRT(lagny_rational);
 
-namespace lagny_rational_early_div {
+namespace lagny_rational_fma {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
@@ -183,9 +183,9 @@ double cbrt(double const IACA_VOLATILE input) {
   IACA_VC64_END
   return result;
 }
-}  // namespace lagny_rational_early_div
+}  // namespace lagny_rational_fma
 
-PRINCIPIA_REGISTER_CBRT(lagny_rational_early_div);
+PRINCIPIA_REGISTER_CBRT(lagny_rational_fma);
 
 namespace lagny_rational_weighted {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
@@ -594,8 +594,8 @@ void BM_LagnyRationalCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &lagny_rational::cbrt);
 }
 
-void BM_LagnyRationalEarlyDivCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_rational_early_div::cbrt);
+void BM_LagnyRationalFMACbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &lagny_rational_fma::cbrt);
 }
 
 void BM_LagnyRationalWeightedCbrt(benchmark::State& state) {
@@ -628,7 +628,7 @@ void BM_LagnyIrrationalExpandedPreinvertCbrt(benchmark::State& state) {
 
 BENCHMARK(BM_NoCbrt);
 BENCHMARK(BM_LagnyRationalCbrt);
-BENCHMARK(BM_LagnyRationalEarlyDivCbrt);
+BENCHMARK(BM_LagnyRationalFMACbrt);
 BENCHMARK(BM_LagnyRationalWeightedCbrt);
 BENCHMARK(BM_LagnyIrrationalCbrt);
 BENCHMARK(BM_LagnyIrrationalExpandedCbrt);
