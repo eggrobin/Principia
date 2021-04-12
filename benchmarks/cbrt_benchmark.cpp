@@ -165,10 +165,10 @@ double cbrt(double const IACA_VOLATILE input) {
   double const q³ = q² * q;
   double const d = _mm_cvtsd_f64(
       _mm_fmadd_sd(_mm_set_sd(2 * q), _mm_set_sd(q²), _mm_set_sd(abs_y)));
-  double const b = _mm_cvtsd_f64(
-      _mm_fmsub_sd(_mm_set_sd(q), _mm_set_sd(q²), _mm_set_sd(abs_y)));
+  double const bq = _mm_cvtsd_f64(
+      _mm_fmsub_sd(_mm_set_sd(q²), _mm_set_sd(q²), _mm_set_sd(abs_y * q)));
   // An approximation of ∛y with a relative error below 2⁻¹⁵.
-  double const ξ = q - b * q * (1 / d);
+  double const ξ = q - bq / d;
   double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
   // One round of 6th order Householder.
   double const x³ = x * x * x;
