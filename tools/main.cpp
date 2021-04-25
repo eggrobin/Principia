@@ -37,6 +37,8 @@ int __cdecl main(int argc, char const* argv[]) {
       int unfaithful_roundings = 0;
       double max_ulps = 0;
       std::uint64_t Y_worst = 0;
+      int detected_possible_misroundings = 0;
+      int undetected_misroundings = 0;
     };
     std::map<std::string, MethodProperties> properties;
     double min_positive_correct_ulps = std::numeric_limits<double>::infinity();
@@ -73,9 +75,13 @@ int __cdecl main(int argc, char const* argv[]) {
       principia::numerics::RoundedReal const x_correct =
           principia::numerics::correct_cube_root(y);
       for (auto const& method : methods) {
+        principia::numerics::possible_misrounding = false;
         double const x =
             principia::numerics::CubeRootRegistry::Instance().methods().at(
                 method)(y);
+        if (principia::numerics::possible_misrounding) {
+          ++properties[method].detected_possible_misroundings;
+        }
         std::int64_t const ulps_from_correct =
             principia::numerics::to_integer(x) -
             principia::numerics::to_integer(x_correct.nearest_rounding);
@@ -88,6 +94,9 @@ int __cdecl main(int argc, char const* argv[]) {
         }
         if (x != x_correct.nearest_rounding) {
           ++properties[method].incorrect_roundings;
+          if (!principia::numerics::possible_misrounding) {
+            ++properties[method].undetected_misroundings;
+          }
           CHECK_GT(abs_ulps_from_exact, 0.5);
           if (x != x_correct.furthest_rounding) {
             ++properties[method].unfaithful_roundings;
@@ -148,15 +157,24 @@ int __cdecl main(int argc, char const* argv[]) {
                   << Y_just_above_exact << std::dec << "\n\n";
         for (auto const& method : methods) {
           std::cout << "Method " << method << "\n"
-                    << "incorrect roundings  : "
+                    << "incorrect roundings             : "
                     << properties[method].incorrect_roundings << " ("
                     << 100.0 * properties[method].incorrect_roundings / i
                     << " %)\n"
-                    << "unfaithful roundings : "
+                    << "unfaithful roundings            : "
                     << properties[method].unfaithful_roundings << " ("
                     << 100.0 * properties[method].unfaithful_roundings / i
                     << " %)\n"
-                    << "maximal error        : " << properties[method].max_ulps
+                    << "detected possible misroundings  : "
+                    << properties[method].detected_possible_misroundings << " ("
+                    << 100.0 * properties[method].detected_possible_misroundings / i
+                    << " %)\n"
+                    << "undetected misroundings         : "
+                    << properties[method].undetected_misroundings << " ("
+                    << 100.0 * properties[method].undetected_misroundings /
+                           properties[method].incorrect_roundings
+                    << " % of misroundings)\n"
+                    << "maximal error                   : " << properties[method].max_ulps
                     << " ULPs, for " << std::hex << std::uppercase << "16^^"
                     << properties[method].Y_worst << std::dec << "\n\n";
         }

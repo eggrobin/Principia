@@ -820,8 +820,6 @@ namespace lagny_canon_irrational_extracted_denominator_nearest {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
-static const __m128d sixteen_bits_of_mantissa =
-    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
 // NOTE(egg): the σs do not rescale enough to put the least normal or greatest
 // finite magnitudes inside the non-rescaling range; for very small and very
 // large values, rescaling occurs twice.
@@ -861,7 +859,26 @@ double cbrt(double const IACA_VOLATILE input) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
+  double const Δ = numerator / denominator;
+  double const IACA_VOLATILE result = x_sign_y - Δ;
+  double const residual = (x_sign_y - result) - Δ;
+  double offset_from_halfway;
+  if (residual > 0) {
+    double const result_ulp_above =
+        _mm_cvtsd_f64(_mm_castsi128_pd(_mm_add_epi64(
+            _mm_castpd_si128(_mm_set_sd(result)), _mm_cvtsi64_si128(1)))) -
+        result;
+    offset_from_halfway = residual - 0.5 * result_ulp_above;
+  } else {
+    double const result_ulp_below =
+        _mm_cvtsd_f64(_mm_castsi128_pd(_mm_sub_epi64(
+            _mm_castpd_si128(_mm_set_sd(result)), _mm_cvtsi64_si128(1)))) -
+        result;
+    offset_from_halfway = residual - 0.5 * result_ulp_below;
+  }
+  double const distance_from_halfway =
+      _mm_cvtsd_f64(_mm_andnot_pd(sign_bit, _mm_set_sd(offset_from_halfway)));
+  possible_misrounding = distance_from_halfway < 0.000124 * 0x1p-53 * result;
   IACA_VC64_END
   return result;
 }
@@ -913,7 +930,30 @@ double cbrt(double const IACA_VOLATILE input) {
   double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
   double const numerator = (x³ - abs_y) * ((10 * x³ + 16 * abs_y) * x³ + y²);
   double const denominator = x² * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
+  double const Δ = numerator / denominator;
+  double const IACA_VOLATILE result = x_sign_y - Δ;
+  double result_ulp =
+      _mm_cvtsd_f64(_mm_castsi128_pd(_mm_add_epi64(
+          _mm_castpd_si128(_mm_set_sd(result)), _mm_cvtsi64_si128(1)))) -
+      result;
+  double const residual = (x_sign_y - result) - Δ;
+  double offset_from_halfway;
+  if (residual > 0) {
+    double const result_ulp_above =
+        _mm_cvtsd_f64(_mm_castsi128_pd(_mm_add_epi64(
+            _mm_castpd_si128(_mm_set_sd(result)), _mm_cvtsi64_si128(1)))) -
+        result;
+    offset_from_halfway = residual - 0.5 * result_ulp_above;
+  } else {
+    double const result_ulp_below =
+        _mm_cvtsd_f64(_mm_castsi128_pd(_mm_sub_epi64(
+            _mm_castpd_si128(_mm_set_sd(result)), _mm_cvtsi64_si128(1)))) -
+        result;
+    offset_from_halfway = residual - 0.5 * result_ulp_below;
+  }
+  double const distance_from_halfway =
+      _mm_cvtsd_f64(_mm_andnot_pd(sign_bit, _mm_set_sd(offset_from_halfway)));
+  possible_misrounding = distance_from_halfway < 0.000113 * 0x1p-53 * result;
   IACA_VC64_END
   return result;
 }

@@ -44,6 +44,8 @@ struct RoundedReal {
 
 RoundedReal correct_cube_root(double const y);
 
+inline bool possible_misrounding = false;
+
 #define PRINCIPIA_REGISTER_CBRT(name)                                 \
   static principia::numerics::SingleParameterScalarFunction* const    \
       name##_cbrt =                                                   \
