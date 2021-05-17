@@ -1051,6 +1051,14 @@ void BM_NoCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, [](double x) { return x; });
 }
 
+void BM_StdCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, [](double x) { return std::cbrt(x); });
+}
+
+void BM_StdSin(benchmark::State& state) {
+  BenchmarkCbrt(state, [](double x) { return std::sin(x)+std::cos(x); });
+}
+
 void BM_LagnyRationalCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &lagny_rational::cbrt);
 }
@@ -1137,6 +1145,8 @@ BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominator5Cbrt);
 BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominatorNearestCbrt);
 BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominator5NearestCbrt);
 BENCHMARK(BM_LagnyIrrationalExtractedDenominatorFMACbrt);
+BENCHMARK(BM_StdCbrt);
+BENCHMARK(BM_StdSin);
 #endif
 
 }  // namespace numerics
