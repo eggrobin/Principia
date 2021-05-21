@@ -71,8 +71,6 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
   private readonly bool in_main_menu_ =
       HighLogic.LoadedScene == GameScenes.MAINMENU;
 
-  private const int чебышёв_plotting_method = 2;
-
   private IntPtr plugin_ = IntPtr.Zero;
 
   internal IntPtr Plugin() {
@@ -575,6 +573,9 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
     }
     if (vessel.loaded && hack_gravity?.toggle.isOn == true) {
       reasons.Add("vessel is loaded and gravity is being hacked");
+    }
+    if (vessel.parts.All(part => !PartIsFaithful(part))) {
+      reasons.Add("vessel is completely unfaithful");
     }
     if (reasons.Count == 0) {
       return null;
@@ -2119,7 +2120,6 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
           using (DisposableIterator rp2_lines_iterator =
               planetarium.PlanetariumPlotPsychohistory(
                   plugin_,
-                  чебышёв_plotting_method,
                   main_vessel_guid,
                   main_window_.history_length)) {
             GLLines.PlotRP2Lines(rp2_lines_iterator,
@@ -2129,7 +2129,6 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
           using (DisposableIterator rp2_lines_iterator =
               planetarium.PlanetariumPlotPrediction(
                   plugin_,
-                  чебышёв_plotting_method,
                   main_vessel_guid)) {
             GLLines.PlotRP2Lines(rp2_lines_iterator,
                                  prediction_colour,
@@ -2145,7 +2144,6 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
             using (DisposableIterator rp2_lines_iterator =
                 planetarium.PlanetariumPlotPsychohistory(
                     plugin_,
-                    чебышёв_plotting_method,
                     target_id,
                     main_window_.history_length)) {
               GLLines.PlotRP2Lines(rp2_lines_iterator,
@@ -2155,7 +2153,6 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
             using (DisposableIterator rp2_lines_iterator =
                 planetarium.PlanetariumPlotPrediction(
                     plugin_,
-                    чебышёв_plotting_method,
                     target_id)) {
               GLLines.PlotRP2Lines(rp2_lines_iterator,
                                    target_prediction_colour,
@@ -2185,7 +2182,6 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
                 using (DisposableIterator rp2_lines_iterator =
                     planetarium.PlanetariumPlotFlightPlanSegment(
                         plugin_,
-                        чебышёв_plotting_method,
                         main_vessel_guid,
                         i)) {
                   GLLines.PlotRP2Lines(rp2_lines_iterator,

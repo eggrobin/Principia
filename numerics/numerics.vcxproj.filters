@@ -182,6 +182,12 @@
     <ClInclude Include="piecewise_poisson_series_body.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="fma.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fma_body.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="чебышёв_series_test.cpp">
@@ -278,6 +284,9 @@
       <Filter>Test Files</Filter>
     </ClCompile>
     <ClCompile Include="..\base\status.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\base\cpuid.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
