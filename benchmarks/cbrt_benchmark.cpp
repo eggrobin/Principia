@@ -107,7 +107,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const input) {
+__declspec(noinline) double cbrt(double const input) {
   //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -157,7 +157,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const input) {
+__declspec(noinline) double cbrt(double const input) {
   //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -209,7 +209,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const input) {
+__declspec(noinline) double cbrt(double const input) {
   //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -259,7 +259,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const input) {
+__declspec(noinline) double cbrt(double const input) {
   //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -312,7 +312,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const input) {
+__declspec(noinline) double cbrt(double const input) {
   //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -364,7 +364,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const input) {
+__declspec(noinline) double cbrt(double const input) {
   //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -418,7 +418,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const input) {
+__declspec(noinline) double cbrt(double const input) {
   //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -469,7 +469,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const input) {
+__declspec(noinline) double cbrt(double const input) {
   //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -522,7 +522,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const input) {
+__declspec(noinline) double cbrt(double const input) {
   //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -570,7 +570,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt IACA_FUNCTION_DOUBLE(y) {
+__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   __m128d const sign_bit =
       _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
   __m128d const sixteen_bits_of_mantissa =
@@ -619,7 +619,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt IACA_FUNCTION_DOUBLE(y) {
+__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
   __m128d const sign = _mm_and_pd(sign_bit, Y_0);
@@ -664,7 +664,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const input) {
+__declspec(noinline) double cbrt(double const input) {
   //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -732,7 +732,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt IACA_FUNCTION_DOUBLE(y) {
+__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   __m128d const sign_bit =
       _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -783,7 +783,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const input) {
+__declspec(noinline) double cbrt(double const input) {
   //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -826,7 +826,7 @@ double cbrt(double const input) {
 }  // namespace r5dr4_fma
 
 #if PRINCIPIA_BENCHMARKS
-void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
+__declspec(noinline) void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
   double total = 0;
   double total_cycles = 0;
   int iterations = 0;
