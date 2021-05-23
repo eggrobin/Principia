@@ -9,7 +9,7 @@
 
 #include "mpirxx.h"
 
-#if 1
+#if 0
 #include "Intel/IACA 2.1/iacaMarks.h"
 #define IACA_FUNCTION_DOUBLE(arg) \
   (volatile double volatilizer) { \
