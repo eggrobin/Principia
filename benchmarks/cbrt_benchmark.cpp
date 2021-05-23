@@ -9,7 +9,7 @@
 
 #include "mpirxx.h"
 
-#if 0
+#if 1
 #include "Intel/IACA 2.1/iacaMarks.h"
 #define IACA_FUNCTION_DOUBLE(arg) \
   (volatile double volatilizer) { \
@@ -830,7 +830,7 @@ void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
   double total = 0;
   double total_cycles = 0;
   int iterations = 0;
-  std::int64_t n = benchmark::CPUInfo::Get().cycles_per_second / 100;
+  std::int64_t n = 1 << 16;
   while (state.KeepRunning()) {
     double x = 1000;
     auto const start = __rdtsc();
