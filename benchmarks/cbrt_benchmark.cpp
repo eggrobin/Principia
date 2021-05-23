@@ -9,13 +9,21 @@
 
 #include "mpirxx.h"
 
-#if 0
+#if 1
 #include "Intel/IACA 2.1/iacaMarks.h"
-#define IACA_VOLATILE volatile
+#define IACA_FUNCTION_DOUBLE(arg) \
+  (volatile double volatilizer) { \
+    IACA_VC64_START;              \
+    for (double iaca_result, arg = volatilizer;; arg = iaca_result)
+#define IACA_RETURN(result)  \
+  iaca_result = result;      \
+  volatilizer = iaca_result; \
+  IACA_VC64_END;             \
+  }                          \
+  return volatilizer
 #else
-#define IACA_VOLATILE
-#define IACA_VC64_START
-#define IACA_VC64_END
+#define IACA_FUNCTION_DOUBLE(arg) (double const arg)
+#define IACA_RETURN(result) return result
 #endif
 
 namespace principia {
@@ -99,8 +107,8 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
+double cbrt(double const input) {
+  //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
@@ -126,8 +134,8 @@ double cbrt(double const IACA_VOLATILE input) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
-  IACA_VC64_END
+  double const result = x_sign_y - numerator / denominator;
+  //IACA_VC64_END
   return result;
 }
 }  // namespace lagny_rational
@@ -149,8 +157,8 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
+double cbrt(double const input) {
+  //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
@@ -178,8 +186,8 @@ double cbrt(double const IACA_VOLATILE input) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
-  IACA_VC64_END
+  double const result = x_sign_y - numerator / denominator;
+  //IACA_VC64_END
   return result;
 }
 }  // namespace lagny_rational_together
@@ -201,8 +209,8 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
+double cbrt(double const input) {
+  //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
@@ -228,8 +236,8 @@ double cbrt(double const IACA_VOLATILE input) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
-  IACA_VC64_END
+  double const result = x_sign_y - numerator / denominator;
+  //IACA_VC64_END
   return result;
 }
 }  // namespace lagny_rational_weighted
@@ -251,8 +259,8 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
+double cbrt(double const input) {
+  //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
@@ -281,8 +289,8 @@ double cbrt(double const IACA_VOLATILE input) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
-  IACA_VC64_END
+  double const result = x_sign_y - numerator / denominator;
+  //IACA_VC64_END
   return result;
 }
 }  // namespace lagny_irrational_preinvert
@@ -304,8 +312,8 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
+double cbrt(double const input) {
+  //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
@@ -333,8 +341,8 @@ double cbrt(double const IACA_VOLATILE input) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
-  IACA_VC64_END
+  double const result = x_sign_y - numerator / denominator;
+  //IACA_VC64_END
   return result;
 }
 }  // namespace lagny_irrational_expanded
@@ -356,8 +364,8 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
+double cbrt(double const input) {
+  //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
@@ -387,8 +395,8 @@ double cbrt(double const IACA_VOLATILE input) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
-  IACA_VC64_END
+  double const result = x_sign_y - numerator / denominator;
+  //IACA_VC64_END
   return result;
 }
 }  // namespace lagny_irrational_expanded_preinvert
@@ -410,8 +418,8 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
+double cbrt(double const input) {
+  //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
@@ -438,8 +446,8 @@ double cbrt(double const IACA_VOLATILE input) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
-  IACA_VC64_END
+  double const result = x_sign_y - numerator / denominator;
+  //IACA_VC64_END
   return result;
 }
 }  // namespace lagny_irrational
@@ -461,8 +469,8 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
+double cbrt(double const input) {
+  //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
@@ -491,8 +499,8 @@ double cbrt(double const IACA_VOLATILE input) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
-  IACA_VC64_END
+  double const result = x_sign_y - numerator / denominator;
+  //IACA_VC64_END
   return result;
 }
 }  // namespace lagny_irrational_extracted_denominator
@@ -514,8 +522,8 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
+double cbrt(double const input) {
+  //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
@@ -543,8 +551,8 @@ double cbrt(double const IACA_VOLATILE input) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
-  IACA_VC64_END
+  double const result = x_sign_y - numerator / denominator;
+  //IACA_VC64_END
   return result;
 }
 }  // namespace lagny_canon_irrational_extracted_denominator
@@ -566,9 +574,11 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
-  double const y = input;
+double cbrt IACA_FUNCTION_DOUBLE(y) {
+  __m128d sixteen_bits_of_mantissa{};
+  sixteen_bits_of_mantissa = _mm_move_sd(
+      sixteen_bits_of_mantissa,
+      lagny_canon_irrational_extracted_denominator5::sixteen_bits_of_mantissa);
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
   __m128d const sign = _mm_and_pd(sign_bit, Y_0);
@@ -585,7 +595,7 @@ double cbrt(double const IACA_VOLATILE input) {
   // An approximation of ∛y with a relative error below 2⁻¹⁵.
   __m128d const ρ_0 = _mm_set_sd(4.00298737793169718250674332690180421 * abs_y * q  - q⁴);
   double const ξ = 0.499999938108574047751429172928306529 * q + 0.288531511562316719053845144194384063 / q * _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0));
-  double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
+  double const x = _mm_cvtsd_f64(_mm_and_pd(sixteen_bits_of_mantissa, _mm_set_sd(ξ)));
   // One round of 6th order Householder.
   double const x² = x * x;
   double const x³ = x * x * x;
@@ -594,9 +604,7 @@ double cbrt(double const IACA_VOLATILE input) {
   double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
   double const numerator = (x³ - abs_y) * ((10 * x³ + 16 * abs_y) * x³ + y²);
   double const denominator = x² * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
-  IACA_VC64_END
-  return result;
+  IACA_RETURN(x_sign_y - numerator / denominator);
 }
 }  // namespace lagny_canon_irrational_extracted_denominator5
 
@@ -615,8 +623,8 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
+double cbrt(double const input) {
+  //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
@@ -646,7 +654,7 @@ double cbrt(double const IACA_VOLATILE input) {
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
   double const Δ = numerator / denominator;
-  double const IACA_VOLATILE result = x_sign_y - Δ;
+  double const result = x_sign_y - Δ;
   double const residual = (x_sign_y - result) - Δ;
   double offset_from_halfway;
   if (residual > 0) {
@@ -665,7 +673,7 @@ double cbrt(double const IACA_VOLATILE input) {
   double const distance_from_halfway =
       _mm_cvtsd_f64(_mm_andnot_pd(sign_bit, _mm_set_sd(offset_from_halfway)));
   possible_misrounding = distance_from_halfway < 0.000124 * 0x1p-53 * result;
-  IACA_VC64_END
+  //IACA_VC64_END
   return result;
 }
 }  // namespace lagny_canon_irrational_extracted_denominator_nearest
@@ -687,9 +695,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
-  double const y = input;
+double cbrt IACA_FUNCTION_DOUBLE(y) {
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
   __m128d const sign = _mm_and_pd(sign_bit, Y_0);
@@ -717,31 +723,7 @@ double cbrt(double const IACA_VOLATILE input) {
   double const numerator = (x³ - abs_y) * ((10 * x³ + 16 * abs_y) * x³ + y²);
   double const denominator = x² * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
   double const Δ = numerator / denominator;
-  double const IACA_VOLATILE result = x_sign_y - Δ;
-  double result_ulp =
-      _mm_cvtsd_f64(_mm_castsi128_pd(_mm_add_epi64(
-          _mm_castpd_si128(_mm_set_sd(result)), _mm_cvtsi64_si128(1)))) -
-      result;
-  double const residual = (x_sign_y - result) - Δ;
-  double offset_from_halfway;
-  if (residual > 0) {
-    double const result_ulp_above =
-        _mm_cvtsd_f64(_mm_castsi128_pd(_mm_add_epi64(
-            _mm_castpd_si128(_mm_set_sd(result)), _mm_cvtsi64_si128(1)))) -
-        result;
-    offset_from_halfway = residual - 0.5 * result_ulp_above;
-  } else {
-    double const result_ulp_below =
-        _mm_cvtsd_f64(_mm_castsi128_pd(_mm_sub_epi64(
-            _mm_castpd_si128(_mm_set_sd(result)), _mm_cvtsi64_si128(1)))) -
-        result;
-    offset_from_halfway = residual - 0.5 * result_ulp_below;
-  }
-  double const distance_from_halfway =
-      _mm_cvtsd_f64(_mm_andnot_pd(sign_bit, _mm_set_sd(offset_from_halfway)));
-  possible_misrounding = distance_from_halfway < 0.000113 * 0x1p-53 * result;
-  IACA_VC64_END
-  return result;
+  IACA_RETURN(x_sign_y - Δ);
 }
 }  // namespace lagny_canon_irrational_extracted_denominator5_nearest
 
@@ -762,8 +744,8 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-double cbrt(double const IACA_VOLATILE input) {
-  IACA_VC64_START
+double cbrt(double const input) {
+  //IACA_VC64_START
   double const y = input;
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
@@ -798,8 +780,8 @@ double cbrt(double const IACA_VOLATILE input) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const IACA_VOLATILE result = x_sign_y - numerator / denominator;
-  IACA_VC64_END
+  double const result = x_sign_y - numerator / denominator;
+  //IACA_VC64_END
   return result;
 }
 }  // namespace r5dr4_fma
