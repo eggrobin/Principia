@@ -561,51 +561,6 @@ __declspec(noinline) double cbrt(double const input) {
 
 PRINCIPIA_REGISTER_CBRT(lagny_canon_irrational_extracted_denominator);
 
-namespace lagny_canon_irrational_extracted_denominator5_nostatic {
-constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
-// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
-// finite magnitudes inside the non-rescaling range; for very small and very
-// large values, rescaling occurs twice.
-constexpr double smol = 0x1p-225;
-constexpr double smol_σ = 0x1p-154;
-constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
-constexpr double big = 0x1p237;
-constexpr double big_σ = 0x1p154;
-constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
-  __m128d const sign_bit =
-      _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
-  __m128d const sixteen_bits_of_mantissa =
-      _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
-  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  __m128d Y_0 = _mm_set_sd(y);
-  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
-  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
-  double const abs_y = _mm_cvtsd_f64(Y_0);
-  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
-  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
-  // back.
-  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
-  std::uint64_t const Q = C + Y / 3;
-  double const q = to_double(Q);
-  double const q² = q * q;
-  double const q⁴ = q² * q²;
-  // An approximation of ∛y with a relative error below 2⁻¹⁵.
-  __m128d const ρ_0 = _mm_set_sd(4.00298737793169718250674332690180421 * abs_y * q  - q⁴);
-  double const ξ = 0.499999938108574047751429172928306529 * q + 0.288531511562316719053845144194384063 / q * _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0));
-  double const x = _mm_cvtsd_f64(_mm_and_pd(sixteen_bits_of_mantissa, _mm_set_sd(ξ)));
-  // One round of 6th order Householder.
-  double const x² = x * x;
-  double const x³ = x * x * x;
-  double const x⁶ = x³ * x³;
-  double const y² = y * y;
-  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
-  double const numerator = (x³ - abs_y) * ((10 * x³ + 16 * abs_y) * x³ + y²);
-  double const denominator = x² * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
-  IACA_RETURN(x_sign_y - numerator / denominator);
-}
-}  // namespace lagny_canon_irrational_extracted_denominator5_nostatic
-
 namespace lagny_canon_irrational_extracted_denominator5 {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
@@ -893,11 +848,6 @@ void BM_LagnyCanonIrrationalExtractedDenominator5Cbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &lagny_canon_irrational_extracted_denominator5::cbrt);
 }
 
-
-void BM_LagnyCanonIrrationalExtractedDenominator5NoStaticCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_canon_irrational_extracted_denominator5_nostatic::cbrt);
-}
-
 void BM_LagnyCanonIrrationalExtractedDenominatorNearestCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &lagny_canon_irrational_extracted_denominator_nearest::cbrt);
 }
@@ -933,7 +883,6 @@ BENCHMARK(BM_LagnyIrrationalExpandedPreinvertCbrt);
 BENCHMARK(BM_LagnyIrrationalExtractedDenominatorCbrt);
 BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominatorCbrt);
 BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominator5Cbrt);
-BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominator5NoStaticCbrt);
 BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominatorNearestCbrt);
 BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominator5NearestCbrt);
 BENCHMARK(BM_R5DR4FMACbrt);
