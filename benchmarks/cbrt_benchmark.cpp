@@ -10,7 +10,9 @@
 
 #include "mpirxx.h"
 
-#if 0
+#define NOIACA_FUNCTION_DOUBLE(arg) (double const arg)
+#define NOIACA_RETURN(result) return result
+#if 1
 #include "Intel/IACA 2.1/iacaMarks.h"
 #include <random>
 #define IACA_FUNCTION_DOUBLE(arg) \
@@ -261,9 +263,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-__declspec(noinline) double cbrt(double const input) {
-  //IACA_VC64_START
-  double const y = input;
+__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
   __m128d const sign = _mm_and_pd(sign_bit, Y_0);
@@ -292,12 +292,63 @@ __declspec(noinline) double cbrt(double const input) {
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
   double const result = x_sign_y - numerator / denominator;
-  //IACA_VC64_END
-  return result;
+  IACA_RETURN(result);
 }
 }  // namespace lagny_irrational_preinvert
 
 PRINCIPIA_REGISTER_CBRT(lagny_irrational_preinvert);
+
+namespace lagny_irrational_together {
+constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+static const __m128d sign_bit =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
+static const __m128d sixteen_bits_of_mantissa =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
+// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
+// finite magnitudes inside the non-rescaling range; for very small and very
+// large values, rescaling occurs twice.
+constexpr double smol = 0x1p-225;
+constexpr double smol_σ = 0x1p-154;
+constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
+constexpr double big = 0x1p237;
+constexpr double big_σ = 0x1p154;
+constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
+__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  __m128d Y_0 = _mm_set_sd(y);
+  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
+  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(Y_0);
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
+  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q² = q * q;
+  double const q⁴ = q² * q²;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  constexpr double sqrt_3 = 0x1.BB67AE8584CAAp0;
+  __m128d const ρ_0 = _mm_set_sd(4 * abs_y * q - q⁴);
+  double inverse = (1 / (2 * sqrt_3)) / q;
+  double const ξ =
+      (sqrt_3 * q² + _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0))) * inverse;
+  double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
+  // One round of 6th order Householder.
+  double const x³ = x * x * x;
+  double const x⁶ = x³ * x³;
+  double const y² = y * y;
+  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
+  double const numerator =
+      x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
+  double const denominator =
+      (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
+  double const result = x_sign_y - numerator / denominator;
+  IACA_RETURN(result);
+}
+}  // namespace lagny_irrational_together
+
+PRINCIPIA_REGISTER_CBRT(lagny_irrational_together);
 
 namespace lagny_irrational_expanded {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
@@ -524,9 +575,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-__declspec(noinline) double cbrt(double const input) {
-  //IACA_VC64_START
-  double const y = input;
+__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
   __m128d const sign = _mm_and_pd(sign_bit, Y_0);
@@ -554,8 +603,7 @@ __declspec(noinline) double cbrt(double const input) {
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
   double const result = x_sign_y - numerator / denominator;
-  //IACA_VC64_END
-  return result;
+  IACA_RETURN(result);
 }
 }  // namespace lagny_canon_irrational_extracted_denominator
 
@@ -576,7 +624,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
+__declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
   __m128d const sign = _mm_and_pd(sign_bit, Y_0);
@@ -602,7 +650,7 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
   double const numerator = (x³ - abs_y) * ((10 * x³ + 16 * abs_y) * x³ + y²);
   double const denominator = x² * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
-  IACA_RETURN(x_sign_y - numerator / denominator);
+  NOIACA_RETURN(x_sign_y - numerator / denominator);
 }
 }  // namespace lagny_canon_irrational_extracted_denominator5
 
@@ -670,7 +718,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
+__declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   __m128d const sign_bit =
       _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
@@ -700,7 +748,7 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   double const numerator = (x³ - abs_y) * ((10 * x³ + 16 * abs_y) * x³ + y²);
   double const denominator = x² * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
   double const Δ = numerator / denominator;
-  IACA_RETURN(x_sign_y - Δ);
+  NOIACA_RETURN(x_sign_y - Δ);
 }
 }  // namespace lagny_canon_irrational_extracted_denominator5_nearest
 
@@ -860,6 +908,10 @@ void BM_LagnyIrrationalPreinvertCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &lagny_irrational_preinvert::cbrt);
 }
 
+void BM_LagnyIrrationalTogetherCbrt(benchmark::State& state) {
+  BenchmarkCbrt(state, &lagny_irrational_together::cbrt);
+}
+
 void BM_LagnyIrrationalExpandedCbrt(benchmark::State& state) {
   BenchmarkCbrt(state, &lagny_irrational_expanded::cbrt);
 }
@@ -879,6 +931,7 @@ BENCHMARK(BM_LagnyRationalWeightedCbrt);
 BENCHMARK(BM_LagnyIrrationalCbrt);
 BENCHMARK(BM_LagnyIrrationalExpandedCbrt);
 BENCHMARK(BM_LagnyIrrationalPreinvertCbrt);
+BENCHMARK(BM_LagnyIrrationalTogetherCbrt);
 BENCHMARK(BM_LagnyIrrationalExpandedPreinvertCbrt);
 BENCHMARK(BM_LagnyIrrationalExtractedDenominatorCbrt);
 BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominatorCbrt);
