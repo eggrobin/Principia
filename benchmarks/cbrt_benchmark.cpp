@@ -1,6 +1,7 @@
 ﻿
 #include "benchmarks/cbrt.hpp"
 
+#include <random>
 #include <string>
 
 #include "glog/logging.h"
@@ -11,6 +12,7 @@
 
 #if 0
 #include "Intel/IACA 2.1/iacaMarks.h"
+#include <random>
 #define IACA_FUNCTION_DOUBLE(arg) \
   (volatile double volatilizer) { \
     IACA_VC64_START;              \
@@ -696,25 +698,6 @@ __declspec(noinline) double cbrt(double const input) {
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
   double const Δ = numerator / denominator;
   double const result = x_sign_y - Δ;
-  double const residual = (x_sign_y - result) - Δ;
-  double offset_from_halfway;
-  if (residual > 0) {
-    double const result_ulp_above =
-        _mm_cvtsd_f64(_mm_castsi128_pd(_mm_add_epi64(
-            _mm_castpd_si128(_mm_set_sd(result)), _mm_cvtsi64_si128(1)))) -
-        result;
-    offset_from_halfway = residual - 0.5 * result_ulp_above;
-  } else {
-    double const result_ulp_below =
-        _mm_cvtsd_f64(_mm_castsi128_pd(_mm_sub_epi64(
-            _mm_castpd_si128(_mm_set_sd(result)), _mm_cvtsi64_si128(1)))) -
-        result;
-    offset_from_halfway = residual - 0.5 * result_ulp_below;
-  }
-  double const distance_from_halfway =
-      _mm_cvtsd_f64(_mm_andnot_pd(sign_bit, _mm_set_sd(offset_from_halfway)));
-  possible_misrounding = distance_from_halfway < 0.000124 * 0x1p-53 * result;
-  //IACA_VC64_END
   return result;
 }
 }  // namespace lagny_canon_irrational_extracted_denominator_nearest
@@ -826,25 +809,36 @@ __declspec(noinline) double cbrt(double const input) {
 }  // namespace r5dr4_fma
 
 #if PRINCIPIA_BENCHMARKS
+
+double zero_cycles;
+
 __declspec(noinline) void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
   double total = 0;
   double total_cycles = 0;
   int iterations = 0;
   std::int64_t n = 1 << 16;
+  std::uint64_t const low = principia::numerics::to_integer(1);
+  std::uint64_t const high = principia::numerics::to_integer(8);
   while (state.KeepRunning()) {
+    std::mt19937_64 mersenne(1729);
     double x = 1000;
     auto const start = __rdtsc();
     for (std::int64_t i = 0; i < n; ++i) {
-      x = cbrt(x);
+      std::uint64_t const Y = mersenne() % (high - low) + low;
+      double const y = principia::numerics::to_double(Y);
+      x = cbrt(y * (1.0 / 1024) * (1023 + x));
     }
     auto const stop = __rdtsc();
     total_cycles += stop - start;
     total += x;
     ++iterations;
   }
-  state.SetLabel(std::to_string(total_cycles / (n * iterations)) + " cycles " +
-                 quantities::DebugString(total / iterations, 3) + u8"; ∛2 = " +
-                 quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
+  if (cbrt(5) == 5) {
+    zero_cycles = total_cycles / (n * iterations);
+  }
+  state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
+                 " cycles " + quantities::DebugString(total / iterations, 3) +
+                 u8"; ∛2 = " + quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)) + u8"; 2⁻³⁴⁰ ∛2¹⁰²¹ = " +
                  quantities::DebugString(0x1p-340 * cbrt(0x1p1021)) +
                  u8"; 2³⁴¹ ∛2⁻¹⁰²² = " +
