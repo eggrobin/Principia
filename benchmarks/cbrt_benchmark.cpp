@@ -841,8 +841,8 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   double const q⁵ = q³ * q²;
   double const q⁶ = q³ * q³;
   double const inverse =
-      q / (FusedMultiplySubtract(
-              0x1.4A7E9CB8A3491p2 * q, q², 0x1.08654A2D4F6DBp-1 * abs_y));
+      q / FusedMultiplySubtract(
+              0x1.4A7E9CB8A3491p2 * q, q², 0x1.08654A2D4F6DBp-1 * abs_y);
   // An approximation of ∛y with a relative error below 2⁻¹⁵.
   double const ξ = FusedMultiplyAdd(
       inverse,
