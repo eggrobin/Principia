@@ -12,7 +12,7 @@
 
 #define NOIACA_FUNCTION_DOUBLE(arg) (double const arg)
 #define NOIACA_RETURN(result) return result
-#if 1
+#if 0
 #include "Intel/IACA 2.1/iacaMarks.h"
 #include <random>
 #define IACA_FUNCTION_DOUBLE(arg) \
@@ -111,9 +111,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-__declspec(noinline) double cbrt(double const input) {
-  //IACA_VC64_START
-  double const y = input;
+__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
   __m128d const sign = _mm_and_pd(sign_bit, Y_0);
@@ -139,8 +137,7 @@ __declspec(noinline) double cbrt(double const input) {
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
   double const result = x_sign_y - numerator / denominator;
-  //IACA_VC64_END
-  return result;
+  IACA_RETURN(result);
 }
 }  // namespace lagny_rational
 
@@ -161,9 +158,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-__declspec(noinline) double cbrt(double const input) {
-  //IACA_VC64_START
-  double const y = input;
+__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
   __m128d const sign = _mm_and_pd(sign_bit, Y_0);
@@ -191,8 +186,7 @@ __declspec(noinline) double cbrt(double const input) {
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
   double const result = x_sign_y - numerator / denominator;
-  //IACA_VC64_END
-  return result;
+  IACA_RETURN(result);
 }
 }  // namespace lagny_rational_together
 
@@ -823,11 +817,14 @@ __declspec(noinline) void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(
   std::uint64_t const low = principia::numerics::to_integer(1);
   std::uint64_t const high = principia::numerics::to_integer(8);
   while (state.KeepRunning()) {
-    std::mt19937_64 mersenne(1729);
+    std::minstd_rand rng(1729);
     double x = 1000;
     auto const start = __rdtsc();
     for (std::int64_t i = 0; i < n; ++i) {
-      std::uint64_t const Y = mersenne() % (high - low) + low;
+      std::uint64_t Y = rng();
+      Y <<= 32;
+      Y += rng();
+      Y = Y % (high - low) + low;
       double const y = principia::numerics::to_double(Y);
       x = cbrt(y * (1.0 / 1024) * (1023 + x));
     }
