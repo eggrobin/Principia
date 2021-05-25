@@ -814,19 +814,21 @@ __declspec(noinline) void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(
   double total_cycles = 0;
   int iterations = 0;
   std::int64_t n = 1 << 16;
-  std::uint64_t const low = principia::numerics::to_integer(1);
-  std::uint64_t const high = principia::numerics::to_integer(8);
+  constexpr std::uint64_t low = 0x3FF0000000000000;   // 1.
+  constexpr std::uint64_t high = 0x4020000000000000;  // 8.
+  std::linear_congruential_engine<std::uint64_t,
+                                  6364136223846793005,
+                                  1442695040888963407,
+                                  0>
+      rng(1729);
   while (state.KeepRunning()) {
-    std::minstd_rand rng(1729);
     double x = 1000;
     auto const start = __rdtsc();
     for (std::int64_t i = 0; i < n; ++i) {
-      std::uint64_t Y = rng();
-      Y <<= 32;
-      Y += rng();
-      Y = Y % (high - low) + low;
+      rng.seed(i + principia::numerics::to_integer(x));
+      std::uint64_t const Y = rng() % (high - low) + low;
       double const y = principia::numerics::to_double(Y);
-      x = cbrt(y * (1.0 / 1024) * (1023 + x));
+      x = cbrt(y);
     }
     auto const stop = __rdtsc();
     total_cycles += stop - start;
