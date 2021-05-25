@@ -780,7 +780,7 @@ __declspec(noinline) double cbrt(double const input) {
   // ⁰¹²³⁴⁵⁶⁷⁸⁹
   double const q = to_double(Q);
   double const y² = y * y;
-  double const y³ = y² * y;
+  double const y³ = y² * abs_y;
   double const q² = q * q;
   double const q³ = q² * q;
   double const q⁵ = q³ * q²;
@@ -788,9 +788,10 @@ __declspec(noinline) double cbrt(double const input) {
   // An approximation of ∛y with a relative error below 2⁻¹⁵.
   double const ξ =
       FusedMultiplyAdd(q⁶,
-                       (FusedMultiplyAdd(5 * q, q², 45 * y)),
-                       (FusedMultiplyAdd(30 * q, q², y)) * y²) /
-      FusedMultiplyAdd(q⁵, FusedMultiplyAdd(15 * q, q², 51 * y), 15 * y² * q²);
+                       (FusedMultiplyAdd(5 * q, q², 45 * abs_y)),
+                       (FusedMultiplyAdd(30 * q, q², abs_y)) * y²) /
+      FusedMultiplyAdd(
+          q⁵, FusedMultiplyAdd(15 * q, q², 51 * abs_y), 15 * y² * q²);
   double const x =
       _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), twenty_five_bits_of_mantissa));
   double const x³ = x * x * x;
