@@ -112,7 +112,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
+__declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
   __m128d const sign = _mm_and_pd(sign_bit, Y_0);
@@ -138,7 +138,7 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
   double const result = x_sign_y - numerator / denominator;
-  IACA_RETURN(result);
+  NOIACA_RETURN(result);
 }
 }  // namespace lagny_rational
 
