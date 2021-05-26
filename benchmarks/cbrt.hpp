@@ -53,7 +53,7 @@ inline bool possible_misrounding = false;
               #name, &name::cbrt)
 
 #if PRINCIPIA_BENCHMARKS
-void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double));
+void BenchmarkCbrtLatency(benchmark::State& state, double (*cbrt)(double));
 #endif
 
 }  // namespace numerics

@@ -1,6 +1,7 @@
 ﻿
 #include "benchmarks/cbrt.hpp"
 
+#include <array>
 #include <random>
 #include <string>
 
@@ -864,9 +865,8 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
 }  // namespace i5dr4_fma
 #if PRINCIPIA_BENCHMARKS
 
-double zero_cycles;
-
-__declspec(noinline) void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(double)) {
+__declspec(noinline) void BenchmarkCbrtLatency(benchmark::State& state, double (*cbrt)(double)) {
+  static double zero_cycles;
   double total = 0;
   double total_cycles = 0;
   int iterations = 0;
@@ -912,96 +912,86 @@ __declspec(noinline) void BenchmarkCbrt(benchmark::State& state, double (*cbrt)(
       cbrt(egg_scaling::smol * egg_scaling::smol_σ⁻³) * egg_scaling::smol_σ);*/
 }
 
-void BM_NoCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, [](double x) { return x; });
+__declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, double (*cbrt)(double)) {
+  static double zero_cycles;
+  double total = 0;
+  double total_cycles = 0;
+  int iterations = 0;
+  constexpr std::int64_t n = 1024;
+  constexpr std::uint64_t low = 0x3FF0000000000000;   // 1.
+  constexpr std::uint64_t high = 0x4020000000000000;  // 8.
+  std::linear_congruential_engine<std::uint64_t,
+                                  6364136223846793005,
+                                  1442695040888963407,
+                                  0>
+      rng(1729);
+  std::array<double, static_cast<std::size_t>(n)> inputs;
+  for (std::int64_t i = 0; i < n; ++i) {
+    std::uint64_t const Y = rng() % (high - low) + low;
+    double const y = principia::numerics::to_double(Y);
+    inputs[i] = y;
+  }
+  while (state.KeepRunning()) {
+    auto const start = __rdtsc();
+    for (std::int64_t i = 0; i < n; ++i) {
+      inputs[i] = cbrt(inputs[i]) * 4;
+    }
+    auto const stop = __rdtsc();
+    total_cycles += stop - start;
+    ++iterations;
+  }
+  for (std::int64_t i = 0; i < n; ++i) {
+    total += inputs[i] / n;
+  }
+  if (cbrt(5) == 5) {
+    zero_cycles = total_cycles / (n * iterations);
+  }
+  state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
+                 " cycles " + quantities::DebugString(total / iterations, 3) +
+                 u8"; ∛2 = " + quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
+                 quantities::DebugString(cbrt(-2)) + u8"; 2⁻³⁴⁰ ∛2¹⁰²¹ = " +
+                 quantities::DebugString(0x1p-340 * cbrt(0x1p1021)) +
+                 u8"; 2³⁴¹ ∛2⁻¹⁰²² = " +
+                 quantities::DebugString(0x1p341 * cbrt(0x1p-1022)) +
+                 u8"; 2³⁵⁸ ∛2⁻¹⁰⁷³ = " +
+                 quantities::DebugString(0x1p358 * cbrt(0x1p-1073)));
+  /*LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::big));
+  LOG(ERROR) << quantities::DebugString(
+      cbrt(egg_scaling::big * egg_scaling::big_σ⁻³) * egg_scaling::big_σ);
+  LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::smol));
+  LOG(ERROR) << quantities::DebugString(
+      cbrt(egg_scaling::smol * egg_scaling::smol_σ⁻³) * egg_scaling::smol_σ);*/
 }
 
-void BM_StdCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, [](double x) { return std::cbrt(x); });
-}
+#define CBRT_BENCHMARKS(name, f)                      \
+  void BM_Latency##name(benchmark::State& state) {    \
+    BenchmarkCbrtLatency(state, (f));                 \
+  }                                                   \
+  BENCHMARK(BM_Latency##name);                        \
+  void BM_Throughput##name(benchmark::State& state) { \
+    BenchmarkCbrtThroughput(state, (f));              \
+  }                                                   \
+  BENCHMARK(BM_Throughput##name)
 
-void BM_StdSin(benchmark::State& state) {
-  BenchmarkCbrt(state, [](double x) { return std::sin(x)+std::cos(x); });
-}
+CBRT_BENCHMARKS(NoCbrt, [](double x) { return x; });
+CBRT_BENCHMARKS(StdCbrt, [](double x) { return std::cbrt(x); });
+CBRT_BENCHMARKS(StdSin, [](double x) { return std::sin(x)+std::cos(x); });
+CBRT_BENCHMARKS(LagnyRationalCbrt, &lagny_rational::cbrt);
+CBRT_BENCHMARKS(LagnyRationalTogetherCbrt, &lagny_rational_together::cbrt);
+CBRT_BENCHMARKS(LagnyRationalWeightedCbrt, &lagny_rational_weighted::cbrt);
+CBRT_BENCHMARKS(LagnyIrrationalCbrt, &lagny_irrational::cbrt);
+CBRT_BENCHMARKS(LagnyIrrationalExtractedDenominatorCbrt, &lagny_irrational_extracted_denominator::cbrt);
+CBRT_BENCHMARKS(LagnyCanonIrrationalExtractedDenominatorCbrt, &lagny_canon_irrational_extracted_denominator::cbrt);
+CBRT_BENCHMARKS(LagnyCanonIrrationalExtractedDenominator5Cbrt, &lagny_canon_irrational_extracted_denominator5::cbrt);
+CBRT_BENCHMARKS(LagnyCanonIrrationalExtractedDenominatorNearestCbrt, &lagny_canon_irrational_extracted_denominator_nearest::cbrt);
+CBRT_BENCHMARKS(LagnyCanonIrrationalExtractedDenominator5NearestCbrt, &lagny_canon_irrational_extracted_denominator5_nearest::cbrt);
+CBRT_BENCHMARKS(LagnyIrrationalPreinvertCbrt, &lagny_irrational_preinvert::cbrt);
+CBRT_BENCHMARKS(LagnyIrrationalTogetherCbrt, &lagny_irrational_together::cbrt);
+CBRT_BENCHMARKS(LagnyIrrationalExpandedCbrt, &lagny_irrational_expanded::cbrt);
+CBRT_BENCHMARKS(LagnyIrrationalExpandedPreinvertCbrt, &lagny_irrational_expanded_preinvert::cbrt);
+CBRT_BENCHMARKS(R5DR4FMACbrt, &r5dr4_fma::cbrt);
+CBRT_BENCHMARKS(I5DR4FMACbrt, &i5dr4_fma::cbrt);
 
-void BM_LagnyRationalCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_rational::cbrt);
-}
-
-void BM_LagnyRationalTogetherCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_rational_together::cbrt);
-}
-
-void BM_LagnyRationalWeightedCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_rational_weighted::cbrt);
-}
-
-void BM_LagnyIrrationalCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_irrational::cbrt);
-}
-
-void BM_LagnyIrrationalExtractedDenominatorCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_irrational_extracted_denominator::cbrt);
-}
-
-void BM_LagnyCanonIrrationalExtractedDenominatorCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_canon_irrational_extracted_denominator::cbrt);
-}
-
-void BM_LagnyCanonIrrationalExtractedDenominator5Cbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_canon_irrational_extracted_denominator5::cbrt);
-}
-
-void BM_LagnyCanonIrrationalExtractedDenominatorNearestCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_canon_irrational_extracted_denominator_nearest::cbrt);
-}
-
-void BM_LagnyCanonIrrationalExtractedDenominator5NearestCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_canon_irrational_extracted_denominator5_nearest::cbrt);
-}
-
-void BM_LagnyIrrationalPreinvertCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_irrational_preinvert::cbrt);
-}
-
-void BM_LagnyIrrationalTogetherCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_irrational_together::cbrt);
-}
-
-void BM_LagnyIrrationalExpandedCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_irrational_expanded::cbrt);
-}
-
-void BM_LagnyIrrationalExpandedPreinvertCbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &lagny_irrational_expanded_preinvert::cbrt);
-}
-
-void BM_R5DR4FMACbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &r5dr4_fma::cbrt);
-}
-
-void BM_I5DR4FMACbrt(benchmark::State& state) {
-  BenchmarkCbrt(state, &i5dr4_fma::cbrt);
-}
-
-BENCHMARK(BM_NoCbrt);
-BENCHMARK(BM_LagnyRationalCbrt);
-BENCHMARK(BM_LagnyRationalTogetherCbrt);
-BENCHMARK(BM_LagnyRationalWeightedCbrt);
-BENCHMARK(BM_LagnyIrrationalCbrt);
-BENCHMARK(BM_LagnyIrrationalExpandedCbrt);
-BENCHMARK(BM_LagnyIrrationalPreinvertCbrt);
-BENCHMARK(BM_LagnyIrrationalTogetherCbrt);
-BENCHMARK(BM_LagnyIrrationalExpandedPreinvertCbrt);
-BENCHMARK(BM_LagnyIrrationalExtractedDenominatorCbrt);
-BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominatorCbrt);
-BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominator5Cbrt);
-BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominatorNearestCbrt);
-BENCHMARK(BM_LagnyCanonIrrationalExtractedDenominator5NearestCbrt);
-BENCHMARK(BM_R5DR4FMACbrt);
-BENCHMARK(BM_I5DR4FMACbrt);
-BENCHMARK(BM_StdCbrt);
-BENCHMARK(BM_StdSin);
 #endif
 
 }  // namespace numerics
