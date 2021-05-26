@@ -896,7 +896,7 @@ __declspec(noinline) void BenchmarkCbrtLatency(benchmark::State& state, double (
     zero_cycles = total_cycles / (n * iterations);
   }
   state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
-                 " cycles " + quantities::DebugString(total / iterations, 3) +
+                 " cycles " + quantities::DebugString(total, 3) +
                  u8"; ∛2 = " + quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)) + u8"; 2⁻³⁴⁰ ∛2¹⁰²¹ = " +
                  quantities::DebugString(0x1p-340 * cbrt(0x1p1021)) +
@@ -917,7 +917,7 @@ __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, doubl
   double total = 0;
   double total_cycles = 0;
   int iterations = 0;
-  constexpr std::int64_t n = 32;
+  constexpr std::int64_t n = 64;
   constexpr std::uint64_t low = 0x3FF0000000000000;   // 1.
   constexpr std::uint64_t high = 0x4020000000000000;  // 8.
   std::linear_congruential_engine<std::uint64_t,
@@ -934,7 +934,7 @@ __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, doubl
   while (state.KeepRunning()) {
     auto const start = __rdtsc();
     for (std::int64_t i = 0; i < n; ++i) {
-      inputs[i] = cbrt(inputs[i]) * 4;
+      inputs[i] = cbrt(inputs[i]) * π;
     }
     auto const stop = __rdtsc();
     total_cycles += stop - start;
@@ -947,7 +947,7 @@ __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, doubl
     zero_cycles = total_cycles / (n * iterations);
   }
   state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
-                 " cycles " + quantities::DebugString(total / iterations, 3) +
+                 " cycles " + quantities::DebugString(total, 3) +
                  u8"; ∛2 = " + quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)) + u8"; 2⁻³⁴⁰ ∛2¹⁰²¹ = " +
                  quantities::DebugString(0x1p-340 * cbrt(0x1p1021)) +
@@ -963,15 +963,100 @@ __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, doubl
       cbrt(egg_scaling::smol * egg_scaling::smol_σ⁻³) * egg_scaling::smol_σ);*/
 }
 
-#define CBRT_BENCHMARKS(name, f)                      \
-  void BM_Latency##name(benchmark::State& state) {    \
-    BenchmarkCbrtLatency(state, (f));                 \
-  }                                                   \
-  BENCHMARK(BM_Latency##name);                        \
-  void BM_Throughput##name(benchmark::State& state) { \
-    BenchmarkCbrtThroughput(state, (f));              \
-  }                                                   \
-  BENCHMARK(BM_Throughput##name)
+__declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state, double (*cbrt)(double)) {
+  static double zero_cycles;
+  double total = 0;
+  double total_cycles = 0;
+  int iterations = 0;
+  constexpr std::int64_t n = 64;
+  constexpr std::uint64_t low = 0x3FF0000000000000;   // 1.
+  constexpr std::uint64_t high = 0x4000000000000000;  // 2.
+  std::linear_congruential_engine<std::uint64_t,
+                                  6364136223846793005,
+                                  1442695040888963407,
+                                  0>
+      rng(1729);
+  struct Input {
+    double e;
+    double E;
+  };
+  std::array<Input, static_cast<std::size_t>(n)> inputs;
+  for (std::int64_t i = 0; i < n; ++i) {
+    std::uint64_t const Y = rng() % (high - low) + low;
+    double const y = principia::numerics::to_double(Y);
+    std::uint64_t const Z = rng() % (high - low) + low;
+    double const z = principia::numerics::to_double(Y);
+    inputs[i] = {.e = 0.999 * (y - 1), .E = z - 1};
+  }
+  while (state.KeepRunning()) {
+    auto const start = __rdtsc();
+    for (std::int64_t i = 0; i < n; ++i) {
+      double const e = inputs[i].e;
+      double E = inputs[i].E;
+      // Make sure we are in [0, 1] even if the cube root secretly the identity,
+      // in constant time.
+      E = to_double((to_integer(E) & ~0xFFF0000000000000) |
+                    0x3FF0000000000000) - 1;
+      double const s = std::sin(E);
+      double const c = std::cos(E);
+      // ⁰¹²³⁴⁵⁶⁷⁸⁹
+      double const e² = e * e;
+      double const e³ = e² * e;
+      double const s² = s * s;
+      double const s³ = s² * s;
+      double const s⁴ = s² * s²;
+      double const c² = c * c;
+      double const ec = e * c;
+      double const e²c² = ec * ec;
+      double const R =
+          cbrt(3 * e² * s * c - e³ * s³ +
+               quantities::Sqrt(e³ * c² *
+                                (8 * quantities::Pow<3>(1 - ec) -
+                                 3 * e*s² * (1 + 4 * ec * (ec - 2)) -
+                                 6 * e³ * s⁴)));
+      inputs[i].E =
+          (-2 * ec + 2 * e²c² + R * R - e * s * R + e² * s²) / (ec * R);
+    }
+    auto const stop = __rdtsc();
+    total_cycles += stop - start;
+    ++iterations;
+  }
+  for (std::int64_t i = 0; i < n; ++i) {
+    total += inputs[i].E / n;
+  }
+  if (cbrt(5) == 5) {
+    zero_cycles = total_cycles / (n * iterations);
+  }
+  state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
+                 " cycles " + quantities::DebugString(total, 3) +
+                 u8"; ∛2 = " + quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
+                 quantities::DebugString(cbrt(-2)) + u8"; 2⁻³⁴⁰ ∛2¹⁰²¹ = " +
+                 quantities::DebugString(0x1p-340 * cbrt(0x1p1021)) +
+                 u8"; 2³⁴¹ ∛2⁻¹⁰²² = " +
+                 quantities::DebugString(0x1p341 * cbrt(0x1p-1022)) +
+                 u8"; 2³⁵⁸ ∛2⁻¹⁰⁷³ = " +
+                 quantities::DebugString(0x1p358 * cbrt(0x1p-1073)));
+  /*LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::big));
+  LOG(ERROR) << quantities::DebugString(
+      cbrt(egg_scaling::big * egg_scaling::big_σ⁻³) * egg_scaling::big_σ);
+  LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::smol));
+  LOG(ERROR) << quantities::DebugString(
+      cbrt(egg_scaling::smol * egg_scaling::smol_σ⁻³) * egg_scaling::smol_σ);*/
+}
+
+#define CBRT_BENCHMARKS(name, f)                            \
+  void BM_Latency##name(benchmark::State& state) {          \
+    BenchmarkCbrtLatency(state, (f));                       \
+  }                                                         \
+  BENCHMARK(BM_Latency##name);                              \
+  void BM_Throughput##name(benchmark::State& state) {       \
+    BenchmarkCbrtThroughput(state, (f));                    \
+  }                                                         \
+  BENCHMARK(BM_Throughput##name);                           \
+  void BM_KeplerThroughput##name(benchmark::State& state) { \
+    BenchmarkCbrtKeplerThroughput(state, (f));              \
+  }                                                         \
+  BENCHMARK(BM_KeplerThroughput##name)
 
 CBRT_BENCHMARKS(NoCbrt, [](double x) { return x; });
 CBRT_BENCHMARKS(StdCbrt, [](double x) { return std::cbrt(x); });
