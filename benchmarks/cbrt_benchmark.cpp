@@ -764,9 +764,7 @@ constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
 constexpr double big = 0x1p237;
 constexpr double big_σ = 0x1p154;
 constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-__declspec(noinline) double cbrt(double const input) {
-  //IACA_VC64_START
-  double const y = input;
+__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
   __m128d Y_0 = _mm_set_sd(y);
   __m128d const sign = _mm_and_pd(sign_bit, Y_0);
@@ -794,16 +792,15 @@ __declspec(noinline) double cbrt(double const input) {
           q⁵, FusedMultiplyAdd(15 * q, q², 51 * abs_y), 15 * y² * q²);
   double const x =
       _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), twenty_five_bits_of_mantissa));
-  double const x³ = x * x * x;
-  double const x⁶ = x³ * x³;
+  double const x² = x * x;
+  double const x³ = x² * x;
   double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
-  double const numerator =
-      x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
+  double const numerator = x_sign_y * FusedMultiplySubtract(x², x, abs_y) *
+                           FusedMultiplyAdd(6 * x, x², 3 * abs_y);
   double const denominator =
-      (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
+      FusedMultiplyAdd(x³, FusedMultiplyAdd(10 * x, x², 16 * abs_y), y²);
   double const result = x_sign_y - numerator / denominator;
-  //IACA_VC64_END
-  return result;
+  IACA_RETURN(result);
 }
 }  // namespace r5dr4_fma
 
@@ -854,13 +851,13 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
           inverse);
   double const x =
       _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), twenty_five_bits_of_mantissa));
-  double const x³ = x * x * x;
-  double const x⁶ = x³ * x³;
+  double const x² = x * x;
+  double const x³ = x² * x;
   double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
-  double const numerator =
-      x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
+  double const numerator = x_sign_y * FusedMultiplySubtract(x², x, abs_y) *
+                           FusedMultiplyAdd(6 * x, x², 3 * abs_y);
   double const denominator =
-      (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
+      FusedMultiplyAdd(x³, FusedMultiplyAdd(10 * x, x², 16 * abs_y), y²);
   double const result = x_sign_y - numerator / denominator;
   IACA_RETURN(result);
 }
