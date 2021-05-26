@@ -917,7 +917,7 @@ __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, doubl
   double total = 0;
   double total_cycles = 0;
   int iterations = 0;
-  constexpr std::int64_t n = 1024;
+  constexpr std::int64_t n = 32;
   constexpr std::uint64_t low = 0x3FF0000000000000;   // 1.
   constexpr std::uint64_t high = 0x4020000000000000;  // 8.
   std::linear_congruential_engine<std::uint64_t,
