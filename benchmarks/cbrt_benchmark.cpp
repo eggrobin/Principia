@@ -849,67 +849,6 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
       inverse,
       quantities::Sqrt(FusedMultiplySubtract(
           q³, FusedNegatedMultiplyAdd(q², q, 118.0 / 5 * abs_y), y²)),
-      FusedMultiplySubtract(
-          q², 0x1.4A7E9CB8A3491p0 * q, 0x1.4A7E9CB8A3491p0 * abs_y) *
-          inverse);
-  double const x =
-      _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), twenty_five_bits_of_mantissa));
-  double const x² = x * x;
-  double const x³ = x² * x;
-  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
-  double const numerator = x_sign_y * FusedMultiplySubtract(x², x, abs_y);
-  double const denominator =
-      FusedMultiplyAdd(x³, FusedMultiplyAdd(10 * x, x², 16 * abs_y), y²);
-  double const result =
-      FusedNegatedMultiplyAdd(FusedMultiplyAdd(6 * x, x², 3 * abs_y),
-                              numerator / denominator,
-                              x_sign_y);
-  IACA_RETURN(result);
-}
-}  // namespace i5dr4_fma
-
-namespace i5fdr4_fma {
-constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
-static const __m128d sign_bit =
-    _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
-static const __m128d twenty_five_bits_of_mantissa =
-    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFFF'FA00'0000));
-// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
-// finite magnitudes inside the non-rescaling range; for very small and very
-// large values, rescaling occurs twice.
-constexpr double smol = 0x1p-225;
-constexpr double smol_σ = 0x1p-154;
-constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
-constexpr double big = 0x1p237;
-constexpr double big_σ = 0x1p154;
-constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
-  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  __m128d Y_0 = _mm_set_sd(y);
-  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
-  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
-  double const abs_y = _mm_cvtsd_f64(Y_0);
-  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
-  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
-  // back.
-  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
-  std::uint64_t const Q = C + Y / 3;
-  // ⁰¹²³⁴⁵⁶⁷⁸⁹
-  double const q = to_double(Q);
-  double const y² = y * y;
-  double const y³ = y² * y;
-  double const q² = q * q;
-  double const q³ = q² * q;
-  double const q⁵ = q³ * q²;
-  double const q⁶ = q³ * q³;
-  double const inverse =
-      q / FusedMultiplySubtract(
-              0x1.4A7E9CB8A3491p2 * q, q², 0x1.08654A2D4F6DBp-1 * abs_y);
-  // An approximation of ∛y with a relative error below 2⁻¹⁵.
-  double const ξ = FusedMultiplyAdd(
-      inverse,
-      quantities::Sqrt(FusedMultiplySubtract(
-          q³, FusedNegatedMultiplyAdd(q², q, 118.0 / 5 * abs_y), y²)),
       FusedMultiplySubtract(q², q, abs_y) * 0x1.4A7E9CB8A3491p0 * inverse);
   double const x =
       _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), twenty_five_bits_of_mantissa));
@@ -925,7 +864,7 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
                               x_sign_y);
   IACA_RETURN(result);
 }
-}  // namespace i5fdr4_fma
+}  // namespace i5dr4_fma
 #if PRINCIPIA_BENCHMARKS
 
 __declspec(noinline) void BenchmarkCbrtLatency(benchmark::State& state, double (*cbrt)(double)) {
@@ -1139,7 +1078,6 @@ CBRT_BENCHMARKS(LagnyIrrationalExpandedCbrt, &lagny_irrational_expanded::cbrt);
 CBRT_BENCHMARKS(LagnyIrrationalExpandedPreinvertCbrt, &lagny_irrational_expanded_preinvert::cbrt);
 CBRT_BENCHMARKS(R5DR4FMACbrt, &r5dr4_fma::cbrt);
 CBRT_BENCHMARKS(I5DR4FMACbrt, &i5dr4_fma::cbrt);
-CBRT_BENCHMARKS(I5FDR4FMACbrt, &i5fdr4_fma::cbrt);
 
 #endif
 
