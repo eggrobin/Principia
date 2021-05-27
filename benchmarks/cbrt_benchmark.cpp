@@ -197,7 +197,53 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
 
 PRINCIPIA_REGISTER_CBRT(i3pdr6);
 
-namespace i3tdr6 {
+namespace i3pdr5 {
+constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+static const __m128d sign_bit =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
+static const __m128d sixteen_bits_of_mantissa =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
+// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
+// finite magnitudes inside the non-rescaling range; for very small and very
+// large values, rescaling occurs twice.
+constexpr double smol = 0x1p-225;
+constexpr double smol_σ = 0x1p-154;
+constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
+constexpr double big = 0x1p237;
+constexpr double big_σ = 0x1p154;
+constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
+__declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  __m128d Y_0 = _mm_set_sd(y);
+  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
+  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(Y_0);
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
+  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q³ = q * q * q;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  constexpr double one_twelfth = 1 / 12.0;
+  double const inverse = one_twelfth / q;
+  __m128d const ρ_0 = _mm_set_sd((4 * abs_y - q³) * inverse);
+  double const ξ = 0.5 * q + _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0));
+  double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
+  // One round of 6th order Householder.
+  double const x² = x * x;
+  double const x³ = x * x * x;
+  double const x⁶ = x³ * x³;
+  double const y² = y * y;
+  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
+  double const numerator = (x³ - abs_y) * ((10 * x³ + 16 * abs_y) * x³ + y²);
+  double const denominator = x² * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
+  NOIACA_RETURN(x_sign_y - numerator / denominator);
+}
+}  // namespace lagny_irrational_preinvert
+
+namespace i3tdr5 {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
@@ -234,6 +280,54 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
       (sqrt_3 * q² + _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0))) * inverse;
   double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
   // One round of 6th order Householder.
+  double const x² = x * x;
+  double const x³ = x * x * x;
+  double const x⁶ = x³ * x³;
+  double const y² = y * y;
+  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
+  double const numerator = (x³ - abs_y) * ((10 * x³ + 16 * abs_y) * x³ + y²);
+  double const denominator = x² * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
+  NOIACA_RETURN(x_sign_y - numerator / denominator);
+}
+}  // namespace lagny_irrational_together
+
+namespace i3tdr6 {
+constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+static const __m128d sign_bit =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
+static const __m128d sixteen_bits_of_mantissa =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
+// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
+// finite magnitudes inside the non-rescaling range; for very small and very
+// large values, rescaling occurs twice.
+constexpr double smol = 0x1p-225;
+constexpr double smol_σ = 0x1p-154;
+constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
+constexpr double big = 0x1p237;
+constexpr double big_σ = 0x1p154;
+constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
+__declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  __m128d Y_0 = _mm_set_sd(y);
+  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
+  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(Y_0);
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
+  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q² = q * q;
+  double const q⁴ = q² * q²;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  constexpr double sqrt_3 = 0x1.BB67AE8584CAAp0;
+  __m128d const ρ_0 = _mm_set_sd(4 * abs_y * q - q⁴);
+  double inverse = (1 / (2 * sqrt_3)) / q;
+  double const ξ =
+      (sqrt_3 * q² + _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0))) * inverse;
+  // One round of 6th order Householder.
+  double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
   double const x³ = x * x * x;
   double const x⁶ = x³ * x³;
   double const y² = y * y;
@@ -282,7 +376,6 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   __m128d const ρ_0 = _mm_set_sd(4.00298737793169718250674332690180421 * abs_y * q  - q⁴);
   double const ξ = 0.499999938108574047751429172928306529 * q + 0.288531511562316719053845144194384063 / q * _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0));
   double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
-  // One round of 6th order Householder.
   double const x³ = x * x * x;
   double const x⁶ = x³ * x³;
   double const y² = y * y;
@@ -495,18 +588,7 @@ __declspec(noinline) void BenchmarkCbrtLatency(benchmark::State& state, double (
   state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
                  " cycles " + quantities::DebugString(total, 3) +
                  u8"; ∛2 = " + quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
-                 quantities::DebugString(cbrt(-2)) + u8"; 2⁻³⁴⁰ ∛2¹⁰²¹ = " +
-                 quantities::DebugString(0x1p-340 * cbrt(0x1p1021)) +
-                 u8"; 2³⁴¹ ∛2⁻¹⁰²² = " +
-                 quantities::DebugString(0x1p341 * cbrt(0x1p-1022)) +
-                 u8"; 2³⁵⁸ ∛2⁻¹⁰⁷³ = " +
-                 quantities::DebugString(0x1p358 * cbrt(0x1p-1073)));
-  /*LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::big));
-  LOG(ERROR) << quantities::DebugString(
-      cbrt(egg_scaling::big * egg_scaling::big_σ⁻³) * egg_scaling::big_σ);
-  LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::smol));
-  LOG(ERROR) << quantities::DebugString(
-      cbrt(egg_scaling::smol * egg_scaling::smol_σ⁻³) * egg_scaling::smol_σ);*/
+                 quantities::DebugString(cbrt(-2)));
 }
 
 __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, double (*cbrt)(double)) {
@@ -546,18 +628,7 @@ __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, doubl
   state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
                  " cycles " + quantities::DebugString(total, 3) +
                  u8"; ∛2 = " + quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
-                 quantities::DebugString(cbrt(-2)) + u8"; 2⁻³⁴⁰ ∛2¹⁰²¹ = " +
-                 quantities::DebugString(0x1p-340 * cbrt(0x1p1021)) +
-                 u8"; 2³⁴¹ ∛2⁻¹⁰²² = " +
-                 quantities::DebugString(0x1p341 * cbrt(0x1p-1022)) +
-                 u8"; 2³⁵⁸ ∛2⁻¹⁰⁷³ = " +
-                 quantities::DebugString(0x1p358 * cbrt(0x1p-1073)));
-  /*LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::big));
-  LOG(ERROR) << quantities::DebugString(
-      cbrt(egg_scaling::big * egg_scaling::big_σ⁻³) * egg_scaling::big_σ);
-  LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::smol));
-  LOG(ERROR) << quantities::DebugString(
-      cbrt(egg_scaling::smol * egg_scaling::smol_σ⁻³) * egg_scaling::smol_σ);*/
+                 quantities::DebugString(cbrt(-2)));
 }
 
 __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state, double (*cbrt)(double)) {
@@ -627,18 +698,7 @@ __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state,
   state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
                  " cycles " + quantities::DebugString(total, 3) +
                  u8"; ∛2 = " + quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
-                 quantities::DebugString(cbrt(-2)) + u8"; 2⁻³⁴⁰ ∛2¹⁰²¹ = " +
-                 quantities::DebugString(0x1p-340 * cbrt(0x1p1021)) +
-                 u8"; 2³⁴¹ ∛2⁻¹⁰²² = " +
-                 quantities::DebugString(0x1p341 * cbrt(0x1p-1022)) +
-                 u8"; 2³⁵⁸ ∛2⁻¹⁰⁷³ = " +
-                 quantities::DebugString(0x1p358 * cbrt(0x1p-1073)));
-  /*LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::big));
-  LOG(ERROR) << quantities::DebugString(
-      cbrt(egg_scaling::big * egg_scaling::big_σ⁻³) * egg_scaling::big_σ);
-  LOG(ERROR) << quantities::DebugString(cbrt(egg_scaling::smol));
-  LOG(ERROR) << quantities::DebugString(
-      cbrt(egg_scaling::smol * egg_scaling::smol_σ⁻³) * egg_scaling::smol_σ);*/
+                 quantities::DebugString(cbrt(-2)));
 }
 
 #define CBRT_BENCHMARKS(name, f)                            \
@@ -660,9 +720,11 @@ CBRT_BENCHMARKS(StdCbrt, [](double x) { return std::cbrt(x); });
 CBRT_BENCHMARKS(StdSin, [](double x) { return std::sin(x)+std::cos(x); });
 CBRT_BENCHMARKS(R3DR6Cbrt, &r3dr6::cbrt);
 CBRT_BENCHMARKS(IC3XDR6Cbrt, &ic3xdr6::cbrt);
-CBRT_BENCHMARKS(IC3XDR5Cbrt, &ic3xdr5::cbrt);
 CBRT_BENCHMARKS(I3PDR6Cbrt, &i3pdr6::cbrt);
 CBRT_BENCHMARKS(I3TDR6Cbrt, &i3tdr6::cbrt);
+CBRT_BENCHMARKS(I3TDR5Cbrt, &i3tdr5::cbrt);
+CBRT_BENCHMARKS(I3PDR5Cbrt, &i3pdr5::cbrt);
+CBRT_BENCHMARKS(IC3XDR5Cbrt, &ic3xdr5::cbrt);
 CBRT_BENCHMARKS(R5DR4FMACbrt, &r5dr4_fma::cbrt);
 CBRT_BENCHMARKS(I5DR4FMACbrt, &i5dr4_fma::cbrt);
 
