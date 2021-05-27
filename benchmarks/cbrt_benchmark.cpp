@@ -796,11 +796,13 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   double const x² = x * x;
   double const x³ = x² * x;
   double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
-  double const numerator = x_sign_y * FusedMultiplySubtract(x², x, abs_y) *
-                           FusedMultiplyAdd(6 * x, x², 3 * abs_y);
+  double const numerator = x_sign_y * FusedMultiplySubtract(x², x, abs_y);
   double const denominator =
       FusedMultiplyAdd(x³, FusedMultiplyAdd(10 * x, x², 16 * abs_y), y²);
-  double const result = x_sign_y - numerator / denominator;
+  double const result =
+      FusedNegatedMultiplyAdd(FusedMultiplyAdd(6 * x, x², 3 * abs_y),
+                              numerator / denominator,
+                              x_sign_y);
   IACA_RETURN(result);
 }
 }  // namespace r5dr4_fma
@@ -855,11 +857,13 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   double const x² = x * x;
   double const x³ = x² * x;
   double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
-  double const numerator = x_sign_y * FusedMultiplySubtract(x², x, abs_y) *
-                           FusedMultiplyAdd(6 * x, x², 3 * abs_y);
+  double const numerator = x_sign_y * FusedMultiplySubtract(x², x, abs_y);
   double const denominator =
       FusedMultiplyAdd(x³, FusedMultiplyAdd(10 * x, x², 16 * abs_y), y²);
-  double const result = x_sign_y - numerator / denominator;
+  double const result =
+      FusedNegatedMultiplyAdd(FusedMultiplyAdd(6 * x, x², 3 * abs_y),
+                              numerator / denominator,
+                              x_sign_y);
   IACA_RETURN(result);
 }
 }  // namespace i5dr4_fma
