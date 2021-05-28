@@ -129,7 +129,7 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   double const q³ = q² * q;
   double const q4 = q² * q²;
   // An approximation of ∛y with a relative error below 2⁻¹⁵.
-  double const ξ = (q4 + 2 * y * q) / (2 * q³ + y);
+  double const ξ = (q4 + 2 * abs_y * q) / (2 * q³ + abs_y);
   double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
   // One round of 6th order Householder.
   double const x³ = x * x * x;
@@ -232,13 +232,13 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   double const ξ = 0.5 * q + _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0));
   double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
   // One round of 6th order Householder.
-  double const x² = x * x;
+    double const x² = x * x;
   double const x³ = x * x * x;
-  double const x⁶ = x³ * x³;
   double const y² = y * y;
   double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
+  double const x²_sign_y = x_sign_y * x;
   double const numerator = (x³ - abs_y) * ((10 * x³ + 16 * abs_y) * x³ + y²);
-  double const denominator = x² * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
+  double const denominator = x²_sign_y * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
   NOIACA_RETURN(x_sign_y - numerator / denominator);
 }
 }  // namespace lagny_irrational_preinvert
@@ -282,11 +282,11 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   // One round of 6th order Householder.
   double const x² = x * x;
   double const x³ = x * x * x;
-  double const x⁶ = x³ * x³;
   double const y² = y * y;
   double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
+  double const x²_sign_y = x_sign_y * x;
   double const numerator = (x³ - abs_y) * ((10 * x³ + 16 * abs_y) * x³ + y²);
-  double const denominator = x² * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
+  double const denominator = x²_sign_y * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
   NOIACA_RETURN(x_sign_y - numerator / denominator);
 }
 }  // namespace lagny_irrational_together
@@ -427,11 +427,11 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   // One round of 6th order Householder.
   double const x² = x * x;
   double const x³ = x * x * x;
-  double const x⁶ = x³ * x³;
   double const y² = y * y;
   double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
+  double const x²_sign_y = x_sign_y * x;
   double const numerator = (x³ - abs_y) * ((10 * x³ + 16 * abs_y) * x³ + y²);
-  double const denominator = x² * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
+  double const denominator = x²_sign_y * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
   NOIACA_RETURN(x_sign_y - numerator / denominator);
 }
 }  // namespace lagny_canon_irrational_extracted_denominator5
