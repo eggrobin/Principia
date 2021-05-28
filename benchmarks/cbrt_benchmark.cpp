@@ -586,8 +586,7 @@ __declspec(noinline) void BenchmarkCbrtLatency(benchmark::State& state, double (
     zero_cycles = total_cycles / (n * iterations);
   }
   state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
-                 " cycles " + quantities::DebugString(total, 3) +
-                 u8"; ∛2 = " + quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
+                 " cycles " + quantities::DebugString(total, 3) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)));
 }
 
@@ -626,8 +625,7 @@ __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, doubl
     zero_cycles = total_cycles / (n * iterations);
   }
   state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
-                 " cycles " + quantities::DebugString(total, 3) +
-                 u8"; ∛2 = " + quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
+                 " cycles " + quantities::DebugString(total, 3) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)));
 }
 
@@ -682,7 +680,7 @@ __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state,
                                 (8 * quantities::Pow<3>(1 - ec) -
                                  3 * e*s² * (1 + 4 * ec * (ec - 2)) -
                                  6 * e³ * s⁴)));
-      inputs[i].E =
+      inputs[i].E +=
           (-2 * ec + 2 * e²c² + R * R - e * s * R + e² * s²) / (ec * R);
     }
     auto const stop = __rdtsc();
@@ -696,8 +694,7 @@ __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state,
     zero_cycles = total_cycles / (n * iterations);
   }
   state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
-                 " cycles " + quantities::DebugString(total, 3) +
-                 u8"; ∛2 = " + quantities::DebugString(cbrt(2)) + u8"; ∛-2 = " +
+                 " cycles " + quantities::DebugString(total, 3) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)));
 }
 
