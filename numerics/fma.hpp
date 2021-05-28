@@ -10,7 +10,7 @@ namespace principia {
 namespace numerics {
 namespace internal_fma {
 
-using base::FeatureFlags;
+using base::CPUFeatureFlags;
 
 #if PRINCIPIA_USE_FMA_IF_AVAILABLE
 inline bool UseHardwareFMA = HasCPUFeatures(FeatureFlags::FMA);
