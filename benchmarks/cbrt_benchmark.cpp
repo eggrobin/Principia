@@ -604,9 +604,9 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
 #if PRINCIPIA_BENCHMARKS
 
 __declspec(noinline) void BenchmarkCbrtLatency(benchmark::State& state, double (*cbrt)(double)) {
-  static double zero_cycles;
+  static double zero_cycles = quantities::Infinity<double>;
   double total = 0;
-  double total_cycles = 0;
+  double min_cycles = quantities::Infinity<double>;
   int iterations = 0;
   std::int64_t n = 1 << 16;
   constexpr std::uint64_t low = 0x3FF0000000000000;   // 1.
@@ -626,22 +626,22 @@ __declspec(noinline) void BenchmarkCbrtLatency(benchmark::State& state, double (
       x = cbrt(y);
     }
     auto const stop = __rdtsc();
-    total_cycles += stop - start;
+    min_cycles = std::min(min_cycles, static_cast<double>(stop - start));
     total += x;
     ++iterations;
   }
   if (cbrt(5) == 5) {
-    zero_cycles = total_cycles / (n * iterations);
+    zero_cycles = std::min(zero_cycles, min_cycles / n);
   }
-  state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
+  state.SetLabel(std::to_string(min_cycles / n - zero_cycles) +
                  " cycles " + quantities::DebugString(total, 3) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)));
 }
 
 __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, double (*cbrt)(double)) {
-  static double zero_cycles;
+  static double zero_cycles = quantities::Infinity<double>;
   double total = 0;
-  double total_cycles = 0;
+  double min_cycles = quantities::Infinity<double>;
   int iterations = 0;
   constexpr std::int64_t n = 64;
   constexpr std::uint64_t low = 0x3FF0000000000000;   // 1.
@@ -663,24 +663,24 @@ __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, doubl
       inputs[i] = cbrt(inputs[i]) * π;
     }
     auto const stop = __rdtsc();
-    total_cycles += stop - start;
+    min_cycles = std::min(min_cycles, static_cast<double>(stop - start));
     ++iterations;
   }
   for (std::int64_t i = 0; i < n; ++i) {
     total += inputs[i] / n;
   }
   if (cbrt(5) == 5) {
-    zero_cycles = total_cycles / (n * iterations);
+    zero_cycles = std::min(zero_cycles, min_cycles / n);
   }
-  state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
+  state.SetLabel(std::to_string(min_cycles / n - zero_cycles) +
                  " cycles " + quantities::DebugString(total, 3) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)));
 }
 
 __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state, double (*cbrt)(double)) {
-  static double zero_cycles;
+  static double zero_cycles = quantities::Infinity<double>;
   double total = 0;
-  double total_cycles = 0;
+  double min_cycles = quantities::Infinity<double>;
   int iterations = 0;
   constexpr std::int64_t n = 64;
   constexpr std::uint64_t low = 0x3FF0000000000000;   // 1.
@@ -732,16 +732,16 @@ __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state,
           (-2 * ec + 2 * e²c² + R * R - e * s * R + e² * s²) / (ec * R);
     }
     auto const stop = __rdtsc();
-    total_cycles += stop - start;
+    min_cycles = std::min(min_cycles, static_cast<double>(stop - start));
     ++iterations;
   }
   for (std::int64_t i = 0; i < n; ++i) {
     total += inputs[i].E / n;
   }
   if (cbrt(5) == 5) {
-    zero_cycles = total_cycles / (n * iterations);
+    zero_cycles = std::min(zero_cycles, min_cycles / n);
   }
-  state.SetLabel(std::to_string(total_cycles / (n * iterations) - zero_cycles) +
+  state.SetLabel(std::to_string(min_cycles / n - zero_cycles) +
                  " cycles " + quantities::DebugString(total, 3) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)));
 }
