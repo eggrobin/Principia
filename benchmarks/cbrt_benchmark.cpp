@@ -763,14 +763,9 @@ __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state,
 CBRT_BENCHMARKS(NoCbrt, [](double x) { return x; });
 CBRT_BENCHMARKS(StdCbrt, [](double x) { return std::cbrt(x); });
 CBRT_BENCHMARKS(StdSin, [](double x) { return std::sin(x)+std::cos(x); });
-CBRT_BENCHMARKS(R3DR6Cbrt, &r3dr6::cbrt);
 CBRT_BENCHMARKS(R3DR5Cbrt, &r3dr5::cbrt);
-CBRT_BENCHMARKS(IC3XDR6Cbrt, &ic3xdr6::cbrt);
-CBRT_BENCHMARKS(I3PDR6Cbrt, &i3pdr6::cbrt);
-CBRT_BENCHMARKS(I3TDR6Cbrt, &i3tdr6::cbrt);
 CBRT_BENCHMARKS(I3TDR5Cbrt, &i3tdr5::cbrt);
 CBRT_BENCHMARKS(I3PDR5Cbrt, &i3pdr5::cbrt);
-CBRT_BENCHMARKS(IC3XDR5Cbrt, &ic3xdr5::cbrt);
 CBRT_BENCHMARKS(R5DR4FMACbrt, &r5dr4_fma::cbrt);
 CBRT_BENCHMARKS(I5DR4FMACbrt, &i5dr4_fma::cbrt);
 
