@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "astronomy/epoch.hpp"
+#include "base/status_utilities.hpp"
 #include "geometry/interval.hpp"
 #include "glog/stl_logging.h"
 #include "numerics/newhall.hpp"
@@ -24,7 +25,6 @@ namespace internal_continuous_trajectory {
 
 using astronomy::InfiniteFuture;
 using base::dynamic_cast_not_null;
-using base::Error;
 using base::make_not_null_unique;
 using geometry::Interval;
 using numerics::EstrinEvaluator;
@@ -82,7 +82,7 @@ double ContinuousTrajectory<Frame>::average_degree() const {
 }
 
 template<typename Frame>
-Status ContinuousTrajectory<Frame>::Append(
+absl::Status ContinuousTrajectory<Frame>::Append(
     Instant const& time,
     DegreesOfFreedom<Frame> const& degrees_of_freedom) {
   absl::MutexLock l(&lock_);
@@ -100,7 +100,7 @@ Status ContinuousTrajectory<Frame>::Append(
     first_time_ = time;
   }
 
-  Status status;
+  absl::Status status;
   CHECK_LE(last_points_.size(), divisions);
   if (last_points_.size() == divisions) {
     // These vectors are thread-local to avoid deallocation/reallocation each
@@ -356,6 +356,11 @@ void ContinuousTrajectory<Frame>::WriteToMessage(
   checkpointer_->WriteToMessage(message->mutable_checkpoint());
   step_.WriteToMessage(message->mutable_step());
   tolerance_.WriteToMessage(message->mutable_tolerance());
+
+  // TODO(phl): There should be no polynomials before the oldest checkpoint, see
+  // Ephemeris::AppendMassiveBodiesState.  This has probably been true since
+  // Fatou (#2149) and possibly Burnside (#1029).  This code should be removed,
+  // but "Beware the Compatibility, my son!".
   for (auto const& pair : polynomials_) {
     Instant const& t_max = pair.t_max;
     auto const& polynomial = pair.polynomial;
@@ -376,7 +381,8 @@ template<typename Frame>
 template<typename, typename>
 not_null<std::unique_ptr<ContinuousTrajectory<Frame>>>
 ContinuousTrajectory<Frame>::ReadFromMessage(
-      serialization::ContinuousTrajectory const& message) {
+    Instant const& desired_t_min,
+    serialization::ContinuousTrajectory const& message) {
   bool const is_pre_cohen = message.series_size() > 0;
   bool const is_pre_fatou = !message.has_checkpoint_time();
   bool const is_pre_grassmann = message.has_adjusted_tolerance() &&
@@ -475,32 +481,28 @@ ContinuousTrajectory<Frame>::ReadFromMessage(
             continuous_trajectory->MakeCheckpointerReader(),
             message.checkpoint());
   }
-  CHECK_OK(continuous_trajectory->checkpointer_->ReadFromOldestCheckpoint());
+
+  // There should always be a checkpoint, either at the end of the trajectory,
+  // in the pre-Grassmann compatibility case; or at the first point of the
+  // trajectory, for modern saves (see the comment in WriteToMessage).
+  CHECK_OK(continuous_trajectory->checkpointer_->ReadFromCheckpointAtOrBefore(
+      desired_t_min));
 
   return continuous_trajectory;
 }
 
 template<typename Frame>
-Checkpointer<serialization::ContinuousTrajectory>&
-ContinuousTrajectory<Frame>::checkpointer() {
-  return *checkpointer_;
+void ContinuousTrajectory<Frame>::WriteToCheckpoint(Instant const& t) const {
+  checkpointer_->WriteToCheckpoint(t);
 }
 
 template<typename Frame>
-ContinuousTrajectory<Frame>::ContinuousTrajectory()
-    : checkpointer_(
-          make_not_null_unique<
-              Checkpointer<serialization::ContinuousTrajectory>>(
-          /*reader=*/nullptr,
-          /*writer=*/nullptr)) {}
-
-template<typename Frame>
-ContinuousTrajectory<Frame>::InstantPolynomialPair::InstantPolynomialPair(
-    Instant const t_max,
-    not_null<std::unique_ptr<Polynomial<Position<Frame>, Instant>>>
-        polynomial)
-    : t_max(t_max),
-      polynomial(std::move(polynomial)) {}
+absl::Status ContinuousTrajectory<Frame>::ReadFromCheckpointAt(
+    Instant const& t,
+    Checkpointer<serialization::ContinuousTrajectory>::Reader const& reader)
+    const {
+  return checkpointer_->ReadFromCheckpointAt(t, reader);
+}
 
 template<typename Frame>
 Checkpointer<serialization::ContinuousTrajectory>::Writer
@@ -536,6 +538,8 @@ ContinuousTrajectory<Frame>::MakeCheckpointerReader() {
     return [this](
                serialization::ContinuousTrajectory::Checkpoint const& message) {
       absl::MutexLock l(&lock_);
+
+      // Load the members that are recorded in the checkpoint.
       adjusted_tolerance_ =
           Length::ReadFromMessage(message.adjusted_tolerance());
       is_unstable_ = message.is_unstable();
@@ -547,12 +551,55 @@ ContinuousTrajectory<Frame>::MakeCheckpointerReader() {
             {Instant::ReadFromMessage(l.instant()),
              DegreesOfFreedom<Frame>::ReadFromMessage(l.degrees_of_freedom())});
       }
-      return Status::OK;
+
+      // Restore the other members to their state at the time of the checkpoint.
+      if (last_points_.empty()) {
+        polynomials_.clear();
+        first_time_ = std::nullopt;
+      } else {
+        // Locate the polynomial that ends at the first last_point_.  Note that
+        // we cannot use FindPolynomialForInstant because it calls lower_bound
+        // and we don't want to change its behaviour.
+        Instant const& oldest_time = last_points_.front().first;
+        // If oldest_time is the t_max of some polynomial, then the returned
+        // iterator points to the next polynomial.
+        auto const it =
+            std::upper_bound(polynomials_.begin(),
+                             polynomials_.end(),
+                             oldest_time,
+                             [](Instant const& left,
+                                InstantPolynomialPair const& right) {
+                               return left < right.t_max;
+                             });
+        polynomials_.erase(it, polynomials_.end());
+        if (polynomials_.empty()) {
+          first_time_ = oldest_time;
+        }
+      }
+      last_accessed_polynomial_ = 0;  // Always a valid value.
+
+      return absl::OkStatus();
     };
   } else {
     return nullptr;
   }
 }
+
+template<typename Frame>
+ContinuousTrajectory<Frame>::ContinuousTrajectory()
+    : checkpointer_(
+          make_not_null_unique<
+              Checkpointer<serialization::ContinuousTrajectory>>(
+          /*reader=*/nullptr,
+          /*writer=*/nullptr)) {}
+
+template<typename Frame>
+ContinuousTrajectory<Frame>::InstantPolynomialPair::InstantPolynomialPair(
+    Instant const t_max,
+    not_null<std::unique_ptr<Polynomial<Position<Frame>, Instant>>>
+        polynomial)
+    : t_max(t_max),
+      polynomial(std::move(polynomial)) {}
 
 template<typename Frame>
 Instant ContinuousTrajectory<Frame>::t_min_locked() const {
@@ -593,7 +640,7 @@ ContinuousTrajectory<Frame>::NewhallApproximationInMonomialBasis(
 }
 
 template<typename Frame>
-Status ContinuousTrajectory<Frame>::ComputeBestNewhallApproximation(
+absl::Status ContinuousTrajectory<Frame>::ComputeBestNewhallApproximation(
     Instant const& time,
     std::vector<Position<Frame>> const& q,
     std::vector<Velocity<Frame>> const& v) {
@@ -681,7 +728,7 @@ Status ContinuousTrajectory<Frame>::ComputeBestNewhallApproximation(
 
   // Check that the tolerance did not explode.
   if (adjusted_tolerance_ < 1e6 * previous_adjusted_tolerance) {
-    return Status::OK;
+    return absl::OkStatus();
   } else {
     std::stringstream message;
     message << "Error trying to fit a smooth polynomial to the trajectory. "
@@ -691,7 +738,7 @@ Status ContinuousTrajectory<Frame>::ComputeBestNewhallApproximation(
             << " and the last velocity is " << v.back()
             << ". An apocalypse occurred and two celestials probably "
             << "collided because your solar system is unstable.";
-    return Status(Error::INVALID_ARGUMENT, message.str());
+    return absl::InvalidArgumentError(message.str());
   }
 }
 

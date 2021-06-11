@@ -25,7 +25,6 @@
   <ItemGroup>
     <ClCompile Include="..\astronomy\standard_product_3.cpp" />
     <ClCompile Include="..\base\cpuid.cpp" />
-    <ClCompile Include="..\base\status.cpp" />
     <ClCompile Include="..\ksp_plugin\planetarium.cpp" />
     <ClCompile Include="cbrt_benchmark.cpp" />
     <ClCompile Include="..\numerics\cbrt.cpp" />

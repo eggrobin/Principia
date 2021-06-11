@@ -16,6 +16,7 @@
   </ImportGroup>
   <ItemGroup>
     <ClCompile Include="..\benchmarks\cbrt_benchmark.cpp" />
+    <ClCompile Include="..\base\cpuid.cpp" />
     <ClCompile Include="..\numerics\cbrt.cpp" />
     <ClCompile Include="generate_configuration.cpp" />
     <ClCompile Include="generate_kopernicus.cpp" />
