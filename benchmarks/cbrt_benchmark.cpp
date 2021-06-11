@@ -9,6 +9,7 @@
 #include "quantities/quantities.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "numerics/fma.hpp"
+#include "numerics/double_precision.hpp"
 
 #include "mpirxx.h"
 
@@ -98,6 +99,140 @@ RoundedReal correct_cube_root(double const y) {
   return result;
 }
 
+std::array<double, 4> NievergeltQuadruplyCompensatedStep(
+    DoublePrecision<double> b,
+    DoublePrecision<double> d) {
+  auto const& [b₁, b₂] = b;
+  auto const& [d₁, d₂] = d;
+  if (std::abs(d₂) >= std::abs(b₁)) {
+    std::swap(b, d);
+  }
+  if (std::abs(b₂) >= std::abs(d₁)) {
+    double const g₄ = d₂;
+    auto const [w, g₃] = TwoSum(b₂, d₁);
+    auto const [g₁, g₂] = TwoSum(b₁, w);
+    return {g₁, g₂, g₃, g₄};
+  } else {
+    auto const [w, g₄] = TwoSum(b₂, d₂);
+    auto const [u, v] = TwoSum(d₁, b₁);
+    auto const [x, g₃] = TwoSum(v, w);
+    auto const [g₁, g₂] = TwoSum(u, x);
+    return {g₁, g₂, g₃, g₄};
+  }
+}
+
+template<std::size_t n>
+std::array<double, n> PriestNievergeltNormalize(std::array<double, n> const f) {
+  std::array<double, n> s{};
+  int k = 0;
+  s[0] = f[0];
+  for (int j = 1; j < n; ++j) {
+    auto const [c, d] = TwoSum(s[k], f[j]);
+    s[k] = c;
+    if (d != 0) {
+      int l = k - 1;
+      k = k + 1;
+      while (l >= 0) {
+        auto const [cʹ, dʹ] = TwoSum(s[l], s[l + 1]);
+        s[l] = cʹ;
+        if (dʹ == 0) {
+          k = k - 1;
+        } else {
+          s[l + 1] = dʹ;
+        }
+        l = l - 1;
+      }
+      s[k] = d;
+    }
+  }
+  return s;
+}
+
+double CorrectLastBit(double const y, double const r₀, double const r₁, double const τ) {
+  double const r̃ = r₀ + 2 * r₁;
+  if (r̃ == r₀ || std::abs(r̃ - r₁) > τ * r₀) {
+    return r₀;
+  }
+  // TODO(egg): Handle negative y.
+  CHECK_GT(y, 0);
+  double const a = std::min(r₀, r̃);
+  double const b = 0.5 * (std::max(r₀, r̃) - a);
+  double const b² = b * b;
+  DoublePrecision<double> const a² = TwoProduct(a, a);
+  auto const& [a²₀, a²₁] = a²;
+  DoublePrecision<double> const a³₀ = TwoProduct(a²₀, a);
+  DoublePrecision<double> minus_a³₁ = TwoProduct(a²₁, -a);
+  auto const& [a³₀₀, a³₀₁] = a³₀;
+  // ρ₅₃ = y - a³ = y - a³₀ - a³₁ = y - a³₀₀ - a³₀₁ - a³₁;
+  double const ρ₀ = y - a³₀₀;  // Exact.
+  // ρ₅₃ = ρ₀ - a³₀₁ - a³₁;
+  std::array<double, 4> const ρ₅₃ = PriestNievergeltNormalize(
+      NievergeltQuadruplyCompensatedStep(TwoDifference(ρ₀, a³₀₁), minus_a³₁));
+  CHECK_EQ(ρ₅₃[3], 0);
+  std::array<double, 3> ρ₅₄{ρ₅₃[0], ρ₅₃[1], ρ₅₃[2]};
+  for (double rhs :
+       {2 * a²₀ * b, a²₀ * b, 2 * a²₁ * b, a²₁ * b, 2 * a * b², a * b²}) {
+    auto const ρ = PriestNievergeltNormalize(NievergeltQuadruplyCompensatedStep(
+        TwoSum(ρ₅₄[0], ρ₅₄[1]), TwoDifference(ρ₅₄[2], rhs)));
+    CHECK_EQ(ρ[3], 0);
+    ρ₅₄ = {ρ[0], ρ[1], ρ[2]};
+  }
+  bool const ρ₅₄_positive = ρ₅₄[0] > 0 || (ρ₅₄[0] == 0 && ρ₅₄[1] > 0) ||
+                            (ρ₅₄[0] == 0 && ρ₅₄[1] == 0 && ρ₅₄[2] >= 0);
+  return ρ₅₄_positive ? std::max(r₀, r̃) : a;
+}
+
+namespace r3dr6_systematic_correction {
+constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+static const __m128d sign_bit =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
+static const __m128d sixteen_bits_of_mantissa =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
+// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
+// finite magnitudes inside the non-rescaling range; for very small and very
+// large values, rescaling occurs twice.
+constexpr double smol = 0x1p-225;
+constexpr double smol_σ = 0x1p-154;
+constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
+constexpr double big = 0x1p237;
+constexpr double big_σ = 0x1p154;
+constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
+__declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  __m128d Y_0 = _mm_set_sd(y);
+  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
+  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(Y_0);
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
+  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q² = q * q;
+  double const q³ = q² * q;
+  double const q4 = q² * q²;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  double const ξ = (q4 + 2 * abs_y * q) / (2 * q³ + abs_y);
+  double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
+  // One round of 6th order Householder.
+  double const x³ = x * x * x;
+  double const x⁶ = x³ * x³;
+  double const y² = y * y;
+  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
+  double const numerator =
+      x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
+  double const denominator =
+      (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
+  double const Δ = numerator / denominator;
+  double const r₀ = x_sign_y - Δ;
+  double const r₁ = x_sign_y - r₀ - Δ;
+  return CorrectLastBit(y, r₀, r₁, /*τ=*/std::numeric_limits<double>::infinity());
+}
+}  // namespace r3dr6_systematic_correction
+
+PRINCIPIA_REGISTER_CBRT(r3dr6_systematic_correction);
+
 namespace r3dr6 {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
@@ -140,10 +275,11 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const result = x_sign_y - numerator / denominator;
-  NOIACA_RETURN(result);
+  double const Δ = numerator / denominator;
+  double const r₀ = x_sign_y - Δ;
+  return r₀;
 }
-}  // namespace lagny_rational_together
+}  // namespace r3dr6
 
 PRINCIPIA_REGISTER_CBRT(r3dr6);
 
@@ -296,55 +432,6 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
 }  // namespace i3tdr6
 
 PRINCIPIA_REGISTER_CBRT(i3tdr6);
-
-namespace ic3xdr6 {
-constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
-static const __m128d sign_bit =
-    _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
-static const __m128d sixteen_bits_of_mantissa =
-    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
-// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
-// finite magnitudes inside the non-rescaling range; for very small and very
-// large values, rescaling occurs twice.
-constexpr double smol = 0x1p-225;
-constexpr double smol_σ = 0x1p-154;
-constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
-constexpr double big = 0x1p237;
-constexpr double big_σ = 0x1p154;
-constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
-__declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
-  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
-  __m128d Y_0 = _mm_set_sd(y);
-  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
-  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
-  double const abs_y = _mm_cvtsd_f64(Y_0);
-  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
-  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
-  // back.
-  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
-  std::uint64_t const Q = C + Y / 3;
-  double const q = to_double(Q);
-  double const q² = q * q;
-  double const q⁴ = q² * q²;
-  // An approximation of ∛y with a relative error below 2⁻¹⁵.
-  __m128d const ρ_0 = _mm_set_sd(4.00298737793169718250674332690180421 * abs_y * q  - q⁴);
-  double const ξ = 0.499999938108574047751429172928306529 * q + 0.288531511562316719053845144194384063 / q * _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0));
-  double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
-  double const x³ = x * x * x;
-  double const x⁶ = x³ * x³;
-  double const y² = y * y;
-  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
-  double const numerator =
-      x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
-  double const denominator =
-      (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const result = x_sign_y - numerator / denominator;
-  NOIACA_RETURN(result);
-}
-}  // namespace ic3xdr6
-
-PRINCIPIA_REGISTER_CBRT(ic3xdr6);
-
 namespace r5dr4_fma {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
@@ -629,9 +716,11 @@ __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state,
 CBRT_BENCHMARKS(NoCbrt, [](double x) { return x; });
 CBRT_BENCHMARKS(StdCbrt, [](double x) { return std::cbrt(x); });
 CBRT_BENCHMARKS(StdSin, [](double x) { return std::sin(x)+std::cos(x); });
+CBRT_BENCHMARKS(CorrectCbrt, [](double x) { return correct_cube_root(std::abs(x)).nearest_rounding; });
+CBRT_BENCHMARKS(R3DR6SCCbrt, &r3dr6_systematic_correction::cbrt);
+CBRT_BENCHMARKS(R3DR6Cbrt, &r3dr6::cbrt);
 CBRT_BENCHMARKS(R3DR5Cbrt, &r3dr5::cbrt);
 CBRT_BENCHMARKS(I3TDR5Cbrt, &i3tdr5::cbrt);
-CBRT_BENCHMARKS(I3PDR5Cbrt, &i3pdr5::cbrt);
 CBRT_BENCHMARKS(R5DR4FMACbrt, &r5dr4_fma::cbrt);
 CBRT_BENCHMARKS(I5DR4FMACbrt, &i5dr4_fma::cbrt);
 
