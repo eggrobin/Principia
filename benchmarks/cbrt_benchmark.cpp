@@ -444,7 +444,7 @@ constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
 static const __m128d twenty_five_bits_of_mantissa =
-    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFFF'FA00'0000));
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFFF'F800'0000));
 // NOTE(egg): the σs do not rescale enough to put the least normal or greatest
 // finite magnitudes inside the non-rescaling range; for very small and very
 // large values, rescaling occurs twice.
@@ -483,6 +483,7 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   double const x =
       _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), twenty_five_bits_of_mantissa));
   double const x² = x * x;
+  DCHECK_EQ(FusedMultiplySubtract(x, x, x²), 0);
   double const x³ = x² * x;
   double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
   double const numerator = x_sign_y * FusedMultiplySubtract(x², x, abs_y);
@@ -503,7 +504,7 @@ constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
 static const __m128d twenty_five_bits_of_mantissa =
-    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFFF'FA00'0000));
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFFF'F800'0000));
 // NOTE(egg): the σs do not rescale enough to put the least normal or greatest
 // finite magnitudes inside the non-rescaling range; for very small and very
 // large values, rescaling occurs twice.
@@ -544,6 +545,7 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   double const x =
       _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), twenty_five_bits_of_mantissa));
   double const x² = x * x;
+  DCHECK_EQ(FusedMultiplySubtract(x, x, x²), 0);
   double const x³ = x² * x;
   double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
   double const numerator = x_sign_y * FusedMultiplySubtract(x², x, abs_y);
