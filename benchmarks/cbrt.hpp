@@ -44,6 +44,10 @@ struct RoundedReal {
 
 RoundedReal correct_cube_root(double const y);
 
+namespace fast_correct {
+double cbrt(double const y);
+}  // namespace fast_correct
+
 inline bool possible_misrounding = false;
 
 #define PRINCIPIA_REGISTER_CBRT(name)                                 \

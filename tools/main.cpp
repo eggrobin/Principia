@@ -23,9 +23,10 @@ int __cdecl main(int argc, char const* argv[]) {
     return 1;
   }
   std::string command = argv[1];
-  if (command == "cbrt") {
+  if (command == "cbrt" || command == "cbrtfast") {
+    const bool fast = command == "cbrtfast";
     if (argc != 4) {
-      std::cerr << "Usage: " << argv[0] << " cbrt methods iterations";
+      std::cerr << "Usage: " << argv[0] << " cbrt[fast] methods iterations";
     }
     std::string const method_arg = argv[2];
     std::int64_t iterations = std::atoll(argv[3]);
@@ -56,6 +57,9 @@ int __cdecl main(int argc, char const* argv[]) {
     if (method_arg == "all") {
       for (auto const& pair :
            principia::numerics::CubeRootRegistry::Instance().methods()) {
+        if (fast && pair.first == "fast_correct") {
+          continue;
+        }
         methods.emplace_back(pair.first);
       }
     } else {
@@ -72,8 +76,14 @@ int __cdecl main(int argc, char const* argv[]) {
       std::uint64_t const Y =
           mersenne() % (binary64_8 - binary64_1) + binary64_1;
       double const y = principia::numerics::to_double(Y);
-      principia::numerics::RoundedReal const x_correct =
-          principia::numerics::correct_cube_root(y);
+      double x_nearest;
+      principia::numerics::RoundedReal x_correct;
+      if (fast) {
+        x_nearest = principia::numerics::fast_correct::cbrt(y);
+      } else {
+        x_correct = principia::numerics::correct_cube_root(y);
+        x_nearest = x_correct.nearest_rounding;
+      }
       for (auto const& method : methods) {
         principia::numerics::possible_misrounding = false;
         double const x =
@@ -84,99 +94,115 @@ int __cdecl main(int argc, char const* argv[]) {
         }
         std::int64_t const ulps_from_correct =
             principia::numerics::to_integer(x) -
-            principia::numerics::to_integer(x_correct.nearest_rounding);
-        double const ulps_from_exact =
-            x_correct.nearest_ulps + ulps_from_correct;
-        double const abs_ulps_from_exact = std::abs(ulps_from_exact);
+            principia::numerics::to_integer(x_nearest);
+        double abs_ulps_from_exact;
+        if (!fast) {
+          double const ulps_from_exact =
+              x_correct.nearest_ulps + ulps_from_correct;
+          abs_ulps_from_exact = std::abs(ulps_from_exact);
+        }
         if (abs_ulps_from_exact > properties[method].max_ulps) {
           properties[method].max_ulps = abs_ulps_from_exact;
           properties[method].Y_worst = Y;
         }
-        if (x != x_correct.nearest_rounding) {
+        if (x != x_nearest) {
           ++properties[method].incorrect_roundings;
           if (!principia::numerics::possible_misrounding) {
             ++properties[method].undetected_misroundings;
           }
-          CHECK_GT(abs_ulps_from_exact, 0.5);
-          if (x != x_correct.furthest_rounding) {
-            ++properties[method].unfaithful_roundings;
-            CHECK_GT(abs_ulps_from_exact, 1);
+          if (!fast) {
+            CHECK_GT(abs_ulps_from_exact, 0.5);
+            if (x != x_correct.furthest_rounding) {
+              ++properties[method].unfaithful_roundings;
+              CHECK_GT(abs_ulps_from_exact, 1);
+            }
           }
-        } else {
+        } else if (!fast) {
           CHECK_LE(abs_ulps_from_exact, 0.5);
         }
       }
 
-      std::int64_t const ulps_incorrect_from_correct =
-          principia::numerics::to_integer(x_correct.furthest_rounding) -
-          principia::numerics::to_integer(x_correct.nearest_rounding);
-      double const ulps_incorrect_from_exact =
-          x_correct.nearest_ulps + ulps_incorrect_from_correct;
-      if (ulps_incorrect_from_exact > 0) {
-        if (ulps_incorrect_from_exact < min_positive_incorrect_ulps) {
-          min_positive_incorrect_ulps = ulps_incorrect_from_exact;
-          Y_just_below_tie = Y;
-        }
-      } else {
-        if (ulps_incorrect_from_exact > max_negative_incorrect_ulps) {
-          max_negative_incorrect_ulps = ulps_incorrect_from_exact;
-          Y_just_above_tie = Y;
-        }
-      }
-      if (x_correct.nearest_ulps != 0) {
-        if (x_correct.nearest_ulps > 0) {
-          if (x_correct.nearest_ulps < min_positive_correct_ulps) {
-            min_positive_correct_ulps = x_correct.nearest_ulps;
-            Y_just_below_exact = Y;
+      if (!fast) {
+        std::int64_t const ulps_incorrect_from_correct =
+            principia::numerics::to_integer(x_correct.furthest_rounding) -
+            principia::numerics::to_integer(x_nearest);
+        double const ulps_incorrect_from_exact =
+            x_correct.nearest_ulps + ulps_incorrect_from_correct;
+        if (ulps_incorrect_from_exact > 0) {
+          if (ulps_incorrect_from_exact < min_positive_incorrect_ulps) {
+            min_positive_incorrect_ulps = ulps_incorrect_from_exact;
+            Y_just_below_tie = Y;
           }
         } else {
-          if (x_correct.nearest_ulps > max_negative_correct_ulps) {
-            max_negative_correct_ulps = x_correct.nearest_ulps;
-            Y_just_above_exact = Y;
+          if (ulps_incorrect_from_exact > max_negative_incorrect_ulps) {
+            max_negative_incorrect_ulps = ulps_incorrect_from_exact;
+            Y_just_above_tie = Y;
+          }
+        }
+        if (x_correct.nearest_ulps != 0) {
+          if (x_correct.nearest_ulps > 0) {
+            if (x_correct.nearest_ulps < min_positive_correct_ulps) {
+              min_positive_correct_ulps = x_correct.nearest_ulps;
+              Y_just_below_exact = Y;
+            }
+          } else {
+            if (x_correct.nearest_ulps > max_negative_correct_ulps) {
+              max_negative_correct_ulps = x_correct.nearest_ulps;
+              Y_just_above_exact = Y;
+            }
           }
         }
       }
 
       if (i % 1'000'000 == 0) {
-        std::cout << "Tested " << i << " values in [1, 8[.\n\n"
-                  << "Trickiest sample values:\n"
-                  << "closest to ties      : 1/2 + "
-                  << min_positive_incorrect_ulps - 0.5 << " ULPs, for "
-                  << std::hex << std::uppercase << "16^^" << Y_just_below_tie
-                  << std::dec << "\n"
-                  << "                      -1/2 - "
-                  << -0.5 - max_negative_incorrect_ulps << " ULPs, for "
-                  << std::hex << std::uppercase << "16^^" << Y_just_above_tie
-                  << std::dec << "\n"
-                  << "closest to exact     :       "
-                  << min_positive_correct_ulps << " ULPs, for " << std::hex
-                  << std::uppercase << "16^^" << Y_just_below_exact << std::dec
-                  << "\n"
-                  << "                            " << max_negative_correct_ulps
-                  << " ULPs, for " << std::hex << std::uppercase << "16^^"
-                  << Y_just_above_exact << std::dec << "\n\n";
+        std::cout << "Tested " << i << " values in [1, 8[.\n\n";
+        if (!fast) {
+          std::cout << "Trickiest sample values:\n"
+                    << "closest to ties      : 1/2 + "
+                    << min_positive_incorrect_ulps - 0.5 << " ULPs, for "
+                    << std::hex << std::uppercase << "16^^" << Y_just_below_tie
+                    << std::dec << "\n"
+                    << "                      -1/2 - "
+                    << -0.5 - max_negative_incorrect_ulps << " ULPs, for "
+                    << std::hex << std::uppercase << "16^^" << Y_just_above_tie
+                    << std::dec << "\n"
+                    << "closest to exact     :       "
+                    << min_positive_correct_ulps << " ULPs, for " << std::hex
+                    << std::uppercase << "16^^" << Y_just_below_exact
+                    << std::dec << "\n"
+                    << "                            "
+                    << max_negative_correct_ulps << " ULPs, for " << std::hex
+                    << std::uppercase << "16^^" << Y_just_above_exact
+                    << std::dec << "\n\n";
+        }
         for (auto const& method : methods) {
           std::cout << "Method " << method << "\n"
                     << "incorrect roundings             : "
                     << properties[method].incorrect_roundings << " ("
                     << 100.0 * properties[method].incorrect_roundings / i
-                    << " %)\n"
-                    << "unfaithful roundings            : "
-                    << properties[method].unfaithful_roundings << " ("
-                    << 100.0 * properties[method].unfaithful_roundings / i
-                    << " %)\n"
-                    << "detected possible misroundings  : "
+                    << " %)\n";
+          if (!fast) {
+            std::cout << "unfaithful roundings            : "
+                      << properties[method].unfaithful_roundings << " ("
+                      << 100.0 * properties[method].unfaithful_roundings / i
+                      << " %)\n";
+          }
+          std::cout << "detected possible misroundings  : "
                     << properties[method].detected_possible_misroundings << " ("
-                    << 100.0 * properties[method].detected_possible_misroundings / i
+                    << 100.0 *
+                           properties[method].detected_possible_misroundings / i
                     << " %)\n"
                     << "undetected misroundings         : "
                     << properties[method].undetected_misroundings << " ("
                     << 100.0 * properties[method].undetected_misroundings /
                            properties[method].incorrect_roundings
-                    << " % of misroundings)\n"
-                    << "maximal error                   : " << properties[method].max_ulps
-                    << " ULPs, for " << std::hex << std::uppercase << "16^^"
-                    << properties[method].Y_worst << std::dec << "\n\n";
+                    << " % of misroundings)\n";
+          if (!fast) {
+            std::cout << "maximal error                   : "
+                      << properties[method].max_ulps << " ULPs, for "
+                      << std::hex << std::uppercase << "16^^"
+                      << properties[method].Y_worst << std::dec << "\n\n";
+          }
         }
       }
     }

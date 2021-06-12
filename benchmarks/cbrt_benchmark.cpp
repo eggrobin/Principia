@@ -182,7 +182,7 @@ double CorrectLastBit(double const y, double const r₀, double const r₁, doub
   return ρ₅₄_positive ? std::max(r₀, r̃) : a;
 }
 
-namespace r3dr6_systematic_correction {
+namespace fast_correct {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
@@ -229,9 +229,9 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   double const r₁ = x_sign_y - r₀ - Δ;
   return CorrectLastBit(y, r₀, r₁, /*τ=*/std::numeric_limits<double>::infinity());
 }
-}  // namespace r3dr6_systematic_correction
+}  // namespace fast_correct
 
-PRINCIPIA_REGISTER_CBRT(r3dr6_systematic_correction);
+PRINCIPIA_REGISTER_CBRT(fast_correct);
 
 namespace r3dr6 {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
@@ -717,7 +717,7 @@ CBRT_BENCHMARKS(NoCbrt, [](double x) { return x; });
 CBRT_BENCHMARKS(StdCbrt, [](double x) { return std::cbrt(x); });
 CBRT_BENCHMARKS(StdSin, [](double x) { return std::sin(x)+std::cos(x); });
 CBRT_BENCHMARKS(CorrectCbrt, [](double x) { return correct_cube_root(std::abs(x)).nearest_rounding; });
-CBRT_BENCHMARKS(R3DR6SCCbrt, &r3dr6_systematic_correction::cbrt);
+CBRT_BENCHMARKS(FastCorrectCbrt, &fast_correct::cbrt);
 CBRT_BENCHMARKS(R3DR6Cbrt, &r3dr6::cbrt);
 CBRT_BENCHMARKS(R3DR5Cbrt, &r3dr5::cbrt);
 CBRT_BENCHMARKS(I3TDR5Cbrt, &i3tdr5::cbrt);
