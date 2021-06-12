@@ -7,6 +7,7 @@
 
 #include "absl/strings/str_replace.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/str_cat.h"
 #include "astronomy/epoch.hpp"
 #include "benchmarks/cbrt.hpp"
 #include "geometry/named_quantities.hpp"
@@ -35,9 +36,8 @@ std::string const MeasuredProportion(double const successes,
   std::int64_t uncertainty_parenthetical =
       std::ceil(u * std::pow(10, 1 - floor_log10_u));
   return absl::StrReplaceAll(
-      (std::stringstream() << std::scientific << std::setprecision(digits_shown)
-                           << estimated_proportion)
-          .str(),
+      absl::StrFormat(absl::StrCat("%1.", digits_shown - 1, "e").c_str(),
+                      estimated_proportion),
       {{"e", absl::StrFormat(u8"(%02d)×10^", uncertainty_parenthetical)}});
 }
 }  // namespace
