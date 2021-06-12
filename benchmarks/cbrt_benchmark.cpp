@@ -361,11 +361,10 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   double const q² = q * q;
   double const q⁴ = q² * q²;
   // An approximation of ∛y with a relative error below 2⁻¹⁵.
-  constexpr double sqrt_3 = 0x1.BB67AE8584CAAp0;
-  __m128d const ρ_0 = _mm_set_sd(4 * abs_y * q - q⁴);
-  double inverse = (1 / (2 * sqrt_3)) / q;
+  __m128d const ρ_0 = _mm_set_sd(0x1.0030F1F8A11DAp2 * abs_y * q - q⁴);
+  double inverse = 0x1.2774CDF81A35Ep-2 / q;
   double const ξ =
-      (sqrt_3 * q² + _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0))) * inverse;
+      (0x1.BBA02BAFEA9B7p0 * q² + _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0))) * inverse;
   double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
   // One round of 6th order Householder.
   double const x² = x * x;
@@ -411,12 +410,10 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   double const q² = q * q;
   double const q⁴ = q² * q²;
   // An approximation of ∛y with a relative error below 2⁻¹⁵.
-  constexpr double sqrt_3 = 0x1.BB67AE8584CAAp0;
-  __m128d const ρ_0 = _mm_set_sd(4 * abs_y * q - q⁴);
-  double inverse = (1 / (2 * sqrt_3)) / q;
+  __m128d const ρ_0 = _mm_set_sd(0x1.0030F1F8A11DAp2 * abs_y * q - q⁴);
+  double inverse = 0x1.2774CDF81A35Ep-2 / q;
   double const ξ =
-      (sqrt_3 * q² + _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0))) * inverse;
-  // One round of 6th order Householder.
+      (0x1.BBA02BAFEA9B7p0 * q² + _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0))) * inverse;
   double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
   double const x³ = x * x * x;
   double const x⁶ = x³ * x³;
