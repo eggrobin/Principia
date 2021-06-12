@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/str_replace.h"
+#include "absl/strings/str_format.h"
 #include "astronomy/epoch.hpp"
 #include "benchmarks/cbrt.hpp"
 #include "geometry/named_quantities.hpp"
@@ -13,6 +15,32 @@
 #include "tools/generate_configuration.hpp"
 #include "tools/generate_kopernicus.hpp"
 #include "tools/generate_profiles.hpp"
+
+namespace {
+std::string const MeasuredProportion(double const successes,
+                                     double const samples) {
+  if (samples == 0) {
+    return "NaN";
+  } else if (successes == 0) {
+    return "0";
+  } else if (successes == samples) {
+    return "1";
+  }
+  double const estimated_proportion = successes / samples;
+  double const u = principia::quantities::Sqrt(
+      estimated_proportion * (1 - estimated_proportion) / (samples - 1));
+  std::int64_t const floor_log10_u = std::floor(std::log10(u));
+  std::int64_t digits_shown =
+      std::floor(std::log10(estimated_proportion)) - floor_log10_u + 2;
+  std::int64_t uncertainty_parenthetical =
+      std::ceil(u * std::pow(10, 1 - floor_log10_u));
+  return absl::StrReplaceAll(
+      (std::stringstream() << std::scientific << std::setprecision(digits_shown)
+                           << estimated_proportion)
+          .str(),
+      {{"e", absl::StrFormat(u8"(%02d)×10^", uncertainty_parenthetical)}});
+}
+}  // namespace
 
 int __cdecl main(int argc, char const* argv[]) {
   google::SetLogFilenameExtension(".log");
@@ -178,25 +206,28 @@ int __cdecl main(int argc, char const* argv[]) {
         for (auto const& method : methods) {
           std::cout << "Method " << method << "\n"
                     << "incorrect roundings             : "
-                    << properties[method].incorrect_roundings << " ("
-                    << 100.0 * properties[method].incorrect_roundings / i
-                    << " %)\n";
+                    << properties[method].incorrect_roundings << ", "
+                    << MeasuredProportion(
+                           properties[method].incorrect_roundings, i)
+                    << "\n";
           if (!fast) {
             std::cout << "unfaithful roundings            : "
-                      << properties[method].unfaithful_roundings << " ("
-                      << 100.0 * properties[method].unfaithful_roundings / i
-                      << " %)\n";
+                      << properties[method].unfaithful_roundings << ", "
+                      << MeasuredProportion(
+                             properties[method].unfaithful_roundings, i)
+                      << "\n";
           }
           std::cout << "detected possible misroundings  : "
-                    << properties[method].detected_possible_misroundings << " ("
-                    << 100.0 *
-                           properties[method].detected_possible_misroundings / i
-                    << " %)\n"
+                    << properties[method].detected_possible_misroundings << ", "
+                    << MeasuredProportion(
+                           properties[method].detected_possible_misroundings, i)
+                    << "\n"
                     << "undetected misroundings         : "
-                    << properties[method].undetected_misroundings << " ("
-                    << 100.0 * properties[method].undetected_misroundings /
-                           properties[method].incorrect_roundings
-                    << " % of misroundings)\n";
+                    << properties[method].undetected_misroundings << ", "
+                    << MeasuredProportion(
+                           properties[method].undetected_misroundings,
+                           properties[method].incorrect_roundings)
+                    << " of misroundings\n";
           if (!fast) {
             std::cout << "maximal error                   : "
                       << properties[method].max_ulps << " ULPs, for "
