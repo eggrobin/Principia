@@ -382,7 +382,7 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
 
 PRINCIPIA_REGISTER_CBRT(r3dr5);
 
-namespace i3tdr5 {
+namespace egg_i3tdr5 {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
@@ -431,11 +431,11 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   ConsiderCorrection(r₀, r₁, /*τ=*/0x1.7C73DBBD9FA60p-66);
   return r₀;
 }
-}  // namespace i3tdr5
+}  // namespace egg_i3tdr5
 
-PRINCIPIA_REGISTER_CBRT(i3tdr5);
+PRINCIPIA_REGISTER_CBRT(egg_i3tdr5);
 
-namespace i3tdr6 {
+namespace egg_i3tdr6 {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
@@ -484,10 +484,10 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   ConsiderCorrection(r₀, r₁, /*τ=*/0x1.AC20CF34393E1p-66);
   return r₀;
 }
-}  // namespace i3tdr6
+}  // namespace egg_i3tdr6
 
-PRINCIPIA_REGISTER_CBRT(i3tdr6);
-namespace r5dr4_fma {
+PRINCIPIA_REGISTER_CBRT(egg_i3tdr6);
+namespace egg_r5dr4_fma {
 constexpr std::uint64_t C = 0x2A9F76253119D328;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
@@ -543,11 +543,11 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
                               x_sign_y);
   IACA_RETURN(result);
 }
-}  // namespace r5dr4_fma
+}  // namespace egg_r5dr4_fma
 
-PRINCIPIA_REGISTER_CBRT(r5dr4_fma);
+PRINCIPIA_REGISTER_CBRT(egg_r5dr4_fma);
 
-namespace i5dr4_fma {
+namespace egg_i5dr4_fma {
 constexpr std::uint64_t C = 0x2A9F76253119D328;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
@@ -606,9 +606,9 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   // TODO(egg): ConsiderCorrection.
   return r₀;
 }
-}  // namespace i5dr4_fma
+}  // namespace egg_i5dr4_fma
 
-PRINCIPIA_REGISTER_CBRT(i5dr4_fma);
+PRINCIPIA_REGISTER_CBRT(egg_i5dr4_fma);
 
 #if PRINCIPIA_BENCHMARKS
 
@@ -776,9 +776,9 @@ CBRT_BENCHMARKS(CorrectCbrt, [](double x) { return correct_cube_root(std::abs(x)
 CBRT_BENCHMARKS(FastCorrectCbrt, &fast_correct::cbrt);
 CBRT_BENCHMARKS(R3DR6Cbrt, &r3dr6::cbrt);
 CBRT_BENCHMARKS(R3DR5Cbrt, &r3dr5::cbrt);
-CBRT_BENCHMARKS(I3TDR5Cbrt, &i3tdr5::cbrt);
-CBRT_BENCHMARKS(R5DR4FMACbrt, &r5dr4_fma::cbrt);
-CBRT_BENCHMARKS(I5DR4FMACbrt, &i5dr4_fma::cbrt);
+CBRT_BENCHMARKS(egg_i3tdr5Cbrt, &egg_i3tdr5::cbrt);
+CBRT_BENCHMARKS(R5DR4FMACbrt, &egg_r5dr4_fma::cbrt);
+CBRT_BENCHMARKS(I5DR4FMACbrt, &egg_i5dr4_fma::cbrt);
 
 #endif
 
