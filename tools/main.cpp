@@ -217,23 +217,28 @@ int __cdecl main(int argc, char const* argv[]) {
                              properties[method].unfaithful_roundings, i)
                       << "\n";
           }
-          std::cout << "detected possible misroundings  : "
-                    << properties[method].detected_possible_misroundings << ", "
-                    << MeasuredProportion(
-                           properties[method].detected_possible_misroundings, i)
-                    << "\n"
-                    << "undetected misroundings         : "
-                    << properties[method].undetected_misroundings << ", "
-                    << MeasuredProportion(
-                           properties[method].undetected_misroundings,
-                           properties[method].incorrect_roundings)
-                    << " of misroundings\n";
+          if (properties[method].detected_possible_misroundings != 0) {
+            std::cout << "detected possible misroundings  : "
+                      << properties[method].detected_possible_misroundings
+                      << ", "
+                      << MeasuredProportion(
+                             properties[method].detected_possible_misroundings,
+                             i)
+                      << "\n"
+                      << "undetected misroundings         : "
+                      << properties[method].undetected_misroundings << ", "
+                      << MeasuredProportion(
+                             properties[method].undetected_misroundings,
+                             properties[method].incorrect_roundings)
+                      << " of misroundings\n";
+          }
           if (!fast) {
             std::cout << "maximal error                   : "
                       << properties[method].max_ulps << " ULPs, for "
                       << std::hex << std::uppercase << "16^^"
-                      << properties[method].Y_worst << std::dec << "\n\n";
+                      << properties[method].Y_worst << std::dec << "\n";
           }
+          std::cout << "\n";
         }
       }
     }
