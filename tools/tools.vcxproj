@@ -17,6 +17,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\atlas_cbrt.cpp" />
     <ClCompile Include="..\..\cephes_cbrt.cpp" />
+    <ClCompile Include="..\..\freebsd_cbrt.cpp" />
     <ClCompile Include="..\..\glibc_cbrt.cpp" />
     <ClCompile Include="..\..\sun_cbrt.cpp" />
     <ClCompile Include="..\benchmarks\cbrt_benchmark.cpp" />

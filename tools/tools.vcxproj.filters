@@ -45,6 +45,9 @@
     <ClCompile Include="..\..\sun_cbrt.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\freebsd_cbrt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="generate_configuration.hpp">
