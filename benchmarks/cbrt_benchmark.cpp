@@ -148,9 +148,14 @@ std::array<double, n> PriestNievergeltNormalize(std::array<double, n> const f) {
   return s;
 }
 
+void ConsiderCorrection(double const r₀, double const r₁, double const τ) {
+  double const r̃ = r₀ + 2 * r₁;
+  possible_misrounding = r̃ != r₀ && std::abs(0.5 * (r̃ - r₀) - r₁) <= τ * r₀;
+}
+
 double CorrectLastBit(double const y, double const r₀, double const r₁, double const τ) {
   double const r̃ = r₀ + 2 * r₁;
-  if (r̃ == r₀ || std::abs(r̃ - r₁) > τ * r₀) {
+  if (r̃ == r₀ || std::abs(0.5 * (r̃ - r₀) - r₁) > τ * r₀) {
     return r₀;
   }
   // TODO(egg): Handle negative y.
@@ -374,7 +379,11 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   double const x²_sign_y = x_sign_y * x;
   double const numerator = (x³ - abs_y) * ((10 * x³ + 16 * abs_y) * x³ + y²);
   double const denominator = x²_sign_y * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
-  NOIACA_RETURN(x_sign_y - numerator / denominator);
+  double const Δ = numerator / denominator;
+  double const r₀ = x_sign_y - Δ;
+  double const r₁ = x_sign_y - r₀ - Δ;
+  ConsiderCorrection(r₀, r₁, /*τ=*/0x1.7C73DBBD9FA60p-66);
+  return r₀;
 }
 }  // namespace i3tdr5
 
@@ -423,8 +432,11 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
       x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
   double const denominator =
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
-  double const result = x_sign_y - numerator / denominator;
-  NOIACA_RETURN(result);
+  double const Δ = numerator / denominator;
+  double const r₀ = x_sign_y - Δ;
+  double const r₁ = x_sign_y - r₀ - Δ;
+  ConsiderCorrection(r₀, r₁, /*τ=*/0x1.AC20CF34393E1p-66);
+  return r₀;
 }
 }  // namespace i3tdr6
 
