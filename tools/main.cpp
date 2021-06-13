@@ -247,7 +247,8 @@ int __cdecl main(int argc, char const* argv[]) {
         if (fast && !hard_roundings_for_egg_i5dr4_fma.empty()) {
           std::cout << "Hard roundings: ";
           for (std::uint64_t const Y : hard_roundings_for_egg_i5dr4_fma) {
-            std::cout << std::hex << std::uppercase << "16^^" << Y << "; ";
+            std::cout << std::hex << std::uppercase << "16^^" << Y << std::dec
+                      << ", ";
           }
           std::cout << "\n";
         }

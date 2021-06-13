@@ -163,6 +163,7 @@ double CorrectLastBit(double const y, double const r₀, double const r₁, doub
   double const a = std::min(r₀, r̃);
   double const b = 0.5 * (std::max(r₀, r̃) - a);
   double const b² = b * b;
+  double const b³ = b² * b;
   DoublePrecision<double> const a² = TwoProduct(a, a);
   auto const& [a²₀, a²₁] = a²;
   DoublePrecision<double> const a³₀ = TwoProduct(a²₀, a);
@@ -175,8 +176,9 @@ double CorrectLastBit(double const y, double const r₀, double const r₁, doub
       NievergeltQuadruplyCompensatedStep(TwoDifference(ρ₀, a³₀₁), minus_a³₁));
   CHECK_EQ(ρ₅₃[3], 0);
   std::array<double, 3> ρ₅₄{ρ₅₃[0], ρ₅₃[1], ρ₅₃[2]};
-  for (double rhs :
-       {2 * a²₀ * b, a²₀ * b, 2 * a²₁ * b, a²₁ * b, 2 * a * b², a * b²}) {
+  for (double rhs : {2 * a²₀ * b, a²₀ * b, 2 * a²₁ * b, a²₁ * b,  // 3 a²b
+                     2 * a * b², a * b²,                          // 3 ab²
+                     b³}) {
     auto const ρ = PriestNievergeltNormalize(NievergeltQuadruplyCompensatedStep(
         TwoSum(ρ₅₄[0], ρ₅₄[1]), TwoDifference(ρ₅₄[2], rhs)));
     CHECK_EQ(ρ[3], 0);
