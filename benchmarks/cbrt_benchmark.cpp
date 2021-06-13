@@ -553,17 +553,12 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   double const numerator = x_sign_y * FusedMultiplySubtract(x², x, abs_y);
   double const denominator =
       FusedMultiplyAdd(x³, FusedMultiplyAdd(10 * x, x², 16 * abs_y), y²);
-  double const r₀ =
-      FusedNegatedMultiplyAdd(FusedMultiplyAdd(6 * x, x², 3 * abs_y),
-                              numerator / denominator,
-                              x_sign_y);
-  // TODO(egg): Is this sound?
-  double const r₁ =
-      FusedNegatedMultiplyAdd(FusedMultiplyAdd(6 * x, x², 3 * abs_y),
-                              numerator / denominator,
-                              x_sign_y - r₀);
-  // TODO(egg): This τ uses the wrong bound on the rounding errors on r₀.
-  ConsiderCorrection(r₀,r₁,0x1.59B5BD2FBB9EEp-75);
+  double const Δ₁ = FusedMultiplyAdd(6 * x, x², 3 * abs_y);
+  double const Δ₂ = numerator / denominator;
+  double const r₀ = FusedNegatedMultiplyAdd(Δ₁, Δ₂, x_sign_y);
+  double const r₁ = FusedNegatedMultiplyAdd(Δ₁, Δ₂, x_sign_y - r₀);
+  // TODO(egg): ConsiderCorrection.
+  return r₀;
 }
 }  // namespace i5dr4_fma
 
