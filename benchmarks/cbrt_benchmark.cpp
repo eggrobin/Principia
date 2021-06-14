@@ -612,6 +612,14 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
 
 PRINCIPIA_REGISTER_CBRT(egg_i5dr4_fma);
 
+namespace plauger {
+double cbrt(double x) {
+  return std::cbrt(x);
+}
+}  // namespace plauger
+
+PRINCIPIA_REGISTER_CBRT(plauger);
+
 #if PRINCIPIA_BENCHMARKS
 
 __declspec(noinline) void BenchmarkCbrtLatency(benchmark::State& state, double (*cbrt)(double)) {
@@ -757,7 +765,7 @@ __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state,
                  quantities::DebugString(cbrt(-2)));
 }
 
-CBRT_BENCHMARKS(StdCbrt, [](double x) { return std::cbrt(x); });
+CBRT_BENCHMARKS(PlaugerCbrt, &plauger::cbrt);
 CBRT_BENCHMARKS(StdSin, [](double x) { return std::sin(x)+std::cos(x); });
 CBRT_BENCHMARKS(MPIRCorrectCbrt, [](double x) { return correct_cube_root(std::abs(x)).nearest_rounding; });
 CBRT_BENCHMARKS(EggR3DR6UnconditionalSlowPathCbrt, &fast_correct::cbrt);
