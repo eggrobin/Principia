@@ -10,6 +10,8 @@
 #include "quantities/elementary_functions.hpp"
 #include "numerics/fma.hpp"
 #include "numerics/double_precision.hpp"
+#include "testing_utilities/statistics.hpp"
+#include "absl/strings/str_format.h"
 
 #include "mpirxx.h"
 
@@ -240,7 +242,7 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
 
 PRINCIPIA_REGISTER_CBRT(fast_correct);
 
-namespace kahan {
+namespace kahans {
 constexpr std::uint64_t C = 0x2A9F76253119D328;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
@@ -270,21 +272,61 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   double const q² = q * q;
   double const q³ = q² * q;
   // An approximation of ∛y with a relative error below 2⁻¹⁵.
-  double const ξ = q - ((q³ - y) * q) / (2 * q³ + y);
+  double const ξ = q - ((q³ - abs_y) * q) / (2 * q³ + abs_y);
   double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
-
   double const x³ = x * x * x;
+  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
+  double const s = (x³ - abs_y) / abs_y;
+  return x_sign_y - x_sign_y * ((14.0 / 81 * s - 2.0 / 9) * s + 1.0 / 3) * s;
+}
+}  // namespace kahans
+
+PRINCIPIA_REGISTER_CBRT(kahans);
+
+namespace kahanz {
+constexpr std::uint64_t C = 0x2A9F76253119D328;
+static const __m128d sign_bit =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
+static const __m128d sixteen_bits_of_mantissa =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
+// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
+// finite magnitudes inside the non-rescaling range; for very small and very
+// large values, rescaling occurs twice.
+constexpr double smol = 0x1p-225;
+constexpr double smol_σ = 0x1p-154;
+constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
+constexpr double big = 0x1p237;
+constexpr double big_σ = 0x1p154;
+constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
+__declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  __m128d Y_0 = _mm_set_sd(y);
+  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
+  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(Y_0);
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
+  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q² = q * q;
+  double const q³ = q² * q;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  double const ξ = q - ((q³ - abs_y) * q) / (2 * q³ + abs_y);
+  double const x = _mm_cvtsd_f64(_mm_and_pd(_mm_set_sd(ξ), sixteen_bits_of_mantissa));
+  double const x³ = x * x * x;
+  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
   //double const s = (x³ - abs_y) / abs_y;
   //return x - x * ((14.0 / 81 * s - 2.0 / 9) * s + 1.0 / 3) * s;
   double const λ = 0x1.16B28F55D72D4p-2;
   double const z = (x³ - abs_y);
   double const λz = λ * z;
-  return x -
-         abs_y * z * x / (3 * (abs_y - λz) * (abs_y + λz) + 2 * (abs_y * z));
+  return x_sign_y - y * z * x / (3 * (abs_y - λz) * (abs_y + λz) + 2 * (abs_y * z));
 }
-}  // namespace kahan
+}  // namespace kahanz
 
-PRINCIPIA_REGISTER_CBRT(kahan);
+PRINCIPIA_REGISTER_CBRT(kahanz);
 
 namespace egg_r3dr6 {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
@@ -429,8 +471,10 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   double const denominator = x²_sign_y * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
   double const Δ = numerator / denominator;
   double const r₀ = x_sign_y - Δ;
+#if !PRINCIPIA_BENCHMARKS
   double const r₁ = x_sign_y - r₀ - Δ;
   ConsiderCorrection(r₀, r₁, /*τ=*/0x1.7C73DBBD9FA60p-66);
+#endif
   return r₀;
 }
 }  // namespace egg_i3tdr5
@@ -482,8 +526,10 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
       (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
   double const Δ = numerator / denominator;
   double const r₀ = x_sign_y - Δ;
+#if !PRINCIPIA_BENCHMARKS
   double const r₁ = x_sign_y - r₀ - Δ;
   ConsiderCorrection(r₀, r₁, /*τ=*/0x1.AC20CF34393E1p-66);
+#endif
   return r₀;
 }
 }  // namespace egg_i3tdr6
@@ -622,10 +668,43 @@ PRINCIPIA_REGISTER_CBRT(plauger);
 
 #if PRINCIPIA_BENCHMARKS
 
+struct MeasurementResult {
+  double value{};
+  double standard_uncertainty{};
+  std::string ToGUMString() const {
+    double const floor_log10_u = std::floor(std::log10(standard_uncertainty));
+    std::int64_t value_integer_digits = std::floor(std::log10(value)) + 1;
+    std::int64_t uncertainty_digits = 2;
+    std::int64_t digits_shown =
+        std::floor(std::log10(value)) - floor_log10_u + uncertainty_digits;
+    std::int64_t fractional_digits_shown = digits_shown - value_integer_digits;
+    if (fractional_digits_shown < 0) {
+      digits_shown += -fractional_digits_shown;
+      uncertainty_digits += -fractional_digits_shown;
+      fractional_digits_shown = 0;
+    }
+    if (fractional_digits_shown == 1) {
+      CHECK_EQ(uncertainty_digits, 2);
+      double uncertainty_parenthetical =
+          std::ceil(10 * standard_uncertainty) / 10;
+      return absl::StrFormat("%.1f(%03.1f)", value, uncertainty_parenthetical);
+    } else {
+      std::int64_t uncertainty_parenthetical =
+          std::ceil(standard_uncertainty *
+                    std::pow(10, uncertainty_digits - 1 - floor_log10_u));
+      return absl::StrFormat("%.*f(%0*d)",
+                             fractional_digits_shown,
+                             value,
+                             uncertainty_digits,
+                             uncertainty_parenthetical);
+    }
+  }
+};
+
 __declspec(noinline) void BenchmarkCbrtLatency(benchmark::State& state, double (*cbrt)(double)) {
-  static double zero_cycles = quantities::Infinity<double>;
+  static MeasurementResult κ₀_plus_noise;
   double total = 0;
-  double min_cycles = quantities::Infinity<double>;
+  std::vector<double> cycle_counts;
   int iterations = 0;
   std::int64_t n = 1 << 16;
   constexpr std::uint64_t low = 0x3FF0000000000000;   // 1.
@@ -645,22 +724,35 @@ __declspec(noinline) void BenchmarkCbrtLatency(benchmark::State& state, double (
       x = cbrt(y);
     }
     auto const stop = __rdtsc();
-    min_cycles = std::min(min_cycles, static_cast<double>(stop - start));
+    cycle_counts.push_back(stop - start);
+    // We assume that the cycle count is κ₀ + κ + N, where N is a random variable.
+    // With the non-cbrt, we estimate κ₀ + E[N], and estimate κ by subtracting that.
     total += x;
     ++iterations;
   }
+  double const mean_cycles = testing_utilities::Mean(cycle_counts) / n;
+  double const stddev_cycles =
+      testing_utilities::StandardDeviation(cycle_counts) / n;
+  MeasurementResult result_cycles;
   if (cbrt(5) == 5) {
-    zero_cycles = std::min(zero_cycles, min_cycles / n);
+    result_cycles = κ₀_plus_noise = {.value = mean_cycles,
+                                     .standard_uncertainty = stddev_cycles};
+  } else {
+    result_cycles = {
+        .value = mean_cycles - κ₀_plus_noise.value,
+        .standard_uncertainty = quantities::Sqrt(
+            quantities::Pow<2>(stddev_cycles) +
+            quantities::Pow<2>(κ₀_plus_noise.standard_uncertainty))};
   }
-  state.SetLabel(std::to_string(min_cycles / n - zero_cycles) +
+  state.SetLabel(result_cycles.ToGUMString() +
                  " cycles " + quantities::DebugString(total, 3) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)));
 }
 
 __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, double (*cbrt)(double)) {
-  static double zero_cycles = quantities::Infinity<double>;
+  static MeasurementResult κ₀_plus_noise;
   double total = 0;
-  double min_cycles = quantities::Infinity<double>;
+  std::vector<double> cycle_counts;
   int iterations = 0;
   constexpr std::int64_t n = 64;
   constexpr std::uint64_t low = 0x3FF0000000000000;   // 1.
@@ -682,24 +774,35 @@ __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, doubl
       inputs[i] = cbrt(inputs[i]) * π;
     }
     auto const stop = __rdtsc();
-    min_cycles = std::min(min_cycles, static_cast<double>(stop - start));
+    cycle_counts.push_back(stop - start);
     ++iterations;
   }
   for (std::int64_t i = 0; i < n; ++i) {
     total += inputs[i] / n;
   }
+  double const mean_cycles = testing_utilities::Mean(cycle_counts) / n;
+  double const stddev_cycles =
+      testing_utilities::StandardDeviation(cycle_counts) / n;
+  MeasurementResult result_cycles;
   if (cbrt(5) == 5) {
-    zero_cycles = std::min(zero_cycles, min_cycles / n);
+    result_cycles = κ₀_plus_noise = {.value = mean_cycles,
+                                     .standard_uncertainty = stddev_cycles};
+  } else {
+    result_cycles = {
+        .value = mean_cycles - κ₀_plus_noise.value,
+        .standard_uncertainty = quantities::Sqrt(
+            quantities::Pow<2>(stddev_cycles) +
+            quantities::Pow<2>(κ₀_plus_noise.standard_uncertainty))};
   }
-  state.SetLabel(std::to_string(min_cycles / n - zero_cycles) +
+  state.SetLabel(result_cycles.ToGUMString() +
                  " cycles " + quantities::DebugString(total, 3) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)));
 }
 
 __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state, double (*cbrt)(double)) {
-  static double zero_cycles = quantities::Infinity<double>;
+  static MeasurementResult κ₀_plus_noise;
   double total = 0;
-  double min_cycles = quantities::Infinity<double>;
+  std::vector<double> cycle_counts;
   int iterations = 0;
   constexpr std::int64_t n = 64;
   constexpr std::uint64_t low = 0x3FF0000000000000;   // 1.
@@ -751,16 +854,27 @@ __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state,
           (-2 * ec + 2 * e²c² + R * R - e * s * R + e² * s²) / (ec * R);
     }
     auto const stop = __rdtsc();
-    min_cycles = std::min(min_cycles, static_cast<double>(stop - start));
+    cycle_counts.push_back(stop - start);
     ++iterations;
   }
   for (std::int64_t i = 0; i < n; ++i) {
     total += inputs[i].E / n;
   }
+  double const mean_cycles = testing_utilities::Mean(cycle_counts) / n;
+  double const stddev_cycles =
+      testing_utilities::StandardDeviation(cycle_counts) / n;
+  MeasurementResult result_cycles;
   if (cbrt(5) == 5) {
-    zero_cycles = std::min(zero_cycles, min_cycles / n);
+    result_cycles = κ₀_plus_noise = {.value = mean_cycles,
+                                     .standard_uncertainty = stddev_cycles};
+  } else {
+    result_cycles = {
+        .value = mean_cycles - κ₀_plus_noise.value,
+        .standard_uncertainty = quantities::Sqrt(
+            quantities::Pow<2>(stddev_cycles) +
+            quantities::Pow<2>(κ₀_plus_noise.standard_uncertainty))};
   }
-  state.SetLabel(std::to_string(min_cycles / n - zero_cycles) +
+  state.SetLabel(result_cycles.ToGUMString() +
                  " cycles " + quantities::DebugString(total, 3) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)));
 }
@@ -775,7 +889,8 @@ CBRT_BENCHMARKS(EggI3TDR5Cbrt, &egg_i3tdr5::cbrt);
 CBRT_BENCHMARKS(EggI3TDR6Cbrt, &egg_i3tdr6::cbrt);
 CBRT_BENCHMARKS(EggR5DR4FMACbrt, &egg_r5dr4_fma::cbrt);
 CBRT_BENCHMARKS(EggI5DR4FMACbrt, &egg_i5dr4_fma::cbrt);
-CBRT_BENCHMARKS(KahanCbrt, &kahan::cbrt);
+CBRT_BENCHMARKS(KahansCbrt, &kahans::cbrt);
+CBRT_BENCHMARKS(KahanzCbrt, &kahanz::cbrt);
 
 #endif
 
