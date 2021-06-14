@@ -150,12 +150,12 @@ std::array<double, n> PriestNievergeltNormalize(std::array<double, n> const f) {
 
 void ConsiderCorrection(double const r₀, double const r₁, double const τ) {
   double const r̃ = r₀ + 2 * r₁;
-  possible_misrounding = r̃ != r₀ && std::abs(0.5 * (r̃ - r₀) - r₁) <= τ * r₀;
+  possible_misrounding = std::abs(0.5 * (r̃ - r₀) - r₁) <= τ * r₀ && r̃ != r₀;
 }
 
 double CorrectLastBit(double const y, double const r₀, double const r₁, double const τ) {
   double const r̃ = r₀ + 2 * r₁;
-  if (r̃ == r₀ || std::abs(0.5 * (r̃ - r₀) - r₁) > τ * r₀) {
+  if (std::abs(0.5 * (r̃ - r₀) - r₁) > τ * r₀ || r̃ == r₀) {
     return r₀;
   }
   // TODO(egg): Handle negative y.
