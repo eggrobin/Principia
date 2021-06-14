@@ -58,6 +58,23 @@ inline bool possible_misrounding = false;
 
 #if PRINCIPIA_BENCHMARKS
 void BenchmarkCbrtLatency(benchmark::State& state, double (*cbrt)(double));
+void BenchmarkCbrtThroughput(benchmark::State& state, double (*cbrt)(double));
+void BenchmarkCbrtKeplerThroughput(benchmark::State& state, double (*cbrt)(double));
+
+#define CBRT_BENCHMARKS(name, f)                                    \
+  void BM_Latency##name(benchmark::State& state) {                  \
+    principia::numerics::BenchmarkCbrtLatency(state, (f));          \
+  }                                                                 \
+  BENCHMARK(BM_Latency##name);                                      \
+  void BM_Throughput##name(benchmark::State& state) {               \
+    principia::numerics::BenchmarkCbrtThroughput(state, (f));       \
+  }                                                                 \
+  BENCHMARK(BM_Throughput##name);                                   \
+  void BM_KeplerThroughput##name(benchmark::State& state) {         \
+    principia::numerics::BenchmarkCbrtKeplerThroughput(state, (f)); \
+  }                                                                 \
+  BENCHMARK(BM_KeplerThroughput##name)
+
 #endif
 
 }  // namespace numerics

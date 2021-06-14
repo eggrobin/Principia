@@ -286,7 +286,7 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
 
 PRINCIPIA_REGISTER_CBRT(kahan);
 
-namespace r3dr6 {
+namespace egg_r3dr6 {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
@@ -332,11 +332,11 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
   double const r₀ = x_sign_y - Δ;
   return r₀;
 }
-}  // namespace r3dr6
+}  // namespace egg_r3dr6
 
-PRINCIPIA_REGISTER_CBRT(r3dr6);
+PRINCIPIA_REGISTER_CBRT(egg_r3dr6);
 
-namespace r3dr5 {
+namespace egg_r3dr5 {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
@@ -380,9 +380,9 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
       x²_sign_y * ((15 * x³ + 51 * abs_y) * x³ + 15 * y²);
   NOIACA_RETURN(x_sign_y - numerator / denominator);
 }
-}  // namespace r3dr5
+}  // namespace egg_r3dr5
 
-PRINCIPIA_REGISTER_CBRT(r3dr5);
+PRINCIPIA_REGISTER_CBRT(egg_r3dr5);
 
 namespace egg_i3tdr5 {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
@@ -757,30 +757,17 @@ __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state,
                  quantities::DebugString(cbrt(-2)));
 }
 
-#define CBRT_BENCHMARKS(name, f)                            \
-  void BM_Latency##name(benchmark::State& state) {          \
-    BenchmarkCbrtLatency(state, (f));                       \
-  }                                                         \
-  BENCHMARK(BM_Latency##name);                              \
-  void BM_Throughput##name(benchmark::State& state) {       \
-    BenchmarkCbrtThroughput(state, (f));                    \
-  }                                                         \
-  BENCHMARK(BM_Throughput##name);                           \
-  void BM_KeplerThroughput##name(benchmark::State& state) { \
-    BenchmarkCbrtKeplerThroughput(state, (f));              \
-  }                                                         \
-  BENCHMARK(BM_KeplerThroughput##name)
-
-CBRT_BENCHMARKS(NoCbrt, [](double x) { return x; });
 CBRT_BENCHMARKS(StdCbrt, [](double x) { return std::cbrt(x); });
 CBRT_BENCHMARKS(StdSin, [](double x) { return std::sin(x)+std::cos(x); });
-CBRT_BENCHMARKS(CorrectCbrt, [](double x) { return correct_cube_root(std::abs(x)).nearest_rounding; });
-CBRT_BENCHMARKS(FastCorrectCbrt, &fast_correct::cbrt);
-CBRT_BENCHMARKS(R3DR6Cbrt, &r3dr6::cbrt);
-CBRT_BENCHMARKS(R3DR5Cbrt, &r3dr5::cbrt);
-CBRT_BENCHMARKS(egg_i3tdr5Cbrt, &egg_i3tdr5::cbrt);
-CBRT_BENCHMARKS(R5DR4FMACbrt, &egg_r5dr4_fma::cbrt);
-CBRT_BENCHMARKS(I5DR4FMACbrt, &egg_i5dr4_fma::cbrt);
+CBRT_BENCHMARKS(MPIRCorrectCbrt, [](double x) { return correct_cube_root(std::abs(x)).nearest_rounding; });
+CBRT_BENCHMARKS(EggR3DR6UnconditionalSlowPathCbrt, &fast_correct::cbrt);
+CBRT_BENCHMARKS(EggR3DR6Cbrt, &egg_r3dr6::cbrt);
+CBRT_BENCHMARKS(EggR3DR5Cbrt, &egg_r3dr5::cbrt);
+CBRT_BENCHMARKS(EggI3TDR5Cbrt, &egg_i3tdr5::cbrt);
+CBRT_BENCHMARKS(EggI3TDR6Cbrt, &egg_i3tdr6::cbrt);
+CBRT_BENCHMARKS(EggR5DR4FMACbrt, &egg_r5dr4_fma::cbrt);
+CBRT_BENCHMARKS(EggI5DR4FMACbrt, &egg_i5dr4_fma::cbrt);
+CBRT_BENCHMARKS(KahanCbrt, &kahan::cbrt);
 
 #endif
 
