@@ -62,12 +62,12 @@ int __cdecl main(int argc, char const* argv[]) {
     std::uint64_t const binary64_1 = principia::numerics::to_integer(1);
     std::uint64_t const binary64_8 = principia::numerics::to_integer(8);
     struct MethodProperties {
-      int incorrect_roundings = 0;
-      int unfaithful_roundings = 0;
+      std::int64_t incorrect_roundings = 0;
+      std::int64_t unfaithful_roundings = 0;
       double max_ulps = 0;
       std::uint64_t Y_worst = 0;
-      int detected_possible_misroundings = 0;
-      int undetected_misroundings = 0;
+      std::int64_t detected_possible_misroundings = 0;
+      std::int64_t undetected_misroundings = 0;
     };
     std::map<std::string, MethodProperties> properties;
     double min_positive_correct_ulps = std::numeric_limits<double>::infinity();
