@@ -104,6 +104,8 @@
   <ItemGroup>
     <ClCompile Include="..\base\bundle.cpp" />
     <ClCompile Include="..\base\cpuid.cpp" />
+    <ClCompile Include="..\base\flags.cpp" />
+    <ClCompile Include="..\base\zfp_compressor.cpp" />
     <ClCompile Include="..\numerics\cbrt.cpp" />
     <ClCompile Include="..\physics\protector.cpp" />
     <ClCompile Include="date_time_test.cpp" />
@@ -116,6 +118,7 @@
     <ClCompile Include="orbit_analysis_test.cpp" />
     <ClCompile Include="orbit_recurrence_test.cpp" />
     <ClCompile Include="solar_system_dynamics_test.cpp" />
+    <ClCompile Include="spacecraft_trajectories_test.cpp" />
     <ClCompile Include="standard_product_3.cpp" />
     <ClCompile Include="standard_product_3_test.cpp" />
     <ClCompile Include="time_scales_test.cpp" />
