@@ -12,6 +12,8 @@
 #include "numerics/double_precision.hpp"
 #include "testing_utilities/statistics.hpp"
 #include "absl/strings/str_format.h"
+#include "mathematica/mathematica.hpp"
+#include "numerics/root_finders.hpp"
 
 #include "mpirxx.h"
 
@@ -704,8 +706,68 @@ struct MeasurementResult {
   }
 };
 
+MeasurementResult LogNormalTerminus(std::vector<double> const& x) {
+  if (x.empty()) {
+    return {0, 0};
+  }
+  if (x.size() == 1) {
+    return {x[0], 0};
+  }
+  using quantities::Pow;
+  double const n = x.size();
+  double const n² = n * n;
+  auto const Σ₁ⁿ = [n](auto const summand) {
+    double Σ = 0;
+    for (int i = 0; i < n; ++i) {
+      Σ += summand(i);
+    }
+    return Σ;
+  };
+  auto const λ = [&Σ₁ⁿ, &x, n, n²](double α) {
+    double const Σ₁ⁿlog_xᵢ_minus_α =
+        Σ₁ⁿ([&](int i) { return std::log(x[i] - α); });
+    double const Σ₁ⁿlog²_xᵢ_minus_α =
+        Σ₁ⁿ([&](int i) { return Pow<2>(std::log(x[i] - α)); });/*
+    LOG(ERROR) << α;
+    LOG(ERROR) << Σ₁ⁿ([&](int i) { return 1 / (x[i] - α); });
+    LOG(ERROR) << n * Σ₁ⁿlog_xᵢ_minus_α;
+    LOG(ERROR) << n * Σ₁ⁿlog²_xᵢ_minus_α;
+    LOG(ERROR) << Pow<2>(Σ₁ⁿlog_xᵢ_minus_α);
+    LOG(ERROR) << n² * Σ₁ⁿ([&](int i) { return std::log(x[i] - α) / (x[i] - α); });*/
+    return Σ₁ⁿ([&](int i) { return 1 / (x[i] - α); }) *
+               (n * Σ₁ⁿlog_xᵢ_minus_α - n * Σ₁ⁿlog²_xᵢ_minus_α +
+                Pow<2>(Σ₁ⁿlog_xᵢ_minus_α)) -
+           n² * Σ₁ⁿ([&](int i) { return std::log(x[i] - α) / (x[i] - α); });
+  };
+  geometry::Sign sign_λ_0(λ(0));
+  // λ(x₁) is NaN, and λ is so ill-conditioned there that it has the wrong sign
+  // just below, so we use a cheesy factor.
+  double const x₁ = *std::min_element(x.begin(), x.end());
+  double cheese = 1;
+  while (geometry::Sign(λ((1 - cheese) * x₁)) == sign_λ_0) {
+    cheese /= 2;
+    if (cheese < 0x1p-53) {
+      // The MLE is very close to the minimum; in that limit the variance
+      // becomes 0.
+      return {.value = x₁, .standard_uncertainty = 0};
+    }
+  }
+  double const α = Brent(λ, 0.0, x₁ * (1 - cheese));
+  double const Σ₁ⁿlog_xᵢ_minus_α =
+      Σ₁ⁿ([&](int i) { return std::log(x[i] - α); });
+  double const Σ₁ⁿlog²_xᵢ_minus_α =
+      Σ₁ⁿ([&](int i) { return Pow<2>(std::log(x[i] - α)); });
+  double const β = std::exp(1 / n * Σ₁ⁿlog_xᵢ_minus_α);
+  double const γ² =
+      1 / n * Σ₁ⁿlog²_xᵢ_minus_α - Pow<2>(1 / n * Σ₁ⁿlog_xᵢ_minus_α);
+  double const ω = std::exp(γ²);
+  double const β² = β * β;
+  double const α_variance = β² * γ² / (n * ω * (ω * (1 + γ²) - 2 * γ² - 1));
+  return {.value = α, .standard_uncertainty = quantities::Sqrt(α_variance)};
+}
+
 __declspec(noinline) void BenchmarkCbrtLatency(benchmark::State& state, double (*cbrt)(double)) {
-  static MeasurementResult κ₀_plus_noise;
+  static MeasurementResult κ₀;
   double total = 0;
   std::vector<double> cycle_counts;
   int iterations = 0;
@@ -727,33 +789,33 @@ __declspec(noinline) void BenchmarkCbrtLatency(benchmark::State& state, double (
       x = cbrt(y);
     }
     auto const stop = __rdtsc();
-    cycle_counts.push_back(stop - start);
-    // We assume that the cycle count is κ₀ + κ + N, where N is a random variable.
-    // With the non-cbrt, we estimate κ₀ + E[N], and estimate κ by subtracting that.
+    cycle_counts.push_back((double)(stop - start) / n);
     total += x;
     ++iterations;
   }
-  double const mean_cycles = testing_utilities::Mean(cycle_counts) / n;
-  double const stddev_cycles =
-      testing_utilities::StandardDeviation(cycle_counts) / n;
-  MeasurementResult result_cycles;
+#if LOG_A_LOT
+  mathematica::Logger(std::filesystem::current_path() /
+                      "latency_distribution.wl")
+      .Set("cycleCounts", cycle_counts);
+#endif
+  MeasurementResult result_cycles = LogNormalTerminus(cycle_counts);
   if (cbrt(5) == 5) {
-    result_cycles = κ₀_plus_noise = {.value = mean_cycles,
-                                     .standard_uncertainty = stddev_cycles};
+    κ₀ = result_cycles;
   } else {
     result_cycles = {
-        .value = mean_cycles - κ₀_plus_noise.value,
+        .value = result_cycles.value - κ₀.value,
         .standard_uncertainty = quantities::Sqrt(
-            quantities::Pow<2>(stddev_cycles) +
-            quantities::Pow<2>(κ₀_plus_noise.standard_uncertainty))};
+            quantities::Pow<2>(result_cycles.standard_uncertainty) +
+            quantities::Pow<2>(κ₀.standard_uncertainty))};
   }
   state.SetLabel(result_cycles.ToGUMString() +
-                 " cycles " + quantities::DebugString(total, 3) + u8"; ∛-2 = " +
+                 (cbrt(5) == 5 ? " cycles CALIBRATION" : " cycles ") +
+                 quantities::DebugString(total, 3) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)));
 }
 
 __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, double (*cbrt)(double)) {
-  static MeasurementResult κ₀_plus_noise;
+  static MeasurementResult κ₀;
   double total = 0;
   std::vector<double> cycle_counts;
   int iterations = 0;
@@ -777,33 +839,30 @@ __declspec(noinline) void BenchmarkCbrtThroughput(benchmark::State& state, doubl
       inputs[i] = cbrt(inputs[i]) * π;
     }
     auto const stop = __rdtsc();
-    cycle_counts.push_back(stop - start);
+    cycle_counts.push_back((double)(stop - start) / n);
     ++iterations;
   }
   for (std::int64_t i = 0; i < n; ++i) {
     total += inputs[i] / n;
   }
-  double const mean_cycles = testing_utilities::Mean(cycle_counts) / n;
-  double const stddev_cycles =
-      testing_utilities::StandardDeviation(cycle_counts) / n;
-  MeasurementResult result_cycles;
+  MeasurementResult result_cycles = LogNormalTerminus(cycle_counts);
   if (cbrt(5) == 5) {
-    result_cycles = κ₀_plus_noise = {.value = mean_cycles,
-                                     .standard_uncertainty = stddev_cycles};
+    κ₀ = result_cycles;
   } else {
     result_cycles = {
-        .value = mean_cycles - κ₀_plus_noise.value,
+        .value = result_cycles.value - κ₀.value,
         .standard_uncertainty = quantities::Sqrt(
-            quantities::Pow<2>(stddev_cycles) +
-            quantities::Pow<2>(κ₀_plus_noise.standard_uncertainty))};
+            quantities::Pow<2>(result_cycles.standard_uncertainty) +
+            quantities::Pow<2>(κ₀.standard_uncertainty))};
   }
   state.SetLabel(result_cycles.ToGUMString() +
-                 " cycles " + quantities::DebugString(total, 3) + u8"; ∛-2 = " +
+                 (cbrt(5) == 5 ? " cycles CALIBRATION" : " cycles ") +
+                 quantities::DebugString(total, 3) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)));
 }
 
 __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state, double (*cbrt)(double)) {
-  static MeasurementResult κ₀_plus_noise;
+  static MeasurementResult κ₀;
   double total = 0;
   std::vector<double> cycle_counts;
   int iterations = 0;
@@ -857,28 +916,25 @@ __declspec(noinline) void BenchmarkCbrtKeplerThroughput(benchmark::State& state,
           (-2 * ec + 2 * e²c² + R * R - e * s * R + e² * s²) / (ec * R);
     }
     auto const stop = __rdtsc();
-    cycle_counts.push_back(stop - start);
+    cycle_counts.push_back((double)(stop - start) / n);
     ++iterations;
   }
   for (std::int64_t i = 0; i < n; ++i) {
     total += inputs[i].E / n;
   }
-  double const mean_cycles = testing_utilities::Mean(cycle_counts) / n;
-  double const stddev_cycles =
-      testing_utilities::StandardDeviation(cycle_counts) / n;
-  MeasurementResult result_cycles;
+  MeasurementResult result_cycles = LogNormalTerminus(cycle_counts);
   if (cbrt(5) == 5) {
-    result_cycles = κ₀_plus_noise = {.value = mean_cycles,
-                                     .standard_uncertainty = stddev_cycles};
+    κ₀ = result_cycles;
   } else {
     result_cycles = {
-        .value = mean_cycles - κ₀_plus_noise.value,
+        .value = result_cycles.value - κ₀.value,
         .standard_uncertainty = quantities::Sqrt(
-            quantities::Pow<2>(stddev_cycles) +
-            quantities::Pow<2>(κ₀_plus_noise.standard_uncertainty))};
+            quantities::Pow<2>(result_cycles.standard_uncertainty) +
+            quantities::Pow<2>(κ₀.standard_uncertainty))};
   }
   state.SetLabel(result_cycles.ToGUMString() +
-                 " cycles " + quantities::DebugString(total, 3) + u8"; ∛-2 = " +
+                 (cbrt(5) == 5 ? " cycles CALIBRATION" : " cycles ") +
+                 quantities::DebugString(total, 3) + u8"; ∛-2 = " +
                  quantities::DebugString(cbrt(-2)));
 }
 
