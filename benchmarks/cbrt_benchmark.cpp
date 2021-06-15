@@ -672,6 +672,9 @@ struct MeasurementResult {
   double value{};
   double standard_uncertainty{};
   std::string ToGUMString() const {
+    if (standard_uncertainty == 0) {
+      return quantities::DebugString(value);
+    }
     double const floor_log10_u = std::floor(std::log10(standard_uncertainty));
     std::int64_t value_integer_digits = std::floor(std::log10(value)) + 1;
     std::int64_t uncertainty_digits = 2;
