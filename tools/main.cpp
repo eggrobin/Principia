@@ -100,7 +100,7 @@ int __cdecl main(int argc, char const* argv[]) {
     for (auto const& method : methods) {
       std::cout << "  " << method << "\n";
     }
-    std::set<std::uint64_t> hard_roundings_for_egg_i5dr4_fma;
+    std::set<std::uint64_t> hard_roundings_for_egg_i5nr4_fma;
     for (std::int64_t i = 1; i <= iterations; ++i) {
       std::uint64_t const Y =
           mersenne() % (binary64_8 - binary64_1) + binary64_1;
@@ -135,8 +135,8 @@ int __cdecl main(int argc, char const* argv[]) {
           properties[method].Y_worst = Y;
         }
         if (x != x_nearest) {
-          if (fast && method == "egg_i5dr4_fma") {
-            hard_roundings_for_egg_i5dr4_fma.insert(Y);
+          if (fast && method == "egg_i5nr4_fma") {
+            hard_roundings_for_egg_i5nr4_fma.insert(Y);
           }
           ++properties[method].incorrect_roundings;
           if (!principia::numerics::possible_misrounding) {
@@ -244,9 +244,9 @@ int __cdecl main(int argc, char const* argv[]) {
           }
           std::cout << "\n";
         }
-        if (fast && !hard_roundings_for_egg_i5dr4_fma.empty()) {
+        if (fast && !hard_roundings_for_egg_i5nr4_fma.empty()) {
           std::cout << "Hard roundings: ";
-          for (std::uint64_t const Y : hard_roundings_for_egg_i5dr4_fma) {
+          for (std::uint64_t const Y : hard_roundings_for_egg_i5nr4_fma) {
             std::cout << std::hex << std::uppercase << "16^^" << Y << std::dec
                       << ", ";
           }

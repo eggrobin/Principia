@@ -285,6 +285,48 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
 
 PRINCIPIA_REGISTER_CBRT(kahans);
 
+namespace kahansn {
+constexpr std::uint64_t C = 0x2A9F76253119D328;
+static const __m128d sign_bit =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
+static const __m128d sixteen_bits_of_mantissa =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
+// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
+// finite magnitudes inside the non-rescaling range; for very small and very
+// large values, rescaling occurs twice.
+constexpr double smol = 0x1p-225;
+constexpr double smol_σ = 0x1p-154;
+constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
+constexpr double big = 0x1p237;
+constexpr double big_σ = 0x1p154;
+constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
+__declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  __m128d Y_0 = _mm_set_sd(y);
+  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
+  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(Y_0);
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
+  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q² = q * q;
+  double const q³ = q² * q;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  double const ξ = q - ((q³ - abs_y) * q) / (2 * q³ + abs_y);
+  double const c = ξ * (0x1p36 + 1);
+  double const x = (ξ - c) + c;
+  double const x³ = x * x * x;
+  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
+  double const s = (x³ - abs_y) / abs_y;
+  return x_sign_y - x_sign_y * ((14.0 / 81 * s - 2.0 / 9) * s + 1.0 / 3) * s;
+}
+}  // namespace kahansn
+
+PRINCIPIA_REGISTER_CBRT(kahansn);
+
 namespace kahanz {
 constexpr std::uint64_t C = 0x2A9F76253119D328;
 static const __m128d sign_bit =
@@ -329,6 +371,52 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
 }  // namespace kahanz
 
 PRINCIPIA_REGISTER_CBRT(kahanz);
+
+namespace kahanzn {
+constexpr std::uint64_t C = 0x2A9F76253119D328;
+static const __m128d sign_bit =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
+static const __m128d sixteen_bits_of_mantissa =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
+// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
+// finite magnitudes inside the non-rescaling range; for very small and very
+// large values, rescaling occurs twice.
+constexpr double smol = 0x1p-225;
+constexpr double smol_σ = 0x1p-154;
+constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
+constexpr double big = 0x1p237;
+constexpr double big_σ = 0x1p154;
+constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
+__declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  __m128d Y_0 = _mm_set_sd(y);
+  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
+  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(Y_0);
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
+  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q² = q * q;
+  double const q³ = q² * q;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  double const ξ = q - ((q³ - abs_y) * q) / (2 * q³ + abs_y);
+  double const c = ξ * (0x1p36 + 1);
+  double const x = (ξ - c) + c;
+  double const x³ = x * x * x;
+  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
+  //double const s = (x³ - abs_y) / abs_y;
+  //return x - x * ((14.0 / 81 * s - 2.0 / 9) * s + 1.0 / 3) * s;
+  double const λ = 0x1.16B28F55D72D4p-2;
+  double const z = (x³ - abs_y);
+  double const λz = λ * z;
+  return x_sign_y - y * z * x / (3 * (abs_y - λz) * (abs_y + λz) + 2 * (abs_y * z));
+}
+}  // namespace kahanzn
+
+PRINCIPIA_REGISTER_CBRT(kahanzn);
 
 namespace egg_r3dr6 {
 constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
@@ -1072,7 +1160,9 @@ CBRT_BENCHMARKS(EggR5DR4FMACbrt, &egg_r5dr4_fma::cbrt);
 CBRT_BENCHMARKS(EggI5DR4FMACbrt, &egg_i5dr4_fma::cbrt);
 CBRT_BENCHMARKS(EggI5NR4FMACbrt, &egg_i5nr4_fma::cbrt);
 CBRT_BENCHMARKS(KahansCbrt, &kahans::cbrt);
+CBRT_BENCHMARKS(KahansNCbrt, &kahansn::cbrt);
 CBRT_BENCHMARKS(KahanzCbrt, &kahanz::cbrt);
+CBRT_BENCHMARKS(KahanzNCbrt, &kahanzn::cbrt);
 
 #endif
 
