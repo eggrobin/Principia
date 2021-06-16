@@ -537,6 +537,64 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
 }  // namespace egg_i3tdr6
 
 PRINCIPIA_REGISTER_CBRT(egg_i3tdr6);
+
+
+namespace egg_i3tnr6 {
+constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+static const __m128d sign_bit =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
+static const __m128d sixteen_bits_of_mantissa =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFF0'0000'0000));
+// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
+// finite magnitudes inside the non-rescaling range; for very small and very
+// large values, rescaling occurs twice.
+constexpr double smol = 0x1p-225;
+constexpr double smol_σ = 0x1p-154;
+constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
+constexpr double big = 0x1p237;
+constexpr double big_σ = 0x1p154;
+constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
+__declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  __m128d Y_0 = _mm_set_sd(y);
+  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
+  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(Y_0);
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
+  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
+  std::uint64_t const Q = C + Y / 3;
+  double const q = to_double(Q);
+  double const q² = q * q;
+  double const q⁴ = q² * q²;
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  __m128d const ρ_0 = _mm_set_sd(0x1.0030F1F8A11DAp2 * abs_y * q - q⁴);
+  double inverse = 0x1.2774CDF81A35Ep-2 / q;
+  double const ξ =
+      (0x1.BBA02BAFEA9B7p0 * q² + _mm_cvtsd_f64(_mm_sqrt_sd(ρ_0, ρ_0))) * inverse;
+  double const c = ξ * (0x1p36 + 1);
+  double const x = (ξ - c) + c;
+  double const x³ = x * x * x;
+  double const x⁶ = x³ * x³;
+  double const y² = y * y;
+  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
+  double const numerator =
+      x_sign_y * (x³ - abs_y) * ((5 * x³ + 17 * abs_y) * x³ + 5 * y²);
+  double const denominator =
+      (7 * x³ + 42 * abs_y) * x⁶ + (30 * x³ + 2 * abs_y) * y²;
+  double const Δ = numerator / denominator;
+  double const r₀ = x_sign_y - Δ;
+#if !PRINCIPIA_BENCHMARKS
+  double const r₁ = x_sign_y - r₀ - Δ;
+  ConsiderCorrection(r₀, r₁, /*τ=*/0x1.AC20CF34393E1p-66);
+#endif
+  return r₀;
+}
+}  // namespace egg_i3tnr6
+
+PRINCIPIA_REGISTER_CBRT(egg_i3tnr6);
+
 namespace egg_r5dr4_fma {
 constexpr std::uint64_t C = 0x2A9F76253119D328;
 static const __m128d sign_bit =
@@ -659,6 +717,69 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
 }  // namespace egg_i5dr4_fma
 
 PRINCIPIA_REGISTER_CBRT(egg_i5dr4_fma);
+
+namespace egg_i5nr4_fma {
+constexpr std::uint64_t C = 0x2A9F76253119D328;
+static const __m128d sign_bit =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
+static const __m128d twenty_five_bits_of_mantissa =
+    _mm_castsi128_pd(_mm_cvtsi64_si128(0xFFFF'FFFF'F800'0000));
+// NOTE(egg): the σs do not rescale enough to put the least normal or greatest
+// finite magnitudes inside the non-rescaling range; for very small and very
+// large values, rescaling occurs twice.
+constexpr double smol = 0x1p-225;
+constexpr double smol_σ = 0x1p-154;
+constexpr double smol_σ⁻³ = 1 / (smol_σ * smol_σ * smol_σ);
+constexpr double big = 0x1p237;
+constexpr double big_σ = 0x1p154;
+constexpr double big_σ⁻³ = 1 / (big_σ * big_σ * big_σ);
+__declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
+  // NOTE(egg): this needs rescaling and special handling of subnormal numbers.
+  __m128d Y_0 = _mm_set_sd(y);
+  __m128d const sign = _mm_and_pd(sign_bit, Y_0);
+  Y_0 = _mm_andnot_pd(sign_bit, Y_0);
+  double const abs_y = _mm_cvtsd_f64(Y_0);
+  // Approximate ∛y with an error below 3,2 %.  I see no way of doing this with
+  // SSE2 intrinsics, so we pay two cycles to move from the xmms to the r*xs and
+  // back.
+  std::uint64_t const Y = _mm_cvtsi128_si64(_mm_castpd_si128(Y_0));
+  std::uint64_t const Q = C + Y / 3;
+  // ⁰¹²³⁴⁵⁶⁷⁸⁹
+  double const q = to_double(Q);
+  double const y² = y * y;
+  double const y³ = y² * y;
+  double const q² = q * q;
+  double const q³ = q² * q;
+  double const q⁵ = q³ * q²;
+  double const q⁶ = q³ * q³;
+  double const inverse =
+      q / FusedMultiplySubtract(
+              0x1.4A7E9CB8A3491p2 * q, q², 0x1.08654A2D4F6DBp-1 * abs_y);
+  // An approximation of ∛y with a relative error below 2⁻¹⁵.
+  double const ξ = FusedMultiplyAdd(
+      inverse,
+      quantities::Sqrt(FusedMultiplySubtract(
+          q³, FusedNegatedMultiplyAdd(q², q, 118.0 / 5 * abs_y), y²)),
+      FusedMultiplySubtract(q², q, abs_y) * 0x1.4A7E9CB8A3491p0 * inverse);
+  double const c = ξ * (0x1p27 + 1);
+  double const x = (ξ - c) + c;
+  double const x² = x * x;
+  DCHECK_EQ(FusedMultiplySubtract(x, x, x²), 0);
+  double const x³ = x² * x;
+  double const x_sign_y = _mm_cvtsd_f64(_mm_or_pd(_mm_set_sd(x), sign));
+  double const numerator = x_sign_y * FusedMultiplySubtract(x², x, abs_y);
+  double const denominator =
+      FusedMultiplyAdd(x³, FusedMultiplyAdd(10 * x, x², 16 * abs_y), y²);
+  double const Δ₁ = FusedMultiplyAdd(6 * x, x², 3 * abs_y);
+  double const Δ₂ = numerator / denominator;
+  double const r₀ = FusedNegatedMultiplyAdd(Δ₁, Δ₂, x_sign_y);
+  double const r₁ = FusedNegatedMultiplyAdd(Δ₁, Δ₂, x_sign_y - r₀);
+  // TODO(egg): ConsiderCorrection.
+  return r₀;
+}
+}  // namespace egg_i5nr4_fma
+
+PRINCIPIA_REGISTER_CBRT(egg_i5nr4_fma);
 
 namespace plauger {
 double cbrt(double x) {
@@ -946,8 +1067,10 @@ CBRT_BENCHMARKS(EggR3DR6Cbrt, &egg_r3dr6::cbrt);
 CBRT_BENCHMARKS(EggR3DR5Cbrt, &egg_r3dr5::cbrt);
 CBRT_BENCHMARKS(EggI3TDR5Cbrt, &egg_i3tdr5::cbrt);
 CBRT_BENCHMARKS(EggI3TDR6Cbrt, &egg_i3tdr6::cbrt);
+CBRT_BENCHMARKS(EggI3TNR6Cbrt, &egg_i3tnr6::cbrt);
 CBRT_BENCHMARKS(EggR5DR4FMACbrt, &egg_r5dr4_fma::cbrt);
 CBRT_BENCHMARKS(EggI5DR4FMACbrt, &egg_i5dr4_fma::cbrt);
+CBRT_BENCHMARKS(EggI5NR4FMACbrt, &egg_i5nr4_fma::cbrt);
 CBRT_BENCHMARKS(KahansCbrt, &kahans::cbrt);
 CBRT_BENCHMARKS(KahanzCbrt, &kahanz::cbrt);
 
