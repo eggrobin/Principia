@@ -799,7 +799,9 @@ __declspec(noinline) double cbrt IACA_FUNCTION_DOUBLE(y) {
   double const Δ₂ = numerator / denominator;
   double const r₀ = FusedNegatedMultiplyAdd(Δ₁, Δ₂, x_sign_y);
   double const r₁ = FusedNegatedMultiplyAdd(Δ₁, Δ₂, x_sign_y - r₀);
-  // TODO(egg): ConsiderCorrection.
+#if !PRINCIPIA_BENCHMARKS
+  ConsiderCorrection(r₀, r₁, /*τ=*/0x1.E45E16EF5480Fp-76);
+#endif
   return r₀;
 }
 }  // namespace egg_i5dr4_fma
