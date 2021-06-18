@@ -16,6 +16,7 @@
 #include "tools/generate_configuration.hpp"
 #include "tools/generate_kopernicus.hpp"
 #include "tools/generate_profiles.hpp"
+#include "mathematica/mathematica.hpp"
 
 namespace {
 std::string const MeasuredProportion(double const successes,
@@ -100,7 +101,7 @@ int __cdecl main(int argc, char const* argv[]) {
     for (auto const& method : methods) {
       std::cout << "  " << method << "\n";
     }
-    std::set<std::uint64_t> hard_roundings_for_egg_i5nr4_fma;
+    std::set<std::uint64_t> hard_roundings;
     for (std::int64_t i = 1; i <= iterations; ++i) {
       std::uint64_t const Y =
           mersenne() % (binary64_8 - binary64_1) + binary64_1;
@@ -119,6 +120,9 @@ int __cdecl main(int argc, char const* argv[]) {
             principia::numerics::CubeRootRegistry::Instance().methods().at(
                 method)(y);
         if (principia::numerics::possible_misrounding) {
+          if (fast && method == "egg_i5dr4_fma") {
+            hard_roundings.insert(Y);
+          }
           ++properties[method].detected_possible_misroundings;
         }
         std::int64_t const ulps_from_correct =
@@ -135,9 +139,6 @@ int __cdecl main(int argc, char const* argv[]) {
           properties[method].Y_worst = Y;
         }
         if (x != x_nearest) {
-          if (fast && method == "egg_i5nr4_fma") {
-            hard_roundings_for_egg_i5nr4_fma.insert(Y);
-          }
           ++properties[method].incorrect_roundings;
           if (!principia::numerics::possible_misrounding) {
             ++properties[method].undetected_misroundings;
@@ -244,13 +245,19 @@ int __cdecl main(int argc, char const* argv[]) {
           }
           std::cout << "\n";
         }
-        if (fast && !hard_roundings_for_egg_i5nr4_fma.empty()) {
-          std::cout << "Hard roundings: ";
-          for (std::uint64_t const Y : hard_roundings_for_egg_i5nr4_fma) {
-            std::cout << std::hex << std::uppercase << "16^^" << Y << std::dec
-                      << ", ";
+        if (fast && !hard_roundings.empty()) {
+          auto const filename =
+              "hard_roundings." + std::to_string(i % 2'000'000) + ".wl";
+          {
+            principia::mathematica::Logger logger(
+                std::filesystem::current_path() / filename,
+                /*make_unique=*/false);
+            logger.Set(
+                "hardRoundings",
+                std::vector(hard_roundings.begin(), hard_roundings.end()));
           }
-          std::cout << "\n";
+          std::cout << "Logged " << hard_roundings.size()
+                    << " hard roundings to " << filename << "\n";
         }
       }
     }
