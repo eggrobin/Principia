@@ -6,25 +6,27 @@
 
 #include "base/array.hpp"
 #include "base/hexadecimal.hpp"
-#include "ksp_plugin/frames.hpp"
-#include "ksp_plugin/plugin.hpp"
 #include "geometry/grassmann.hpp"
 #include "glog/logging.h"
-#include "google/protobuf/io/coded_stream.h"
 #include "gmock/gmock.h"
+#include "google/protobuf/io/coded_stream.h"
 #include "gtest/gtest.h"
+#include "ksp_plugin/frames.hpp"
+#include "ksp_plugin/interface.hpp"
+#include "ksp_plugin/plugin.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
-#include "serialization/physics.pb.h"
 #include "serialization/ksp_plugin.pb.h"
+#include "serialization/physics.pb.h"
+#include "testing_utilities/serialization.hpp"
 
 namespace principia {
 namespace ksp_plugin {
 namespace internal_plugin {
 
 using base::Array;
-using base::UniqueArray;
 using base::HexadecimalEncoder;
+using base::UniqueArray;
 using geometry::Bivector;
 using geometry::Trivector;
 using geometry::Vector;
@@ -45,7 +47,7 @@ class TestablePlugin : public Plugin {
   std::map<GUID, not_null<Vessel const*>> vessels() const;
 
   static not_null<std::unique_ptr<TestablePlugin>> ReadFromMessage(
-    serialization::Plugin const& message);
+      serialization::Plugin const& message);
 };
 
 void TestablePlugin::KeepAllVessels() {
@@ -63,7 +65,7 @@ std::map<GUID, not_null<Vessel const*>> TestablePlugin::vessels() const {
 }
 
 not_null<std::unique_ptr<TestablePlugin>> TestablePlugin::ReadFromMessage(
-  serialization::Plugin const& message) {
+    serialization::Plugin const& message) {
   std::unique_ptr<Plugin> plugin = Plugin::ReadFromMessage(message);
   return std::unique_ptr<TestablePlugin>(
       static_cast<TestablePlugin*>(plugin.release()));
@@ -104,6 +106,52 @@ class PluginCompatibilityTest : public testing::Test {
 
 TEST_F(PluginCompatibilityTest, PreCartan) {
   // This space for rent.
+}
+
+TEST_F(PluginCompatibilityTest, Reach) {
+  std::unique_ptr<Plugin const> const plugin = []() {
+    LOG(ERROR) << u8"Reading file…";
+    auto const lines = testing_utilities::ReadLinesFromBase64File(
+        SOLUTION_DIR / "ksp_plugin_test" / "Reach.sfs");
+    base::PushDeserializer* deserializer = nullptr;
+    Plugin const* plugin;
+    LOG(ERROR) << lines.size() << u8" lines. Deserializing…";
+    for (std::string const& line : lines) {
+      interface::principia__DeserializePlugin(line.c_str(),
+                                              &deserializer,
+                                              &plugin,
+                                              /*compressor=*/"gipfeli",
+                                              "base64");
+    }
+    interface::principia__DeserializePlugin("",
+                                            &deserializer,
+                                            &plugin,
+                                            /*compressor=*/"gipfeli",
+                                            "base64");
+    LOG(ERROR) << "Deserialization complete.";
+    return std::unique_ptr<Plugin const>(plugin);
+  }();
+  auto const test =
+      plugin->GetVessel("f2d77873-4776-4809-9dfb-de9e7a0620a6");  // TEST.
+  auto const infnity =
+      plugin->GetVessel("29142a79-7acd-47a9-a34d-f9f2a8e1b4ed");  // IFNITY-5.2.
+  for (Vessel const* vessel : {test, infnity}) {
+    LOG(ERROR) << vessel->name() << ":";
+    if (vessel->has_flight_plan()) {
+      auto const& flight_plan = vessel->flight_plan();
+      LOG(ERROR) << flight_plan.number_of_manœuvres() << " manœuvres";
+      LOG(ERROR) << "Flight plan initial time: " << flight_plan.initial_time();
+      for (int i = 0; i < flight_plan.number_of_manœuvres(); ++i) {
+        LOG(ERROR) << flight_plan.GetManœuvre(i).Δv().Norm() << " at "
+                   << flight_plan.GetManœuvre(i).initial_time();
+      }
+    } else {
+      LOG(ERROR) << "No flight plan.";
+    }
+    LOG(ERROR) << "Psychohistory range: "
+               << vessel->psychohistory().front().time << " .. "
+               << vessel->psychohistory().back().time;
+  }
 }
 
 }  // namespace internal_plugin
