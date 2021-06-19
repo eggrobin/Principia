@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 
+#include "astronomy/time_scales.hpp"
 #include "base/array.hpp"
 #include "base/hexadecimal.hpp"
 #include "geometry/grassmann.hpp"
@@ -24,12 +25,14 @@ namespace principia {
 namespace ksp_plugin {
 namespace internal_plugin {
 
+using astronomy::TTSecond;
 using base::Array;
 using base::HexadecimalEncoder;
 using base::UniqueArray;
 using geometry::Bivector;
 using geometry::Trivector;
 using geometry::Vector;
+using physics::BodyCentredNonRotatingDynamicFrame;
 using quantities::Length;
 using quantities::si::Hour;
 using quantities::si::Metre;
@@ -139,18 +142,31 @@ TEST_F(PluginCompatibilityTest, Reach) {
     LOG(ERROR) << vessel->name() << ":";
     if (vessel->has_flight_plan()) {
       auto const& flight_plan = vessel->flight_plan();
-      LOG(ERROR) << flight_plan.number_of_manœuvres() << " manœuvres";
-      LOG(ERROR) << "Flight plan initial time: " << flight_plan.initial_time();
+      LOG(ERROR) << flight_plan.number_of_manœuvres() << u8" manœuvres";
+      LOG(ERROR) << "Flight plan initial time: "
+                 << TTSecond(flight_plan.initial_time())
+                 << flight_plan.initial_time() -
+                        astronomy::internal_time_scales::DateTimeAsTT(
+                            TTSecond(flight_plan.initial_time()));
       for (int i = 0; i < flight_plan.number_of_manœuvres(); ++i) {
+        Instant const t = flight_plan.GetManœuvre(i).initial_time();
         LOG(ERROR) << flight_plan.GetManœuvre(i).Δv().Norm() << " at "
-                   << flight_plan.GetManœuvre(i).initial_time();
+                   << TTSecond(t)
+                   << t - astronomy::internal_time_scales::DateTimeAsTT(
+                              TTSecond(t));
+        serialization::DynamicFrame frame;
+        flight_plan.GetManœuvre(i).frame()->WriteToMessage(&frame);
+        auto const& manœuvre_frame = dynamic_cast<
+            BodyCentredNonRotatingDynamicFrame<Barycentric, Navigation> const&>(
+            *flight_plan.GetManœuvre(i).frame());
+        LOG(ERROR) << manœuvre_frame.centre()->name();
       }
     } else {
       LOG(ERROR) << "No flight plan.";
     }
     LOG(ERROR) << "Psychohistory range: "
-               << vessel->psychohistory().front().time << " .. "
-               << vessel->psychohistory().back().time;
+               << TTSecond(vessel->psychohistory().front().time) << " .. "
+               << TTSecond(vessel->psychohistory().back().time);
   }
 }
 
