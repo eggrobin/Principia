@@ -15,6 +15,8 @@
 #include "ksp_plugin/frames.hpp"
 #include "ksp_plugin/interface.hpp"
 #include "ksp_plugin/plugin.hpp"
+#include "physics/apsides.hpp"
+#include "quantities/astronomy.hpp"
 #include "quantities/quantities.hpp"
 #include "quantities/si.hpp"
 #include "serialization/ksp_plugin.pb.h"
@@ -26,6 +28,7 @@ namespace ksp_plugin {
 namespace internal_plugin {
 
 using astronomy::TTSecond;
+using astronomy::operator""_TT;
 using base::Array;
 using base::HexadecimalEncoder;
 using base::UniqueArray;
@@ -33,8 +36,10 @@ using geometry::Bivector;
 using geometry::Trivector;
 using geometry::Vector;
 using physics::BodyCentredNonRotatingDynamicFrame;
+using physics::ComputeApsides;
 using quantities::Length;
 using quantities::si::Hour;
+using quantities::si::Kilo;
 using quantities::si::Metre;
 using quantities::si::Radian;
 using quantities::si::Second;
@@ -141,13 +146,25 @@ TEST_F(PluginCompatibilityTest, Reach) {
   for (Vessel const* vessel : {test, infnity}) {
     LOG(ERROR) << vessel->name() << ":";
     if (vessel->has_flight_plan()) {
-      auto const& flight_plan = vessel->flight_plan();
+      auto& flight_plan = vessel->flight_plan();
       LOG(ERROR) << flight_plan.number_of_manœuvres() << u8" manœuvres";
-      LOG(ERROR) << "Flight plan initial time: "
-                 << TTSecond(flight_plan.initial_time())
-                 << flight_plan.initial_time() -
-                        astronomy::internal_time_scales::DateTimeAsTT(
-                            TTSecond(flight_plan.initial_time()));
+      LOG(ERROR) << "Flight plan: " << TTSecond(flight_plan.initial_time())
+                 << " .. " << TTSecond(flight_plan.actual_final_time());
+      auto adaptive_step_parameters = flight_plan.adaptive_step_parameters();
+      adaptive_step_parameters.set_max_steps(
+          std::numeric_limits<int64_t>::max());
+      flight_plan.SetAdaptiveStepParameters(
+          adaptive_step_parameters,
+          flight_plan.generalized_adaptive_step_parameters());
+      for (;;) {
+        if (flight_plan.SetDesiredFinalTime("1989-07-14T12:00:00"_TT).ok()) {
+          break;
+        }
+        LOG(ERROR) << flight_plan.actual_final_time();
+        LOG(ERROR) << "Extended to "
+                   << TTSecond(flight_plan.actual_final_time());
+      }
+      LOG(ERROR) << "Extended to " << TTSecond(flight_plan.actual_final_time());
       for (int i = 0; i < flight_plan.number_of_manœuvres(); ++i) {
         Instant const t = flight_plan.GetManœuvre(i).initial_time();
         LOG(ERROR) << flight_plan.GetManœuvre(i).Δv().Norm() << " at "
@@ -160,6 +177,47 @@ TEST_F(PluginCompatibilityTest, Reach) {
             BodyCentredNonRotatingDynamicFrame<Barycentric, Navigation> const&>(
             *flight_plan.GetManœuvre(i).frame());
         LOG(ERROR) << manœuvre_frame.centre()->name();
+        DiscreteTrajectory<Barycentric>::Iterator begin;
+        DiscreteTrajectory<Barycentric>::Iterator end;
+        // Loop over the preceding coast, the current burn, and the final coast
+        // if this is the last manœuvre.
+        for (int const j : (i == flight_plan.number_of_manœuvres() - 1
+                                ? std::vector{0, 1, 2}
+                                : std::vector{0, 1})) {
+          flight_plan.GetSegment(2 * i + j, begin, end);
+          for (int i = 0; i < 100; ++i) {
+            if (plugin->HasCelestial(i)) {
+              auto const& celestial = plugin->GetCelestial(i);
+              DiscreteTrajectory<Barycentric> apoapsides;
+              DiscreteTrajectory<Barycentric> periapsides;
+              ComputeApsides(celestial.trajectory(),
+                             begin,
+                             end,
+                             /*max_points=*/std::numeric_limits<int>::max(),
+                             apoapsides,
+                             periapsides);
+              for (auto const periapsis : periapsides) {
+                auto const distance =
+                    (celestial.trajectory().EvaluatePosition(periapsis.time) -
+                     periapsis.degrees_of_freedom.position())
+                        .Norm();
+                std::set<std::string_view> const gas_giants{
+                    "Jupiter", "Saturn", "Uranus", "Neptune"};
+                Length const threshold =
+                    (gas_giants.contains(celestial.body()->name()) ||
+                     (celestial.parent() != nullptr &&
+                      gas_giants.contains(celestial.parent()->body()->name())))
+                        ? 1e7 * Kilo(Metre)
+                        : 1e5 * Kilo(Metre);
+                if (distance < threshold) {
+                  LOG(ERROR) << TTSecond(periapsis.time) << ": "
+                             << distance / Kilo(Metre) << " km from "
+                             << celestial.body()->name();
+                }
+              }
+            }
+          }
+        }
       }
     } else {
       LOG(ERROR) << "No flight plan.";
