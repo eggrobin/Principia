@@ -22,6 +22,7 @@
     <ClCompile Include="..\..\fnlib_cbrt.cpp" />
     <ClCompile Include="..\..\freebsd_cbrt.cpp" />
     <ClCompile Include="..\..\glibc_cbrt.cpp" />
+    <ClCompile Include="..\..\metalibm_cbrt.cpp" />
     <ClCompile Include="..\..\njuffa_cbrt.cpp" />
     <ClCompile Include="..\..\sun_cbrt.cpp" />
     <ClCompile Include="..\benchmarks\cbrt_benchmark.cpp" />
