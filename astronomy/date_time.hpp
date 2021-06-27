@@ -137,7 +137,7 @@ class DateTime final {
   Date const date_;
   Time const time_;
 
-  friend constexpr DateTime operator""_DateTime(char const* str,
+  friend consteval DateTime operator""_DateTime(char const* str,
                                                 std::size_t size);
 };
 
@@ -174,23 +174,31 @@ constexpr bool operator<(Date const& left, Date const& right);
 constexpr bool operator>(Date const& left, Date const& right);
 constexpr bool operator<=(Date const& left, Date const& right);
 constexpr bool operator>=(Date const& left, Date const& right);
-constexpr Date operator""_Date(char const* str, std::size_t size);
+consteval Date operator""_Date(char const* str, std::size_t size);
 std::ostream& operator<<(std::ostream& out, Date const& date);
+
+constexpr Date ParseDate(std::string_view str);
 
 constexpr bool operator==(Time const& left, Time const& right);
 constexpr bool operator!=(Time const& left, Time const& right);
 constexpr Time operator""_Time(char const* str, std::size_t size);
 std::ostream& operator<<(std::ostream& out, Time const& time);
 
+constexpr Time ParseTime(std::string_view str);
+
 // 24:00 on one day and 00:00 on the next compare equal.
 constexpr bool operator==(DateTime const& left, DateTime const& right);
 constexpr bool operator!=(DateTime const& left, DateTime const& right);
-constexpr DateTime operator""_DateTime(char const* str, std::size_t size);
+consteval DateTime operator""_DateTime(char const* str, std::size_t size);
 std::ostream& operator<<(std::ostream& out, DateTime const& date_time);
+
+constexpr DateTime ParseDateTime(std::string_view str);
 
 // Returns true if the string can be interpreted as a Julian date.
 constexpr bool IsJulian(char const* str, std::size_t size);
-constexpr JulianDate operator""_Julian(char const* str, std::size_t size);
+consteval JulianDate operator""_Julian(char const* str, std::size_t size);
+
+constexpr JulianDate ParseJulianDate(std::string_view str);
 
 }  // namespace internal_date_time
 
@@ -202,6 +210,10 @@ using internal_date_time::operator""_Date;
 using internal_date_time::operator""_DateTime;
 using internal_date_time::operator""_Julian;
 using internal_date_time::operator""_Time;
+using internal_date_time::ParseDate;
+using internal_date_time::ParseDateTime;
+using internal_date_time::ParseJulianDate;
+using internal_date_time::ParseTime;
 using internal_date_time::Time;
 
 }  // namespace date_time
