@@ -517,7 +517,7 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
 PRINCIPIA_REGISTER_CBRT(egg_r3dr5);
 
 namespace egg_i3tdr5 {
-constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+constexpr std::uint64_t C = 0x2A9F'775C'D8A7'5897;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
 static const __m128d sixteen_bits_of_mantissa =
@@ -572,7 +572,7 @@ __declspec(noinline) double cbrt NOIACA_FUNCTION_DOUBLE(y) {
 PRINCIPIA_REGISTER_CBRT(egg_i3tdr5);
 
 namespace egg_i3tdr6 {
-constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+constexpr std::uint64_t C = 0x2A9F'775C'D8A7'5897;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
 static const __m128d sixteen_bits_of_mantissa =
@@ -628,7 +628,7 @@ PRINCIPIA_REGISTER_CBRT(egg_i3tdr6);
 
 
 namespace egg_i3tnr6 {
-constexpr std::uint64_t C = 0x2A9F7893782DA1CE;
+constexpr std::uint64_t C = 0x2A9F'775C'D8A7'5897;
 static const __m128d sign_bit =
     _mm_castsi128_pd(_mm_cvtsi64_si128(0x8000'0000'0000'0000));
 static const __m128d sixteen_bits_of_mantissa =
