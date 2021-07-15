@@ -106,6 +106,7 @@
     <ClCompile Include="..\base\cpuid.cpp" />
     <ClCompile Include="..\base\flags.cpp" />
     <ClCompile Include="..\base\zfp_compressor.cpp" />
+    <ClCompile Include="..\geometry\instant_output.cpp" />
     <ClCompile Include="..\numerics\cbrt.cpp" />
     <ClCompile Include="..\physics\protector.cpp" />
     <ClCompile Include="date_time_test.cpp" />

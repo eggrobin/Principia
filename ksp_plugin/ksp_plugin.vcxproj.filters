@@ -74,6 +74,9 @@
     <ClInclude Include="orbit_analyser.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="interface.cpp">
@@ -181,11 +184,17 @@
     <ClCompile Include="..\base\cpuid.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\geometry\instant_output.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\serialization\journal.proto" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="principia.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ksp_plugin.rc" />
   </ItemGroup>
 </Project>

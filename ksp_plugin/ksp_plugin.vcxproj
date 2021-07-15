@@ -58,6 +58,7 @@
     <ClInclude Include="plugin.hpp" />
     <ClInclude Include="interface.hpp" />
     <ClInclude Include="renderer.hpp" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="vessel.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -65,6 +66,7 @@
     <ClCompile Include="..\base\flags.cpp" />
     <ClCompile Include="..\base\version.generated.cc" />
     <ClCompile Include="..\base\zfp_compressor.cpp" />
+    <ClCompile Include="..\geometry\instant_output.cpp" />
     <ClCompile Include="..\journal\profiles.cpp" />
     <ClCompile Include="..\journal\recorder.cpp" />
     <ClCompile Include="..\numerics\cbrt.cpp" />
@@ -106,5 +108,8 @@
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="principia.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ksp_plugin.rc" />
   </ItemGroup>
 </Project>

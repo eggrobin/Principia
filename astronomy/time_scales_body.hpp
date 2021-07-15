@@ -11,8 +11,9 @@
 #include "astronomy/epoch.hpp"
 #include "geometry/named_quantities.hpp"
 #include "glog/logging.h"
-#include "quantities/si.hpp"
 #include "numerics/double_precision.hpp"
+#include "quantities/elementary_functions.hpp"
+#include "quantities/si.hpp"
 
 namespace principia {
 namespace astronomy {
@@ -25,7 +26,10 @@ using astronomy::date_time::operator""_DateTime;
 using astronomy::date_time::operator""_Julian;
 using numerics::DoublePrecision;
 using numerics::TwoDifference;
+using quantities::NextDown;
 using quantities::si::Day;
+using quantities::si::Hour;
+using quantities::si::Minute;
 using quantities::si::Radian;
 using quantities::si::Second;
 
@@ -74,7 +78,7 @@ constexpr Instant From北斗Time(quantities::Time const& 北斗) {
 
 // Utilities for modern UTC (since 1972).
 
-constexpr std::array<int, (2021 - 1972) * 2 + 1> leap_seconds = {{
+constexpr std::array<int, (2022 - 1972) * 2> leap_seconds = {{
     +1, +1,  // 1972
     +0, +1,  // 1973
     +0, +1,  // 1974
@@ -124,7 +128,7 @@ constexpr std::array<int, (2021 - 1972) * 2 + 1> leap_seconds = {{
     +0, +0,  // 2018
     +0, +0,  // 2019
     +0, +0,  // 2020
-    +0,      // 2021
+    +0, +0,  // 2021
 }};
 
 // Returns +1 if a positive leap second was inserted at the end of the given
@@ -571,24 +575,22 @@ inline Instant Parse北斗Time(std::string const& s) {
   return operator""_北斗(s.c_str(), s.size());
 }
 
-inline Date TTDay(Instant const& t) {
-  std::int64_t mjd = std::floor((t - "MJD0"_TT) / Day);
+constexpr Date TTDay(Instant const& t) {
+  // We use a cast as a constexpr version of a floor; this is only correct with
+  // a positive JD, but we do not support dates before JD0.5 anyway.
+  CONSTEXPR_CHECK(t >= "JD0.5"_TT);
+  std::int64_t jd_minus_half =
+      static_cast<std::int64_t>((t - "JD0.5"_TT) / Day);
   // We want operations rounded toward negative infinity, but we also don’t
   // want to fiddle with rounding modes.  The product and sum here should be
   // exact for all reasonable times.
-  if (mjd * Day + "MJD0"_TT > t) {
-    --mjd;
+  if (jd_minus_half * Day + "JD0.5"_TT > t) {
+    --jd_minus_half;
   }
-  int digits = 0;
-  for (std::int64_t mjd_most_significant_digits = mjd;
-       mjd_most_significant_digits != 0;
-       ++digits) {
-    mjd_most_significant_digits /= 10;
-  }
-  return JulianDate::MJD(mjd, digits, /*fractional_digit_count=*/0).CalendarDay();
+  return Date::JD(jd_minus_half + 0.5);
 }
 
-inline DateTime TTSecond(Instant const& t) {
+constexpr DateTime TTSecond(Instant const& t) {
   auto const date = TTDay(t);
   Instant const beginning_of_day = DateTimeAsTT(DateTime::BeginningOfDay(date));
   // Close to J2000, Sterbenz’s lemma can fail to apply to this subtraction.  We
@@ -596,17 +598,17 @@ inline DateTime TTSecond(Instant const& t) {
   DoublePrecision<quantities::Time> const time_of_day =
       TwoDifference(t, beginning_of_day);
   quantities::Time const time_of_day_rounded_down =
-      time_of_day.error >= 0 * Second
-          ? time_of_day.value
-          : std::bit_cast<double>(
-                std::bit_cast<std::uint64_t>(time_of_day.value / Second) - 1) *
-                Second;
-  int second_of_day = std::floor(time_of_day_rounded_down / Second);
-  return DateTime(date,
-                  date_time::Time(/*hour=*/second_of_day / 3600,
-                                  /*minute=*/second_of_day % 3600 / 60,
-                                  /*second=*/second_of_day % 60,
-                                  /*millisecond=*/0));
+      time_of_day.error >= 0 * Second ? time_of_day.value
+                                      : NextDown(time_of_day.value);
+  int const second_of_day = static_cast<int>(time_of_day_rounded_down / Second);
+  return DateTime(
+      date,
+      date_time::Time(
+          /*hour=*/second_of_day / (Hour / Second),
+          /*minute=*/second_of_day % static_cast<int>(Hour / Second) /
+              (Minute / Second),
+          /*second=*/second_of_day % static_cast<int>(Minute / Second),
+          /*millisecond=*/0));
 }
 
 }  // namespace internal_time_scales
