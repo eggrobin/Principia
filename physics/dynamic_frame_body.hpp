@@ -155,6 +155,17 @@ DynamicFrame<InertialFrame, ThisFrame>::ReadFromMessage(
                 message.GetExtension(
                     serialization::BodySurfaceDynamicFrame::extension)));
   }
+  if (message.HasExtension(
+          serialization::BodyCentredLineOfSightDynamicFrame::extension)) {
+    ++extensions_found;
+    result = static_cast<not_null<std::unique_ptr<DynamicFrame>>>(
+        BodyCentredLineOfSightDynamicFrame<InertialFrame, ThisFrame>::
+            ReadFromMessage(
+                ephemeris,
+                message.GetExtension(
+                    serialization::BodyCentredLineOfSightDynamicFrame::
+                        extension)));
+  }
   CHECK_EQ(extensions_found, 1) << message.DebugString();
   return std::move(result);
 }

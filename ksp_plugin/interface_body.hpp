@@ -645,6 +645,9 @@ inline not_null<std::unique_ptr<NavigationFrame>> NewNavigationFrame(
           parameters.centre_index);
     case serialization::BodySurfaceDynamicFrame::kExtensionFieldNumber:
       return plugin.NewBodySurfaceNavigationFrame(parameters.centre_index);
+    case serialization::BodyCentredLineOfSightDynamicFrame::kExtensionFieldNumber:
+      return plugin.NewBodyCentredLineOfSightNavigationFrame(
+          parameters.primary_index, parameters.secondary_index);
     default:
       LOG(FATAL) << "Unexpected extension " << parameters.extension;
       base::noreturn();

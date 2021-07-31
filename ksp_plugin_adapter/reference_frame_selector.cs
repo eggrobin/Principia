@@ -24,6 +24,7 @@ internal class ReferenceFrameSelector : SupervisedWindowRenderer {
     BODY_CENTRED_NON_ROTATING = 6000,
     BODY_CENTRED_PARENT_DIRECTION = 6002,
     BODY_SURFACE = 6003,
+    BODY_CENTRED_LINE_OF_SIGHT = 6004,
   }
 
   public delegate void Callback(NavigationFrameParameters frame_parameters);
@@ -77,6 +78,7 @@ internal class ReferenceFrameSelector : SupervisedWindowRenderer {
           selected_celestial = FlightGlobals.Bodies[parameters.secondary_index];
           break;
         case FrameType.BODY_CENTRED_PARENT_DIRECTION:
+        case FrameType.BODY_CENTRED_LINE_OF_SIGHT:
           selected_celestial = FlightGlobals.Bodies[parameters.primary_index];
           break;
       }
@@ -88,9 +90,11 @@ internal class ReferenceFrameSelector : SupervisedWindowRenderer {
   // |BODY_CENTRED_NON_ROTATING|.
   public void SetFrameType(FrameType type) {
     EffectChange(() => {
-      if (selected_celestial.is_root() &&
-          (type == FrameType.BARYCENTRIC_ROTATING ||
-           type == FrameType.BODY_CENTRED_PARENT_DIRECTION)) {
+      if ((selected_celestial.is_root() &&
+           (type == FrameType.BARYCENTRIC_ROTATING ||
+            type == FrameType.BODY_CENTRED_PARENT_DIRECTION)) ||
+          (selected_celestial.isHomeWorld &&
+           type == FrameType.BODY_CENTRED_LINE_OF_SIGHT)) {
         frame_type = FrameType.BODY_CENTRED_NON_ROTATING;
       } else {
         frame_type = type;
@@ -138,6 +142,16 @@ internal class ReferenceFrameSelector : SupervisedWindowRenderer {
               selected.name,
               selected.referenceBody.name);
         }
+      case FrameType.BODY_CENTRED_LINE_OF_SIGHT:
+        if (selected.isHomeWorld) {
+          throw Log.Fatal(
+              "Naming line-of-sight rotating frame of home body");
+        } else {
+          return Localizer.Format(
+              "#Principia_ReferenceFrameSelector_Name_BodyCentredLineOfSight",
+              selected.name,
+              FlightGlobals.GetHomeBody().name);
+        }
       case FrameType.BODY_SURFACE:
         return Localizer.Format(
             "#Principia_ReferenceFrameSelector_Name_BodySurface",
@@ -178,6 +192,16 @@ internal class ReferenceFrameSelector : SupervisedWindowRenderer {
               "#Principia_ReferenceFrameSelector_ShortName_BodyCentredParentDirection",
               selected.name[0],
               selected.referenceBody.name[0]);
+        }
+      case FrameType.BODY_CENTRED_LINE_OF_SIGHT:
+        if (selected.isHomeWorld) {
+          throw Log.Fatal(
+              "Naming parent-direction rotating frame of home body");
+        } else {
+          return Localizer.Format(
+              "#Principia_ReferenceFrameSelector_ShortName_BodyCentredLineOfSight",
+              selected.name[0],
+              FlightGlobals.GetHomeBody().name[0]);
         }
       case FrameType.BODY_SURFACE:
         return Localizer.Format(
@@ -220,6 +244,16 @@ internal class ReferenceFrameSelector : SupervisedWindowRenderer {
               "#Principia_ReferenceFrameSelector_Description_BodyCentredParentDirection",
               selected.NameWithArticle(),
               selected.referenceBody.NameWithArticle());
+        }
+      case FrameType.BODY_CENTRED_LINE_OF_SIGHT:
+        if (selected.isHomeWorld) {
+          throw Log.Fatal(
+              "Describing line of sight rotating frame of home body");
+        } else {
+          return Localizer.Format(
+              "#Principia_ReferenceFrameSelector_Description_BodyCentredLineOfSight",
+              selected.NameWithArticle(),
+              FlightGlobals.GetHomeBody().NameWithArticle());
         }
       case FrameType.BODY_SURFACE:
         return Localizer.Format(
@@ -266,6 +300,7 @@ internal class ReferenceFrameSelector : SupervisedWindowRenderer {
     switch (frame_type) {
       case FrameType.BODY_CENTRED_NON_ROTATING:
       case FrameType.BODY_CENTRED_PARENT_DIRECTION:
+      case FrameType.BODY_CENTRED_LINE_OF_SIGHT:
       case FrameType.BODY_SURFACE:
         return new []{selected_celestial};
       case FrameType.BARYCENTRIC_ROTATING:
@@ -298,6 +333,13 @@ internal class ReferenceFrameSelector : SupervisedWindowRenderer {
             primary_index = selected_celestial.flightGlobalsIndex,
             secondary_index =
                 selected_celestial.referenceBody.flightGlobalsIndex
+        };
+      case FrameType.BODY_CENTRED_LINE_OF_SIGHT:
+        return new NavigationFrameParameters{
+            extension = (int)frame_type,
+            primary_index = selected_celestial.flightGlobalsIndex,
+            secondary_index =
+                FlightGlobals.GetHomeBody().flightGlobalsIndex
         };
       default:
         throw Log.Fatal("Unexpected frame_type " + frame_type.ToString());
@@ -344,6 +386,9 @@ internal class ReferenceFrameSelector : SupervisedWindowRenderer {
           if (!selected_celestial.is_root()) {
             TypeSelector(FrameType.BARYCENTRIC_ROTATING);
             TypeSelector(FrameType.BODY_CENTRED_PARENT_DIRECTION);
+          }
+          if (!selected_celestial.isHomeWorld) {
+            TypeSelector(FrameType.BODY_CENTRED_LINE_OF_SIGHT);
           }
         }
       }

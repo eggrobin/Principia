@@ -1952,6 +1952,10 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
           case ReferenceFrameSelector.FrameType.BODY_CENTRED_PARENT_DIRECTION:
             set_navball_texture(body_direction_navball_texture_);
             break;
+          case ReferenceFrameSelector.FrameType.BODY_CENTRED_LINE_OF_SIGHT:
+            // TODO(egg): a dedicated texture.
+            set_navball_texture(barycentric_navball_texture_);
+            break;
         }
       }
     }

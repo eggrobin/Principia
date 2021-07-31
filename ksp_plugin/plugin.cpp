@@ -89,6 +89,7 @@ using geometry::R3x3Matrix;
 using geometry::Sign;
 using physics::BarycentricRotatingDynamicFrame;
 using physics::BodyCentredBodyDirectionDynamicFrame;
+using physics::BodyCentredLineOfSightDynamicFrame;
 using physics::BodyCentredNonRotatingDynamicFrame;
 using physics::BodySurfaceDynamicFrame;
 using physics::BodySurfaceFrameField;
@@ -1099,6 +1100,18 @@ Plugin::NewBodyCentredBodyDirectionNavigationFrame(
           ephemeris_.get(),
           primary.body(),
           secondary.body());
+}
+
+not_null<std::unique_ptr<NavigationFrame>>
+Plugin::NewBodyCentredLineOfSightNavigationFrame(Index primary_index,
+                                                 Index secondary_index) const {
+  CHECK(!initializing_);
+  // TODO(egg): these should be const, use a custom comparator in the map.
+  Celestial const& primary = *FindOrDie(celestials_, primary_index);
+  Celestial const& secondary = *FindOrDie(celestials_, secondary_index);
+  return make_not_null_unique<
+      BodyCentredLineOfSightDynamicFrame<Barycentric, Navigation>>(
+      ephemeris_.get(), primary.body(), secondary.body());
 }
 
 not_null<std::unique_ptr<NavigationFrame>>

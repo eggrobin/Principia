@@ -87,11 +87,12 @@ class BodyCentredLineOfSightDynamicFrame
   static void ComputeAngularDegreesOfFreedom(
       DegreesOfFreedom<InertialFrame> const& primary_degrees_of_freedom,
       DegreesOfFreedom<InertialFrame> const& secondary_degrees_of_freedom,
+      Vector<double, InertialFrame> const& polar_axis,
       Rotation<InertialFrame, ThisFrame>& rotation,
       AngularVelocity<InertialFrame>& angular_velocity);
 
   not_null<Ephemeris<InertialFrame> const*> const ephemeris_;
-  MassiveBody const* const primary_;
+  not_null<MassiveBody const*> const primary_;
   not_null<RotatingBody<InertialFrame> const*> const secondary_;
   std::function<Vector<Acceleration, InertialFrame>(
       Position<InertialFrame> const& position,
