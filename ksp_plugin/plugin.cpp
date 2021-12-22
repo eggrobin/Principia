@@ -501,6 +501,7 @@ void Plugin::ApplyPartIntrinsicForce(PartId const part_id,
   CHECK(!initializing_);
   not_null<Vessel*> const vessel = FindOrDie(part_id_to_vessel_, part_id);
   CHECK(is_loaded(vessel));
+  LOG(ERROR)<<"APPLYING FORCE "<<force<<" to "<<vessel->part(part_id)->ShortDebugString();//REMOVE BEFORE FLIGHT
   vessel->part(part_id)->apply_intrinsic_force(
       renderer_->WorldToBarycentric(PlanetariumRotation())(force));
 }
@@ -512,6 +513,7 @@ void Plugin::ApplyPartIntrinsicForceAtPosition(
   CHECK(!initializing_);
   not_null<Vessel*> const vessel = FindOrDie(part_id_to_vessel_, part_id);
   CHECK(is_loaded(vessel));
+  LOG(ERROR)<<"APPLYING FORCE "<<force<<" with lever arm "<<lever_arm<<" to "<<vessel->part(part_id)->ShortDebugString();//REMOVE BEFORE FLIGHT
   OrthogonalMap<World, Barycentric> const world_to_barycentric =
       renderer_->WorldToBarycentric(PlanetariumRotation());
   vessel->part(part_id)->ApplyIntrinsicForceWithLeverArm(

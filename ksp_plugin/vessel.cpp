@@ -187,6 +187,7 @@ void Vessel::DetectCollapsibilityChange() {
       // to reconstruct it, so we must serialize it in a checkpoint.  Note that
       // the last point of the backstory specifies the initial conditions of the
       // next (collapsible) segment.
+      LOG(ERROR)<<"CREATING CHECKPOINT for "<<ShortDebugString()<<" at "<<backstory_->back().time<<" from "<<backstory_->front().time;//REMOVE BEFORE FLIGHT
       checkpointer_->WriteToCheckpoint(backstory_->back().time);
     }
     auto psychohistory = trajectory_.DetachSegments(psychohistory_);
@@ -873,6 +874,7 @@ bool Vessel::IsCollapsible() const {
     // Not collapsible if any part has a force applied to it (but a torque is
     // fine).
     if (part->intrinsic_force() != Vector<Force, Barycentric>{}) {
+      LOG(ERROR)<<"NON COLLAPSIBLE VESSEL "<<ShortDebugString()<<": part "<<part->ShortDebugString()<<" has an intrinsic force of "<<part->intrinsic_force();//REMOVE BEFORE FLIGHT
       return false;
     }
     parts.insert(part.get());
@@ -887,6 +889,7 @@ bool Vessel::IsCollapsible() const {
   for (const auto part : containing_pile_up->parts()) {
     // Not collapsible if the pile-up contains a part not in this vessel.
     if (!parts.contains(part)) {
+      LOG(ERROR)<<"NON COLLAPSIBLE VESSEL "<<ShortDebugString()<<": part "<<part->ShortDebugString()<<" is not in vessel";//REMOVE BEFORE FLIGHT
       return false;
     }
   }

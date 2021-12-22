@@ -1646,6 +1646,8 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
             int lift_index = part_id_to_intrinsic_forces_[
                                  physical_parent.flightID].Length - 2;
             int drag_index = lift_index + 1;
+            Log.Error($"Stock aerodynamics on {part.name} ({part.flightID:X})");
+            Log.Error($"Lift {(Vector3d)part.bodyLiftLocalVector} at {(Vector3d)part.bodyLiftLocalPosition}");
             part_id_to_intrinsic_forces_[physical_parent.flightID][lift_index] =
                 PartCentredForceHolder.FromPartForceHolder(physical_parent,
                   new Part.ForceHolder {
@@ -1654,6 +1656,10 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
                       pos = part.partTransform.TransformPoint(
                           part.bodyLiftLocalPosition)
                   });
+            Log.Error($@"Drag {-(Vector3d)part.dragVectorDir * part.dragScalar} at {(Vector3d)(PhysicsGlobals.ApplyDragToNonPhysicsPartsAtParentCoM
+                                ? physical_parent.rb.worldCenterOfMass
+                                : part.partTransform.TransformPoint(
+                                    part.CoPOffset))}");
             part_id_to_intrinsic_forces_[physical_parent.flightID][drag_index] =
                 PartCentredForceHolder.FromPartForceHolder(physical_parent,
                   new Part.ForceHolder {
