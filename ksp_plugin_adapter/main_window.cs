@@ -277,6 +277,8 @@ internal class MainWindow : VesselSupervisedWindowRenderer {
 
   private void RenderLoggingSettings() {
     using (new UnityEngine.GUILayout.HorizontalScope()) {
+      UnityEngine.GUILayout.Label($"Largest force: {adapter_.largest_intrinsic_force_on_active_vessel_} N");
+      UnityEngine.GUILayout.Label($"[{adapter_.largest_force_index_}]=[{adapter_.largest_force_reverse_index_}]");
       UnityEngine.GUILayout.Label(
           text : L10N.CacheFormat(
               "#Principia_MainWindow_LoggingSettings_VerboseLevel"));

@@ -200,6 +200,9 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
       new Dictionary<uint, Vector3d>();
   private readonly Dictionary<uint, Vector3d> part_id_to_intrinsic_force_ =
       new Dictionary<uint, Vector3d>();
+  public double largest_intrinsic_force_on_active_vessel_;
+  public int? largest_force_index_;
+  public int? largest_force_reverse_index_;
 
   private readonly Dictionary<Vessel, Vector3d>
       parachuting_kerbal_angular_velocities_ =
@@ -1108,6 +1111,10 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
           p = (XYZ)(-krakensbane.FrameVel)
       };
 
+      largest_intrinsic_force_on_active_vessel_ = 0;
+      largest_force_index_ = null;
+      largest_force_reverse_index_ = null;
+
       // NOTE(egg): Inserting vessels and parts has to occur in
       // |WaitForFixedUpdate|, since some may be destroyed (by collisions) during
       // the physics step.  See also #1281.
@@ -1179,19 +1186,38 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
               // effects where doing an EVA accelerates the vessel, see #1415.
               // Just say no to stupidity.
               if (!(vessel.isEVA && vessel.evaController.OnALadder)) {
+                if (vessel == FlightGlobals.ActiveVessel) {
+                  var force = part_id_to_intrinsic_force_[part.flightID].magnitude;
+                  if (force > largest_intrinsic_force_on_active_vessel_) {
+                    largest_intrinsic_force_on_active_vessel_ = force;
+                    largest_force_index_ = null;
+                    largest_force_reverse_index_ = null;
+                  }
+                }
                 plugin_.PartApplyIntrinsicForce(
                     part.flightID,
                     (XYZ)part_id_to_intrinsic_force_[part.flightID]);
               }
             }
             if (part_id_to_intrinsic_forces_.ContainsKey(part.flightID)) {
+              int i = 0;
               foreach (var part_centred_force in part_id_to_intrinsic_forces_[
                   part.flightID]) {
+                if (vessel == FlightGlobals.ActiveVessel) {
+                  var force = part_centred_force.force.magnitude;
+                  if (force > largest_intrinsic_force_on_active_vessel_) {
+                    largest_intrinsic_force_on_active_vessel_ = force;
+                    largest_force_index_ = i;
+                    largest_force_reverse_index_ = i - part_id_to_intrinsic_forces_[
+                  part.flightID].Length;
+                  }
+                }
                 plugin_.PartApplyIntrinsicForceAtPosition(
                     part.flightID,
                     (XYZ)part_centred_force.force,
                     (XYZ)part_centred_force.lever_arm);
               }
+              ++i;
             }
           }
         } else if (inserted) {
@@ -1627,6 +1653,9 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
       foreach (Vessel vessel in FlightGlobals.Vessels.Where(
           v => is_manageable(v) && !v.packed)) {
         foreach (Part part in vessel.parts) {
+          if (part.atmDensity <= 0) {
+            continue;
+          }
           Part physical_parent = closest_physical_parent(part);
           if (part.bodyLiftLocalVector != UnityEngine.Vector3.zero ||
               part.dragVector != UnityEngine.Vector3.zero) {
@@ -1646,8 +1675,6 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
             int lift_index = part_id_to_intrinsic_forces_[
                                  physical_parent.flightID].Length - 2;
             int drag_index = lift_index + 1;
-            Log.Error($"Stock aerodynamics on {part.name} ({part.flightID:X})");
-            Log.Error($"Lift {(Vector3d)part.bodyLiftLocalVector} at {(Vector3d)part.bodyLiftLocalPosition}");
             part_id_to_intrinsic_forces_[physical_parent.flightID][lift_index] =
                 PartCentredForceHolder.FromPartForceHolder(physical_parent,
                   new Part.ForceHolder {
@@ -1656,10 +1683,6 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
                       pos = part.partTransform.TransformPoint(
                           part.bodyLiftLocalPosition)
                   });
-            Log.Error($@"Drag {-(Vector3d)part.dragVectorDir * part.dragScalar} at {(Vector3d)(PhysicsGlobals.ApplyDragToNonPhysicsPartsAtParentCoM
-                                ? physical_parent.rb.worldCenterOfMass
-                                : part.partTransform.TransformPoint(
-                                    part.CoPOffset))}");
             part_id_to_intrinsic_forces_[physical_parent.flightID][drag_index] =
                 PartCentredForceHolder.FromPartForceHolder(physical_parent,
                   new Part.ForceHolder {
