@@ -2128,24 +2128,38 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
           if (main_vessel_guid == null) {
             return;
           }
+          DateTime start = DateTime.UtcNow;
+          TimeSpan Plot_latency;
+          TimeSpan PlotRP2Lines_latency;
           // Main vessel psychohistory and prediction.
           using (DisposableIterator rp2_lines_iterator =
               planetarium.PlanetariumPlotPsychohistory(
                   plugin_,
                   main_vessel_guid,
                   main_window_.history_length)) {
+            Plot_latency = DateTime.UtcNow - start;
+            start = DateTime.UtcNow;
             GLLines.PlotRP2Lines(rp2_lines_iterator,
                                  history_colour,
                                  history_style);
+            PlotRP2Lines_latency = DateTime.UtcNow - start;
           }
+          Log.Info($"PlanetariumPlotPsychohistory {Plot_latency.TotalMilliseconds} ms");
+          Log.Info($"PlotRP2Lines {PlotRP2Lines_latency.TotalMilliseconds} ms");
+          start = DateTime.UtcNow;
           using (DisposableIterator rp2_lines_iterator =
               planetarium.PlanetariumPlotPrediction(
                   plugin_,
                   main_vessel_guid)) {
+            Plot_latency = DateTime.UtcNow - start;
+            start = DateTime.UtcNow;
             GLLines.PlotRP2Lines(rp2_lines_iterator,
                                  prediction_colour,
                                  prediction_style);
+            PlotRP2Lines_latency = DateTime.UtcNow - start;
           }
+          Log.Info($"PlanetariumPlotPrediction {Plot_latency.TotalMilliseconds} ms");
+          Log.Info($"PlotRP2Lines {PlotRP2Lines_latency.TotalMilliseconds} ms");
           // Target psychohistory and prediction.
           string target_id = FlightGlobals.fetch.VesselTarget?.GetVessel()?.id.
               ToString();
@@ -2179,6 +2193,8 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
                 plugin_.FlightPlanNumberOfManoeuvres(main_vessel_guid);
             int number_of_segments =
                 plugin_.FlightPlanNumberOfSegments(main_vessel_guid);
+            Plot_latency = TimeSpan.Zero;
+            PlotRP2Lines_latency = TimeSpan.Zero;
             for (int i = 0; i < number_of_segments; ++i) {
               bool is_burn = i % 2 == 1;
               using (DisposableIterator rendered_segments =
@@ -2191,11 +2207,14 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
                 }
                 Vector3d position_at_start = (Vector3d)rendered_segments.
                     IteratorGetDiscreteTrajectoryXYZ();
+                start = DateTime.UtcNow;
                 using (DisposableIterator rp2_lines_iterator =
                     planetarium.PlanetariumPlotFlightPlanSegment(
                         plugin_,
                         main_vessel_guid,
                         i)) {
+                  Plot_latency += DateTime.UtcNow - start;
+                  start = DateTime.UtcNow;
                   GLLines.PlotRP2Lines(rp2_lines_iterator,
                                        is_burn
                                            ? burn_colour
@@ -2203,6 +2222,7 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
                                        is_burn
                                            ? burn_style
                                            : flight_plan_style);
+                  PlotRP2Lines_latency += DateTime.UtcNow - start;
                 }
                 if (is_burn) {
                   int manœuvre_index = i / 2;
@@ -2231,6 +2251,8 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
                 }
               }
             }
+            Log.Info($"PlanetariumPlotFlightPlanSegment {Plot_latency.TotalMilliseconds} ms");
+            Log.Info($"PlotRP2Lines {PlotRP2Lines_latency.TotalMilliseconds} ms");
           }
         });
       }
@@ -2261,22 +2283,36 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
       if (colour.a == 0) {
         continue;
       }
+      DateTime start = DateTime.UtcNow;
+      TimeSpan PlotCelestialTrajectory_latency;
+      TimeSpan PlotRP2Lines_latency;
       using (DisposableIterator rp2_lines_iterator =
           planetarium.PlanetariumPlotCelestialTrajectoryForPsychohistory(
               plugin_,
               celestial.flightGlobalsIndex,
               main_vessel_guid,
               main_window_.history_length)) {
+        PlotCelestialTrajectory_latency = DateTime.UtcNow - start;
+        start = DateTime.UtcNow;
         GLLines.PlotRP2Lines(rp2_lines_iterator, colour, GLLines.Style.Faded);
+        PlotRP2Lines_latency = DateTime.UtcNow - start;
       }
+      Log.Info($"{celestial.name} PlanetariumPlotCelestialTrajectoryForPsychohistory {PlotCelestialTrajectory_latency.TotalMilliseconds} ms");
+      Log.Info($"{celestial.name} PlotRP2Lines {PlotRP2Lines_latency.TotalMilliseconds} ms");
       if (main_vessel_guid != null) {
+        start = DateTime.UtcNow;
         using (DisposableIterator rp2_lines_iterator =
             planetarium.
                 PlanetariumPlotCelestialTrajectoryForPredictionOrFlightPlan(
                     plugin_,
                     celestial.flightGlobalsIndex,
                     main_vessel_guid)) {
+          PlotCelestialTrajectory_latency = DateTime.UtcNow - start;
+          start = DateTime.UtcNow;
           GLLines.PlotRP2Lines(rp2_lines_iterator, colour, GLLines.Style.Solid);
+          PlotRP2Lines_latency = DateTime.UtcNow - start;
+          Log.Info($"{celestial.name} PlanetariumPlotCelestialTrajectoryForPredictionOrFlightPlan {PlotCelestialTrajectory_latency.TotalMilliseconds} ms");
+          Log.Info($"{celestial.name} PlotRP2Lines {PlotRP2Lines_latency.TotalMilliseconds} ms");
         }
       }
     }
