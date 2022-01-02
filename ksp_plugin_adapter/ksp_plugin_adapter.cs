@@ -2281,6 +2281,7 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
         }
       }
       if (colour.a == 0) {
+        Log.Info($"Skipping {celestial.name}");
         continue;
       }
       DateTime start = DateTime.UtcNow;

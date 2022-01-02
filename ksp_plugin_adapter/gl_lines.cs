@@ -90,6 +90,7 @@ internal static class GLLines {
         size += rp2_line_iterator.IteratorSize();
       }
     }
+    Log.Info($"{size} points");
 
     // Reset the iterator and do the actual plotting.
     rp2_lines_iterator.IteratorReset();
