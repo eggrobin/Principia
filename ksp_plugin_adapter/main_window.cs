@@ -274,8 +274,15 @@ internal class MainWindow : VesselSupervisedWindowRenderer {
       selecting_target_celestial_ = false;
     }
   }
+  
+  public static bool skip_close_satellites = true;
+  public static bool pixel_resolution = true;
+  public static double angular_resolution;
 
   private void RenderLoggingSettings() {
+    skip_close_satellites = UnityEngine.GUILayout.Toggle(skip_close_satellites, "Skip close satellites");
+    pixel_resolution = UnityEngine.GUILayout.Toggle(pixel_resolution, "Pixel resolution");
+    UnityEngine.GUILayout.Label($"Pixel resolution is {angular_resolution:F2} arcmin");
     using (new UnityEngine.GUILayout.HorizontalScope()) {
       UnityEngine.GUILayout.Label(
           text : L10N.CacheFormat(

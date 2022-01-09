@@ -37,6 +37,7 @@ using ksp_plugin::Planetarium;
 using ksp_plugin::Renderer;
 using ksp_plugin::TypedIterator;
 using physics::DiscreteTrajectory;
+using quantities::ArcTan;
 using quantities::Length;
 using quantities::si::ArcMinute;
 using quantities::si::Kilo;
@@ -51,7 +52,8 @@ Planetarium* __cdecl principia__PlanetariumCreate(
     XYZ const xyz_opengl_camera_z_in_world,
     XYZ const xyz_camera_position_in_world,
     double const focal,
-    double const field_of_view) {
+    double const field_of_view,
+    double const tan_angular_resolution) {
   journal::Method<journal::PlanetariumCreate> m({plugin,
                                                  sun_world_position,
                                                  xyz_opengl_camera_x_in_world,
@@ -59,7 +61,8 @@ Planetarium* __cdecl principia__PlanetariumCreate(
                                                  xyz_opengl_camera_z_in_world,
                                                  xyz_camera_position_in_world,
                                                  focal,
-                                                 field_of_view});
+                                                 field_of_view,
+                                                 tan_angular_resolution});
   Renderer const& renderer = CHECK_NOTNULL(plugin)->renderer();
 
   Multivector<double, World, 1> const opengl_camera_x_in_world(
@@ -89,7 +92,7 @@ Planetarium* __cdecl principia__PlanetariumCreate(
 
   Planetarium::Parameters parameters(
       /*sphere_radius_multiplier=*/1.0,
-      /*angular_resolution=*/0.4 * ArcMinute,
+      /*angular_resolution=*/ArcTan(tan_angular_resolution),
       field_of_view * Radian);
   Perspective<Navigation, Camera> perspective(
       world_to_plotting_affine_map * camera_to_world_affine_map,

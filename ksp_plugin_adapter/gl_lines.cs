@@ -36,7 +36,8 @@ internal static class GLLines {
   }
 
   public static DisposablePlanetarium NewPlanetarium(IntPtr plugin,
-                                                     XYZ sun_world_position) {
+                                                     XYZ sun_world_position,
+                                                     double tan_angular_resolution) {
     UnityEngine.Camera camera = PlanetariumCamera.Camera;
     UnityEngine.Vector3 opengl_camera_x_in_world =
         camera.cameraToWorldMatrix.MultiplyVector(
@@ -72,7 +73,8 @@ internal static class GLLines {
                                     (XYZ)(Vector3d)opengl_camera_z_in_world,
                                     (XYZ)(Vector3d)camera_position_in_world,
                                     focal:1,
-                                    field_of_view);
+                                    field_of_view,
+                                    tan_angular_resolution);
   }
 
   public static void PlotRP2Lines(DisposableIterator rp2_lines_iterator,

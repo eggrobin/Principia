@@ -2118,11 +2118,20 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
     }
     string main_vessel_guid = PredictedVessel()?.id.ToString();
     if (MapView.MapIsEnabled) {
+      const double degree = Math.PI / 180;
+      UnityEngine.Camera camera = PlanetariumCamera.Camera;
+      // The angle subtended by the pixel closest to the centre of the viewport.
+      double tan_angular_resolution =
+          Math.Tan(camera.fieldOfView * degree / 2) / (camera.pixelHeight / 2);
+      MainWindow.angular_resolution = Math.Atan(tan_angular_resolution) / (degree / 60);
+
       XYZ sun_world_position = (XYZ)Planetarium.fetch.Sun.position;
       using (DisposablePlanetarium planetarium =
-          GLLines.NewPlanetarium(plugin_, sun_world_position)) {
+          GLLines.NewPlanetarium(plugin_, sun_world_position,
+                                 MainWindow.pixel_resolution ? tan_angular_resolution / 2 : 0.000116355)) {
         GLLines.Draw(() => {
-          PlotCelestialTrajectories(planetarium, main_vessel_guid);
+          PlotCelestialTrajectories(planetarium, main_vessel_guid,
+                                    tan_angular_resolution);
 
           // Vessel trajectories.
           if (main_vessel_guid == null) {
@@ -2238,13 +2247,8 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
   }
 
   private void PlotCelestialTrajectories(DisposablePlanetarium planetarium,
-                                         string main_vessel_guid) {
-    // TODO(egg): use that angular resolution in the planetarium too.
-    const double degree = Math.PI / 180;
-    UnityEngine.Camera camera = PlanetariumCamera.Camera;
-    // The angle subtended by the pixel closest to the centre of the viewport.
-    double tan_angular_resolution =
-        Math.Tan(camera.fieldOfView * degree / 2) / (camera.pixelHeight / 2);
+                                         string main_vessel_guid,
+                                         double tan_angular_resolution) {
     PlotSubtreeTrajectories(planetarium, main_vessel_guid,
                             Planetarium.fetch.Sun,
                             tan_angular_resolution);
@@ -2290,7 +2294,7 @@ public partial class PrincipiaPluginAdapter : ScenarioModule,
       // Plot the trajectory of an orbiting body if it could be separated from
       // that of its parent by a pixel of empty space, instead of merely making
       // the line wider.
-      if (child.orbit.ApR / min_distance_from_camera > 2 * tan_angular_resolution) {
+      if (!MainWindow.skip_close_satellites || child.orbit.ApR / min_distance_from_camera > 2 * tan_angular_resolution) {
         PlotSubtreeTrajectories(planetarium, main_vessel_guid, child,
                                 tan_angular_resolution);
       }
