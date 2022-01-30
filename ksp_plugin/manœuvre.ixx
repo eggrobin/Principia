@@ -1,5 +1,4 @@
-﻿
-#pragma once
+﻿module;
 
 #include <optional>
 
@@ -12,9 +11,18 @@
 #include "quantities/named_quantities.hpp"
 #include "serialization/ksp_plugin.pb.h"
 
+// Body includes:
+
+#include <cmath>
+#include <functional>
+
+#include "base/not_null.hpp"
+#include "physics/discrete_trajectory.hpp"
+#include "quantities/elementary_functions.hpp"
+
+export module principia.ksp_plugin.manœuvre;
+
 namespace principia {
-namespace ksp_plugin {
-namespace internal_manœuvre {
 
 using base::not_null;
 using geometry::Instant;
@@ -33,6 +41,8 @@ using quantities::SpecificImpulse;
 using quantities::Speed;
 using quantities::Time;
 using quantities::Variation;
+
+export namespace ksp_plugin {
 
 // This class represents a constant-thrust burn.  |InertialFrame| is an
 // underlying inertial reference frame, |Frame| is the reference frame used to
@@ -176,10 +186,6 @@ class Manœuvre {
   Burn burn_;  // All optionals filled.
   DiscreteTrajectorySegmentIterator<InertialFrame> coasting_trajectory_;
 };
-
-}  // namespace internal_manœuvre
-
-using internal_manœuvre::Manœuvre;
 
 }  // namespace ksp_plugin
 }  // namespace principia

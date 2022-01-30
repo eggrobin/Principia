@@ -1,5 +1,4 @@
-﻿
-#pragma once
+module;
 
 #include <functional>
 #include <future>
@@ -24,16 +23,14 @@
 #include "physics/mechanical_system.hpp"
 #include "physics/rigid_motion.hpp"
 #include "quantities/named_quantities.hpp"
-#include "ksp_plugin/frames.hpp"
-#include "ksp_plugin/identification.hpp"
 #include "serialization/ksp_plugin.pb.h"
 
+export module principia.ksp_plugin.pile_up;
+
+import principia.ksp_plugin.frames;
+import principia.ksp_plugin.identification;
+
 namespace principia {
-namespace ksp_plugin {
-
-FORWARD_DECLARE_FROM(part, class, Part);
-
-namespace internal_pile_up {
 
 using base::not_null;
 using geometry::Arbitrary;
@@ -60,6 +57,10 @@ using quantities::Force;
 using quantities::Mass;
 using quantities::Time;
 using quantities::Torque;
+
+namespace ksp_plugin {
+
+class Part;
 
 // The axes are those of Barycentric. The origin is the centre of mass of the
 // pile up.  This frame is distinguished from NonRotatingPileUp in that it is
@@ -90,7 +91,7 @@ using PileUpPrincipalAxes = Frame<serialization::Frame::PluginTag,
 // A |PileUp| handles a connected component of the graph of |Parts| under
 // physical contact.  It advances the history and psychohistory of its component
 // |Parts|, modeling them as a massless body at their centre of mass.
-class PileUp {
+export class PileUp {
  public:
   PileUp(
       std::list<not_null<Part*>> parts,
@@ -249,17 +250,12 @@ class PileUp {
 };
 
 // A convenient data object to track a pile-up and the result of integrating it.
-struct PileUpFuture {
+export struct PileUpFuture {
   PileUpFuture(not_null<PileUp const*> pile_up,
                std::future<absl::Status> future);
   not_null<PileUp const*> pile_up;
   std::future<absl::Status> future;
 };
-
-}  // namespace internal_pile_up
-
-using internal_pile_up::PileUp;
-using internal_pile_up::PileUpFuture;
 
 }  // namespace ksp_plugin
 }  // namespace principia

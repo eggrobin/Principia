@@ -31,17 +31,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="celestial.hpp" />
-    <ClInclude Include="equator_relevance_threshold.hpp" />
-    <ClInclude Include="identification.hpp" />
-    <ClInclude Include="integrators.hpp" />
-    <ClInclude Include="iterators.hpp" />
     <ClInclude Include="iterators_body.hpp" />
-    <ClInclude Include="orbit_analyser.hpp" />
-    <ClInclude Include="part_subsets.hpp" />
-    <ClInclude Include="pile_up.hpp" />
-    <ClInclude Include="flight_plan.hpp" />
-    <ClInclude Include="frames.hpp" />
     <ClInclude Include="interface.generated.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -51,15 +41,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="interface_body.hpp" />
-    <ClInclude Include="manœuvre.hpp" />
     <ClInclude Include="manœuvre_body.hpp" />
-    <ClInclude Include="part.hpp" />
-    <ClInclude Include="planetarium.hpp" />
-    <ClInclude Include="plugin.hpp" />
-    <ClInclude Include="interface.hpp" />
-    <ClInclude Include="renderer.hpp" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="vessel.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\base\cpuid.cpp" />
@@ -73,11 +56,18 @@
     <ClCompile Include="..\numerics\elliptic_functions.cpp" />
     <ClCompile Include="..\numerics\elliptic_integrals.cpp" />
     <ClCompile Include="celestial.cpp" />
+    <ClCompile Include="celestial.ixx" />
     <ClCompile Include="equator_relevance_threshold.cpp" />
+    <ClCompile Include="equator_relevance_threshold.ixx" />
     <ClCompile Include="flight_plan.cpp" />
+    <ClCompile Include="flight_plan.ixx" />
+    <ClCompile Include="frames.ixx" />
     <ClCompile Include="identification.cpp" />
+    <ClCompile Include="identification.ixx" />
     <ClCompile Include="integrators.cpp" />
+    <ClCompile Include="integrators.ixx" />
     <ClCompile Include="interface.cpp" />
+    <ClCompile Include="interface.ixx" />
     <ClCompile Include="interface_external.cpp" />
     <ClCompile Include="interface_flight_plan.cpp" />
     <ClCompile Include="interface_future.cpp" />
@@ -87,14 +77,24 @@
     <ClCompile Include="interface_planetarium.cpp" />
     <ClCompile Include="interface_renderer.cpp" />
     <ClCompile Include="interface_vessel.cpp" />
+    <ClCompile Include="iterators.ixx" />
+    <ClCompile Include="manœuvre.ixx" />
     <ClCompile Include="orbit_analyser.cpp" />
+    <ClCompile Include="orbit_analyser.ixx" />
     <ClCompile Include="part.cpp" />
+    <ClCompile Include="part.ixx" />
     <ClCompile Include="part_subsets.cpp" />
+    <ClCompile Include="part_subsets.ixx" />
     <ClCompile Include="pile_up.cpp" />
+    <ClCompile Include="pile_up.ixx" />
     <ClCompile Include="planetarium.cpp" />
+    <ClCompile Include="planetarium.ixx" />
     <ClCompile Include="plugin.cpp" />
+    <ClCompile Include="plugin.ixx" />
     <ClCompile Include="renderer.cpp" />
+    <ClCompile Include="renderer.ixx" />
     <ClCompile Include="vessel.cpp" />
+    <ClCompile Include="vessel.ixx" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="principia.manifest" />

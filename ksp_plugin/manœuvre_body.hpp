@@ -1,18 +1,7 @@
 ﻿
 #pragma once
 
-#include "ksp_plugin/manœuvre.hpp"
-
-#include <cmath>
-#include <functional>
-
-#include "base/not_null.hpp"
-#include "physics/discrete_trajectory.hpp"
-#include "quantities/elementary_functions.hpp"
-
 namespace principia {
-namespace ksp_plugin {
-namespace internal_manœuvre {
 
 using base::check_not_null;
 using geometry::NormalizeOrZero;
@@ -22,6 +11,8 @@ using physics::RigidMotion;
 using quantities::Acceleration;
 using quantities::Sqrt;
 using std::placeholders::_1;
+
+namespace ksp_plugin {
 
 template<typename InertialFrame, typename Frame>
 Manœuvre<InertialFrame, Frame>::Manœuvre(Mass const& initial_mass,
@@ -288,6 +279,5 @@ Manœuvre<InertialFrame, Frame>::full_timing() const {
   return burn_.timing;
 }
 
-}  // namespace internal_manœuvre
 }  // namespace ksp_plugin
 }  // namespace principia

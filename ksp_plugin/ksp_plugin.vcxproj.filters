@@ -11,68 +11,17 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="plugin.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="interface.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="vessel.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="celestial.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="frames.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="part.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="manœuvre.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="manœuvre_body.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="interface_body.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="flight_plan.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="interface.generated.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pile_up.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="part_subsets.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="identification.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="integrators.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="renderer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="planetarium.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="iterators.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="iterators_body.hpp">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="equator_relevance_threshold.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="orbit_analyser.hpp">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
@@ -184,9 +133,57 @@
     <ClCompile Include="..\geometry\instant_output.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="..\serialization\journal.proto" />
+    <ClCompile Include="celestial.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="frames.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="equator_relevance_threshold.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="flight_plan.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="identification.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="integrators.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="interface.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="iterators.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="manœuvre.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="orbit_analyser.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="part.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="part_subsets.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pile_up.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="planetarium.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="plugin.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="renderer.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vessel.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="principia.manifest" />

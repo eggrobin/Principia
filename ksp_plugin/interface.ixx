@@ -1,5 +1,4 @@
-﻿
-#pragma once
+module;
 
 #include <string>
 #include <typeindex>
@@ -15,23 +14,37 @@
 #include "geometry/named_quantities.hpp"
 #include "geometry/quaternion.hpp"
 #include "geometry/r3_element.hpp"
-#include "ksp_plugin/frames.hpp"
-#include "ksp_plugin/iterators.hpp"
-#include "ksp_plugin/pile_up.hpp"
-#include "ksp_plugin/planetarium.hpp"
-#include "ksp_plugin/plugin.hpp"
-#include "ksp_plugin/vessel.hpp"
+#include "geometry/rp2_point.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/dynamic_frame.hpp"
 #include "physics/ephemeris.hpp"
+#include "physics/kepler_orbit.hpp"
 #include "quantities/quantities.hpp"
 
-namespace principia {
-namespace interface {
+// Body includes to be returned to the body once they become imports:
+#include <cmath>
+#include <limits>
+#include <string>
+#include <utility>
 
-// This is used for interfacing, and should only appear in C++ code in tests
-// and generated code; we allow ourselves to pollute the |interface| namespace
-// with convenience |using|s.
+#include "base/array.hpp"
+#include "geometry/named_quantities.hpp"
+#include "geometry/orthogonal_map.hpp"
+#include "geometry/rotation.hpp"
+#include "physics/ephemeris.hpp"
+#include "physics/rigid_motion.hpp"
+#include "quantities/si.hpp"
+
+export module principia.ksp_plugin.interface;
+
+import principia.ksp_plugin.frames;
+import principia.ksp_plugin.iterators;
+import principia.ksp_plugin.pile_up;
+import principia.ksp_plugin.planetarium;
+import principia.ksp_plugin.plugin;
+import principia.ksp_plugin.vessel;
+
+namespace principia {
 
 using base::not_null;
 using base::PullSerializer;
@@ -65,6 +78,8 @@ using physics::RelativeDegreesOfFreedom;
 using quantities::AngularMomentum;
 using quantities::Length;
 using quantities::MomentOfInertia;
+
+export namespace interface {
 
 // Takes ownership of |**pointer| and returns it to the caller.  Nulls
 // |*pointer|.  |pointer| must not be null.  No transfer of ownership of

@@ -1,5 +1,4 @@
-﻿
-#pragma once
+﻿module;
 
 #include <future>
 #include <limits>
@@ -13,6 +12,7 @@
 #include <vector>
 
 #include "absl/status/status.h"
+#include "base/disjoint_sets.hpp"
 #include "base/monostable.hpp"
 #include "base/thread_pool.hpp"
 #include "geometry/affine_map.hpp"
@@ -20,12 +20,6 @@
 #include "geometry/named_quantities.hpp"
 #include "geometry/perspective.hpp"
 #include "geometry/point.hpp"
-#include "ksp_plugin/celestial.hpp"
-#include "ksp_plugin/frames.hpp"
-#include "ksp_plugin/manœuvre.hpp"
-#include "ksp_plugin/planetarium.hpp"
-#include "ksp_plugin/renderer.hpp"
-#include "ksp_plugin/vessel.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
 #include "physics/body.hpp"
 #include "physics/degrees_of_freedom.hpp"
@@ -45,12 +39,18 @@
 #include "serialization/astronomy.pb.h"
 #include "serialization/ksp_plugin.pb.h"
 
+export module principia.ksp_plugin.plugin;
+
+import principia.ksp_plugin.celestial;
+import principia.ksp_plugin.frames;
+import principia.ksp_plugin.identification;
+import principia.ksp_plugin.manœuvre;
+import principia.ksp_plugin.pile_up;
+import principia.ksp_plugin.planetarium;
+import principia.ksp_plugin.renderer;
+import principia.ksp_plugin.vessel;
+
 namespace principia {
-namespace ksp_plugin {
-
-class TestablePlugin;
-
-namespace internal_plugin {
 
 using base::not_null;
 using base::Subset;
@@ -94,6 +94,8 @@ using quantities::si::Hour;
 using quantities::si::Metre;
 using quantities::si::Milli;
 using quantities::si::Second;
+
+export namespace ksp_plugin {
 
 // The index of a body in |FlightGlobals.Bodies|, obtained by
 // |b.flightGlobalsIndex| in C#. We use this as a key in an |std::map|.
@@ -571,13 +573,8 @@ class Plugin {
   zombie_prediction_adaptive_step_parameters_;
 
   friend class NavballFrameField;
-  friend class ksp_plugin::TestablePlugin;
+  friend class TestablePlugin;
 };
-
-}  // namespace internal_plugin
-
-using internal_plugin::Index;
-using internal_plugin::Plugin;
 
 }  // namespace ksp_plugin
 }  // namespace principia

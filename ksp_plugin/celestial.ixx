@@ -1,10 +1,8 @@
-﻿
-#pragma once
+module;
 
 #include <memory>
 
 #include "base/not_null.hpp"
-#include "ksp_plugin/frames.hpp"
 #include "physics/body.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/continuous_trajectory.hpp"
@@ -12,9 +10,11 @@
 #include "quantities/named_quantities.hpp"
 #include "serialization/ksp_plugin.pb.h"
 
+export module principia.ksp_plugin.celestial;
+
+import principia.ksp_plugin.frames;
+
 namespace principia {
-namespace ksp_plugin {
-namespace internal_celestial {
 
 using base::not_null;
 using base::make_not_null_unique;
@@ -26,6 +26,8 @@ using physics::ContinuousTrajectory;
 using physics::DegreesOfFreedom;
 using physics::RotatingBody;
 using quantities::GravitationalParameter;
+
+export namespace ksp_plugin {
 
 // Represents a KSP |CelestialBody|.
 class Celestial {
@@ -59,10 +61,6 @@ class Celestial {
   Celestial const* parent_ = nullptr;
   ContinuousTrajectory<Barycentric> const* trajectory_ = nullptr;
 };
-
-}  // namespace internal_celestial
-
-using internal_celestial::Celestial;
 
 }  // namespace ksp_plugin
 }  // namespace principia

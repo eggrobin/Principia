@@ -1,5 +1,4 @@
-Ôªø
-#pragma once
+module;
 
 #include <list>
 
@@ -8,10 +7,13 @@
 #include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
-#include "ksp_plugin/frames.hpp"
-#include "ksp_plugin/pile_up.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/ephemeris.hpp"
+
+export module principia.ksp_plugin.part_subsets;
+
+import principia.ksp_plugin.frames;
+import principia.ksp_plugin.pile_up;
 
 // This ksp_plugin file is in namespace |base| to specialize templates declared
 // therein.
@@ -19,10 +21,10 @@
 namespace principia {
 
 namespace ksp_plugin {
-FORWARD_DECLARE_FROM(part, class, Part);
+class Part;
 }  // namespace ksp_plugin
 
-namespace base {
+export namespace base {
 
 // Within an union-find on |Part|s, we maintain lists of the elements in the
 // disjoint sets.  Moreover, we keep track of the inclusion relations of those
@@ -45,10 +47,10 @@ class Subset<ksp_plugin::Part>::Properties final {
   // Maintains |parts_| by joining the lists.
   void MergeWith(Properties& other);
 
-  // ‚ÄúWhat‚Äôs this thing suddenly coming towards me very fast? Very very fast.
-  // So big and flat and round, it needs a big wide sounding name like ‚Ä¶ ow ‚Ä¶
-  // ound ‚Ä¶ round ‚Ä¶ ground! That‚Äôs it! That‚Äôs a good name ‚Äì ground!  I wonder if
-  // it will be friends with me?‚Äù
+  // ìWhatís this thing suddenly coming towards me very fast? Very very fast.
+  // So big and flat and round, it needs a big wide sounding name like Ö ow Ö
+  // ound Ö round Ö ground! Thatís it! Thatís a good name ñ ground!  I wonder if
+  // it will be friends with me?î
   void Ground();
   bool grounded() const;
 

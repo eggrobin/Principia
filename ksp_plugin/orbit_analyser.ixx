@@ -1,4 +1,4 @@
-ï»¿#pragma once
+module;
 
 #include <atomic>
 #include <optional>
@@ -11,15 +11,16 @@
 #include "base/jthread.hpp"
 #include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
-#include "ksp_plugin/frames.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/ephemeris.hpp"
 #include "physics/rotating_body.hpp"
 #include "quantities/named_quantities.hpp"
 
+export module principia.ksp_plugin.orbit_analyser;
+
+import principia.ksp_plugin.frames;
+
 namespace principia {
-namespace ksp_plugin {
-namespace internal_orbit_analyser {
 
 using astronomy::OrbitalElements;
 using astronomy::OrbitGroundTrack;
@@ -31,6 +32,8 @@ using physics::DegreesOfFreedom;
 using physics::Ephemeris;
 using physics::RotatingBody;
 using quantities::Time;
+
+export namespace ksp_plugin {
 
 // The |OrbitAnalyser| asynchronously integrates a trajectory, and computes
 // orbital elements, recurrence, and ground track properties of the resulting
@@ -135,8 +138,8 @@ class OrbitAnalyser {
   mutable absl::Mutex lock_;
   jthread analyser_;
   // The |analyser_| is idle:
-  // â€” if it is not joinable, e.g. because it was stopped by |Interrupt()|, or
-  // â€” if it is done computing |next_analysis_| and has stopped or is about to
+  // — if it is not joinable, e.g. because it was stopped by |Interrupt()|, or
+  // — if it is done computing |next_analysis_| and has stopped or is about to
   //   stop executing.
   // If it is joined once idle (and joinable), it will not attempt to acquire
   // |lock_|.
@@ -148,10 +151,6 @@ class OrbitAnalyser {
   // progress in computing |next_analysis_|.
   std::atomic<double> progress_of_next_analysis_ = 0;
 };
-
-}  // namespace internal_orbit_analyser
-
-using internal_orbit_analyser::OrbitAnalyser;
 
 }  // namespace ksp_plugin
 }  // namespace principia

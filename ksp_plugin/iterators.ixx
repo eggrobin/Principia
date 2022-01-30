@@ -1,17 +1,25 @@
-
-#pragma once
+module;
 
 #include "base/not_null.hpp"
-#include "ksp_plugin/frames.hpp"
-#include "ksp_plugin/identification.hpp"
-#include "ksp_plugin/plugin.hpp"
+#include "physics/dynamic_frame.hpp"
 #include "physics/discrete_trajectory.hpp"
 
+// Body include to return to the body when it becomes an import.
+
+#include <string>
+
+export module principia.ksp_plugin.iterators;
+
+import principia.ksp_plugin.frames;
+import principia.ksp_plugin.identification;
+import principia.ksp_plugin.plugin;
+
 namespace principia {
-namespace ksp_plugin {
 
 using base::not_null;
 using physics::DiscreteTrajectory;
+
+export namespace ksp_plugin {
 
 // A wrapper for a container and an iterator into that container.
 class Iterator {

@@ -1,5 +1,4 @@
-Ôªø
-#pragma once
+module;
 
 #include <vector>
 
@@ -7,20 +6,22 @@
 #include "base/not_null.hpp"
 #include "geometry/named_quantities.hpp"
 #include "integrators/ordinary_differential_equations.hpp"
-#include "ksp_plugin/frames.hpp"
-#include "ksp_plugin/man≈ìuvre.hpp"
-#include "ksp_plugin/orbit_analyser.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/discrete_trajectory_segment_iterator.hpp"
+#include "physics/dynamic_frame.hpp"
 #include "physics/ephemeris.hpp"
 #include "quantities/named_quantities.hpp"
 #include "quantities/quantities.hpp"
 #include "serialization/ksp_plugin.pb.h"
 
+export module principia.ksp_plugin.flight_plan;
+
+import principia.ksp_plugin.frames;
+import principia.ksp_plugin.manúuvre;
+import principia.ksp_plugin.orbit_analyser;
+
 namespace principia {
-namespace ksp_plugin {
-namespace internal_flight_plan {
 
 using base::not_null;
 using geometry::Instant;
@@ -33,8 +34,10 @@ using quantities::Length;
 using quantities::Mass;
 using quantities::Speed;
 
+export namespace ksp_plugin {
+
 // A chain of trajectories obtained by executing the corresponding
-// |NavigationMan≈ìuvre|s.
+// |NavigationManúuvre|s.
 class FlightPlan {
  public:
   // Creates a |FlightPlan| with no burns starting at |initial_time| with
@@ -58,38 +61,38 @@ class FlightPlan {
   virtual Instant desired_final_time() const;
 
   // End time of the last coast.  If this is less than |desired_final_time()|,
-  // there is at least an anomalous man≈ìuvre.
+  // there is at least an anomalous manúuvre.
   virtual Instant actual_final_time() const;
 
-  // The number of man≈ìuvres in the flight plan.
-  virtual int number_of_man≈ìuvres() const;
+  // The number of manúuvres in the flight plan.
+  virtual int number_of_manúuvres() const;
 
-  // The number of man≈ìuvres at the end of flight plan that are anomalous, i.e.,
-  // follow an anomalous segment.  These are man≈ìuvres whose Frenet trihedron
-  // cannot be drawn.  The functions that change man≈ìuvres may change the number
-  // of anomalous man≈ìuvres.
-  virtual int number_of_anomalous_man≈ìuvres() const;
+  // The number of manúuvres at the end of flight plan that are anomalous, i.e.,
+  // follow an anomalous segment.  These are manúuvres whose Frenet trihedron
+  // cannot be drawn.  The functions that change manúuvres may change the number
+  // of anomalous manúuvres.
+  virtual int number_of_anomalous_manúuvres() const;
 
-  // Returns the specified man≈ìuvre.  |index| must be in
-  // [0, number_of_man≈ìuvres()[.
-  virtual NavigationMan≈ìuvre const& GetMan≈ìuvre(int index) const;
+  // Returns the specified manúuvre.  |index| must be in
+  // [0, number_of_manúuvres()[.
+  virtual NavigationManúuvre const& GetManúuvre(int index) const;
 
-  // Inserts a man≈ìuvre at the given |index| using the specified |burn|. |index|
-  // must be in [0, number_of_man≈ìuvres()].  Returns an error and has no effect
+  // Inserts a manúuvre at the given |index| using the specified |burn|. |index|
+  // must be in [0, number_of_manúuvres()].  Returns an error and has no effect
   // if the given |burn| cannot fit between the preceding burn and the following
   // one or the end of the flight plan.  Otherwise, updates the flight plan and
   // returns the integration status.
-  virtual absl::Status Insert(NavigationMan≈ìuvre::Burn const& burn, int index);
+  virtual absl::Status Insert(NavigationManúuvre::Burn const& burn, int index);
 
-  // Removes the man≈ìuvre with the given |index|, which must be in
-  // [0, number_of_man≈ìuvres()[.
+  // Removes the manúuvre with the given |index|, which must be in
+  // [0, number_of_manúuvres()[.
   virtual absl::Status Remove(int index);
 
-  // Replaces a man≈ìuvre with one using the specified |burn|.  |index| must be
-  // in [0, number_of_man≈ìuvres()[.  Returns an error and has no effect if the
+  // Replaces a manúuvre with one using the specified |burn|.  |index| must be
+  // in [0, number_of_manúuvres()[.  Returns an error and has no effect if the
   // given |burn| cannot fit between the preceding and following burns.
   // Otherwise, updates the flight plan and returns the integration status.
-  virtual absl::Status Replace(NavigationMan≈ìuvre::Burn const& burn, int index);
+  virtual absl::Status Replace(NavigationManúuvre::Burn const& burn, int index);
 
   // Updates the desired final time of the flight plan.  Returns an error and
   // has no effect if |desired_final_time| is before the beginning of the last
@@ -117,7 +120,7 @@ class FlightPlan {
   GetSegment(int index) const;
   virtual DiscreteTrajectory<Barycentric> const& GetAllSegments() const;
 
-  // |coast_index| must be in [0, number_of_man≈ìuvres()].
+  // |coast_index| must be in [0, number_of_manúuvres()].
   virtual OrbitAnalyser::Analysis* analysis(int coast_index);
   double progress_of_analysis(int coast_index) const;
 
@@ -146,10 +149,10 @@ class FlightPlan {
   // Clears and recomputes all trajectories in |segments_|.
   absl::Status RecomputeAllSegments();
 
-  // Flows the given |segment| for the duration of |man≈ìuvre| using its
+  // Flows the given |segment| for the duration of |manúuvre| using its
   // intrinsic acceleration.
   absl::Status BurnSegment(
-      NavigationMan≈ìuvre const& man≈ìuvre,
+      NavigationManúuvre const& manúuvre,
       DiscreteTrajectorySegmentIterator<Barycentric> segment);
 
   // Flows the given |segment| until |desired_final_time| with no intrinsic
@@ -160,13 +163,13 @@ class FlightPlan {
 
   // Computes new trajectories and appends them to |segments_|.  This updates
   // the last coast of |segments_| and then appends one coast and one burn for
-  // each man≈ìuvre in |man≈ìuvres|.  If one of the integration returns an error,
+  // each manúuvre in |manúuvres|.  If one of the integration returns an error,
   // returns that error.  In this case the trajectories that follow the one in
   // error are of length 0 and are anomalous.
   // TODO(phl): The argument should really be an std::span, but then Apple has
   // invented the Macintosh.
-  absl::Status ComputeSegments(std::vector<NavigationMan≈ìuvre>::iterator begin,
-                               std::vector<NavigationMan≈ìuvre>::iterator end);
+  absl::Status ComputeSegments(std::vector<NavigationManúuvre>::iterator begin,
+                               std::vector<NavigationManúuvre>::iterator end);
 
   // Adds a trajectory to |segments_|, forked at the end of the last one.  If
   // there are already anomalous trajectories, the newly created trajectory is
@@ -181,19 +184,19 @@ class FlightPlan {
   // anomalous trajectories, their number is decremented and may become 0.
   void PopLastSegment();
 
-  // Pops the burn of the man≈ìuvre with the given index and all following
+  // Pops the burn of the manúuvre with the given index and all following
   // segments, then resets the last segment (which is the coast preceding
-  // |man≈ìuvres_[index]|).
-  void PopSegmentsAffectedByMan≈ìuvre(int index);
+  // |manúuvres_[index]|).
+  void PopSegmentsAffectedByManúuvre(int index);
 
-  // Reconstructs each man≈ìuvre after |man≈ìuvres_[index]| (starting with
-  // |man≈ìuvres_[index + 1]|), keeping the same burns but recomputing the
-  // initial masses from |man≈ìuvres_[index].final_mass()|.
-  void UpdateInitialMassOfMan≈ìuvresAfter(int index);
+  // Reconstructs each manúuvre after |manúuvres_[index]| (starting with
+  // |manúuvres_[index + 1]|), keeping the same burns but recomputing the
+  // initial masses from |manúuvres_[index].final_mass()|.
+  void UpdateInitialMassOfManúuvresAfter(int index);
 
   Instant start_of_last_coast() const;
 
-  // In the following functions, |index| refers to the index of a man≈ìuvre.
+  // In the following functions, |index| refers to the index of a manúuvre.
   Instant start_of_burn(int index) const;
   Instant start_of_next_burn(int index) const;
   Instant start_of_previous_coast(int index) const;
@@ -217,17 +220,13 @@ class FlightPlan {
   // |ComputeSegments|.
   absl::Status anomalous_status_;
 
-  std::vector<NavigationMan≈ìuvre> man≈ìuvres_;
+  std::vector<NavigationManúuvre> manúuvres_;
   std::vector<not_null<std::unique_ptr<OrbitAnalyser>>> coast_analysers_;
   not_null<Ephemeris<Barycentric>*> ephemeris_;
   Ephemeris<Barycentric>::AdaptiveStepParameters adaptive_step_parameters_;
   Ephemeris<Barycentric>::GeneralizedAdaptiveStepParameters
       generalized_adaptive_step_parameters_;
 };
-
-}  // namespace internal_flight_plan
-
-using internal_flight_plan::FlightPlan;
 
 }  // namespace ksp_plugin
 }  // namespace principia

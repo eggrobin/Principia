@@ -1,5 +1,4 @@
-﻿
-#pragma once
+module;
 
 #include <functional>
 #include <list>
@@ -8,12 +7,9 @@
 #include <string>
 
 #include "base/disjoint_sets.hpp"
-#include "ksp_plugin/frames.hpp"
-#include "ksp_plugin/identification.hpp"
-#include "ksp_plugin/part_subsets.hpp"
-#include "ksp_plugin/pile_up.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/named_quantities.hpp"
+#include "physics/ephemeris.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/discrete_trajectory_segment_iterator.hpp"
@@ -22,9 +18,14 @@
 #include "quantities/quantities.hpp"
 #include "serialization/ksp_plugin.pb.h"
 
+export module principia.ksp_plugin.part;
+
+import principia.ksp_plugin.frames;
+import principia.ksp_plugin.identification;
+import principia.ksp_plugin.part_subsets;
+import principia.ksp_plugin.pile_up;
+
 namespace principia {
-namespace ksp_plugin {
-namespace internal_part {
 
 using base::not_null;
 using base::Subset;
@@ -42,6 +43,8 @@ using physics::RigidMotion;
 using quantities::Force;
 using quantities::Mass;
 using quantities::Torque;
+
+export namespace ksp_plugin {
 
 // Represents a KSP part.
 class Part final {
@@ -224,14 +227,9 @@ InertiaTensor<RigidPart> MakeWaterSphereInertiaTensor(Mass const& mass);
 
 std::ostream& operator<<(std::ostream& out, Part const& part);
 
-}  // namespace internal_part
-
-using internal_part::Part;
-using internal_part::MakeWaterSphereInertiaTensor;
-
 }  // namespace ksp_plugin
 
-namespace base {
+export namespace base {
 
 template<>
 inline not_null<Subset<ksp_plugin::Part>::Node*>

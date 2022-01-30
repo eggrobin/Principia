@@ -1,20 +1,5 @@
-﻿
-#pragma once
+﻿#pragma once
 
-#include "ksp_plugin/interface.hpp"
-
-#include <cmath>
-#include <limits>
-#include <string>
-#include <utility>
-
-#include "base/array.hpp"
-#include "geometry/named_quantities.hpp"
-#include "geometry/orthogonal_map.hpp"
-#include "geometry/rotation.hpp"
-#include "physics/ephemeris.hpp"
-#include "physics/rigid_motion.hpp"
-#include "quantities/si.hpp"
 
 namespace principia {
 namespace interface {

@@ -1,5 +1,4 @@
-﻿
-#pragma once
+﻿module;
 
 #include <list>
 #include <map>
@@ -15,12 +14,8 @@
 #include "base/jthread.hpp"
 #include "base/recurring_thread.hpp"
 #include "geometry/named_quantities.hpp"
-#include "ksp_plugin/celestial.hpp"
-#include "ksp_plugin/flight_plan.hpp"
-#include "ksp_plugin/orbit_analyser.hpp"
-#include "ksp_plugin/part.hpp"
-#include "ksp_plugin/pile_up.hpp"
 #include "physics/checkpointer.hpp"
+#include "physics/dynamic_frame.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/discrete_trajectory_segment.hpp"
 #include "physics/discrete_trajectory_segment_iterator.hpp"
@@ -29,12 +24,18 @@
 #include "quantities/named_quantities.hpp"
 #include "serialization/ksp_plugin.pb.h"
 
+export module principia.ksp_plugin.vessel;
+
+import principia.ksp_plugin.celestial;
+import principia.ksp_plugin.flight_plan;
+import principia.ksp_plugin.frames;
+import principia.ksp_plugin.identification;
+import principia.ksp_plugin.manœuvre;
+import principia.ksp_plugin.orbit_analyser;
+import principia.ksp_plugin.part;
+import principia.ksp_plugin.pile_up;
+
 namespace principia {
-namespace ksp_plugin {
-
-class VesselTest;
-
-namespace internal_vessel {
 
 using base::not_null;
 using base::RecurringThread;
@@ -53,6 +54,8 @@ using quantities::Force;
 using quantities::GravitationalParameter;
 using quantities::Mass;
 using quantities::Time;
+
+export namespace ksp_plugin {
 
 // Represents a KSP |Vessel|.
 class Vessel {
@@ -378,12 +381,8 @@ class Vessel {
 
   static std::atomic_bool synchronous_;
 
-  friend class ksp_plugin::VesselTest;
+  friend class VesselTest;
 };
-
-}  // namespace internal_vessel
-
-using internal_vessel::Vessel;
 
 }  // namespace ksp_plugin
 }  // namespace principia

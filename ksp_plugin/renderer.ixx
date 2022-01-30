@@ -1,4 +1,4 @@
-Ôªø#pragma once
+module;
 
 #include <functional>
 #include <memory>
@@ -9,18 +9,19 @@
 #include "geometry/named_quantities.hpp"
 #include "geometry/orthogonal_map.hpp"
 #include "geometry/rotation.hpp"
-#include "ksp_plugin/celestial.hpp"
-#include "ksp_plugin/frames.hpp"
-#include "ksp_plugin/vessel.hpp"
 #include "physics/discrete_trajectory.hpp"
 #include "physics/dynamic_frame.hpp"
 #include "physics/ephemeris.hpp"
 #include "physics/rigid_motion.hpp"
 #include "quantities/quantities.hpp"
 
+export module principia.ksp_plugin.renderer;
+
+import principia.ksp_plugin.celestial;
+import principia.ksp_plugin.frames;
+import principia.ksp_plugin.vessel;
+
 namespace principia {
-namespace ksp_plugin {
-namespace internal_renderer {
 
 using base::not_null;
 using geometry::AffineMap;
@@ -34,6 +35,8 @@ using physics::Ephemeris;
 using physics::Frenet;
 using physics::RigidMotion;
 using quantities::Length;
+
+export namespace ksp_plugin {
 
 class Renderer {
  public:
@@ -114,11 +117,11 @@ class Renderer {
   virtual OrthogonalMap<Barycentric, WorldSun> BarycentricToWorldSun(
       Rotation<Barycentric, AliceSun> const& planetarium_rotation) const;
 
-  // Converts from the Frenet frame of the man≈ìuvre's initial time in the
+  // Converts from the Frenet frame of the manúuvre's initial time in the
   // plotted frame to the |World| coordinates.
   virtual OrthogonalMap<Frenet<Navigation>, World> FrenetToWorld(
       Instant const& time,
-      NavigationMan≈ìuvre const& man≈ìuvre,
+      NavigationManúuvre const& manúuvre,
       Rotation<Barycentric, AliceSun> const& planetarium_rotation) const;
 
   // Converts from the Frenet frame of the vessel's free-falling trajectory in
@@ -188,10 +191,6 @@ class Renderer {
 
   std::optional<Target> target_;
 };
-
-}  // namespace internal_renderer
-
-using internal_renderer::Renderer;
 
 }  // namespace ksp_plugin
 }  // namespace principia

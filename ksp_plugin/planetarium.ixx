@@ -1,5 +1,4 @@
-ï»¿
-#pragma once
+module;
 
 #include <vector>
 
@@ -9,16 +8,18 @@
 #include "geometry/perspective.hpp"
 #include "geometry/rp2_point.hpp"
 #include "geometry/sphere.hpp"
-#include "ksp_plugin/frames.hpp"
 #include "physics/degrees_of_freedom.hpp"
 #include "physics/discrete_trajectory.hpp"
+#include "physics/dynamic_frame.hpp"
 #include "physics/ephemeris.hpp"
 #include "physics/rigid_motion.hpp"
 #include "quantities/quantities.hpp"
 
+export module principia.ksp_plugin.planetarium;
+
+import principia.ksp_plugin.frames;
+
 namespace principia {
-namespace ksp_plugin {
-namespace internal_planetarium {
 
 using base::not_null;
 using geometry::Displacement;
@@ -40,7 +41,9 @@ using physics::Trajectory;
 using quantities::Angle;
 using quantities::Length;
 
-// Corresponds to a UnityEngine.Vector3 representing a position in KSPâ€™s
+export namespace ksp_plugin {
+
+// Corresponds to a UnityEngine.Vector3 representing a position in KSP’s
 // ScaledSpace.
 extern "C" struct ScaledSpacePoint {
   static inline ScaledSpacePoint FromCoordinates(
@@ -70,7 +73,7 @@ class Planetarium {
 
    private:
     double const sphere_radius_multiplier_;
-    double const sinÂ²_angular_resolution_;
+    double const sin²_angular_resolution_;
     double const tan_angular_resolution_;
     double const tan_field_of_view_;
     friend class Planetarium;
@@ -172,11 +175,6 @@ inline ScaledSpacePoint ScaledSpacePoint::FromCoordinates(
                           static_cast<float>(coordinates.y),
                           static_cast<float>(coordinates.z)};
 }
-
-}  // namespace internal_planetarium
-
-using internal_planetarium::Planetarium;
-using internal_planetarium::ScaledSpacePoint;
 
 }  // namespace ksp_plugin
 }  // namespace principia
