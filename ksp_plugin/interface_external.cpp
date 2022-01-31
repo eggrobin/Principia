@@ -1,6 +1,4 @@
 ﻿
-#include "ksp_plugin/interface.hpp"
-
 #include <limits>
 #include <string>
 
@@ -13,6 +11,8 @@
 #include "ksp_plugin/frames.hpp"
 #include "physics/apsides.hpp"
 #include "physics/discrete_trajectory.hpp"
+
+import principia.ksp_plugin.interface;
 
 namespace principia {
 namespace interface {

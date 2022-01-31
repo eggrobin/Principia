@@ -1,5 +1,4 @@
-﻿
-#include "ksp_plugin/interface.hpp"
+﻿module;
 
 #include <cctype>
 #include <cmath>
@@ -59,6 +58,8 @@
 #include "serialization/astronomy.pb.h"
 #include "serialization/geometry.pb.h"
 #include "serialization/ksp_plugin.pb.h"
+
+module principia.interface;
 
 namespace principia {
 namespace interface {

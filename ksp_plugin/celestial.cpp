@@ -1,10 +1,23 @@
-﻿#include "ksp_plugin/celestial.hpp"
+﻿module;
 
 #include <utility>
 
+#include "physics/continuous_trajectory.hpp"
+#include "physics/rotating_body.hpp"
+
+module principia.ksp_plugin.celestial;
+
 namespace principia {
+
+using base::not_null;
+using geometry::Instant;
+using geometry::Position;
+using geometry::Velocity;
+using physics::ContinuousTrajectory;
+using physics::DegreesOfFreedom;
+using physics::RotatingBody;
+
 namespace ksp_plugin {
-namespace internal_celestial {
 
 Celestial::Celestial(not_null<RotatingBody<Barycentric> const*> body)
     : body_(std::move(body)) {}
@@ -58,6 +71,5 @@ void Celestial::set_parent(not_null<Celestial const*> const parent) {
   parent_ = parent;
 }
 
-}  // namespace internal_celestial
 }  // namespace ksp_plugin
 }  // namespace principia

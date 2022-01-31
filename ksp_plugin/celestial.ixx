@@ -21,11 +21,9 @@ using base::make_not_null_unique;
 using geometry::Instant;
 using geometry::Position;
 using geometry::Velocity;
-using physics::Body;
 using physics::ContinuousTrajectory;
 using physics::DegreesOfFreedom;
 using physics::RotatingBody;
-using quantities::GravitationalParameter;
 
 export namespace ksp_plugin {
 
