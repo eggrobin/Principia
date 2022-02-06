@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿#ifndef PRINCIPIA_FMA_HPP
+#define PRINCIPIA_FMA_HPP
 
 #include <immintrin.h>
 
@@ -52,3 +53,5 @@ using internal_fma::UseHardwareFMA;
 }  // namespace principia
 
 #include "numerics/fma_body.hpp"
+
+#endif  // !1

@@ -1,11 +1,11 @@
+export module principia.quantities.dimensions;
 
-#pragma once
+import <cstdint>;
+import <type_traits>;
 
-#include <cstdint>
+import "base/not_constructible.hpp";
 
-namespace principia {
-namespace quantities {
-namespace internal_dimensions {
+export namespace principia::quantities::dimensions {
 
 // Dimensionality of physical quantities.  Note that we strongly type angles.
 template<std::int64_t LengthExponent,
@@ -43,8 +43,6 @@ struct DimensionsProductGenerator;
 template<typename LDimensions, typename RDimensions>
 struct DimensionsQuotientGenerator;
 
-}  // namespace internal_dimensions
-}  // namespace quantities
-}  // namespace principia
+}  // namespace principia::quantities::dimensions
 
 #include "quantities/dimensions_body.hpp"

@@ -8,22 +8,19 @@
 
 #include "base/not_null.hpp"
 #include "base/tags.hpp"
-#include "quantities/named_quantities.hpp"
-#include "quantities/quantities.hpp"
 #include "serialization/geometry.pb.h"
+
+import principia.quantities.names;
 
 namespace principia {
 namespace geometry {
 namespace internal_r3_element {
 
+using namespace principia.quantities.names;
+
 using base::not_null;
 using base::uninitialized_t;
-using quantities::Angle;
 using quantities::is_quantity_v;
-using quantities::Product;
-using quantities::Quantity;
-using quantities::Quotient;
-using quantities::Square;
 
 template<typename Scalar>
 struct SphericalCoordinates;

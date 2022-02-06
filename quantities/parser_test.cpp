@@ -1,14 +1,14 @@
-﻿
-#include "quantities/parser.hpp"
+﻿#include "quantities/parser.hpp"
 
 #include <array>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "quantities/astronomy.hpp"
-#include "quantities/named_quantities.hpp"
-#include "quantities/si.hpp"
 #include "testing_utilities/almost_equals.hpp"
+
+//import principia.quantities.astronomy;
+//import principia.quantities.names;
+//import principia.quantities.si;
 
 namespace principia {
 

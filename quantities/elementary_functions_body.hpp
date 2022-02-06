@@ -1,23 +1,18 @@
-﻿
-#pragma once
+﻿import <pmmintrin.h>;
 
-#include "quantities/elementary_functions.hpp"
+import <cmath>;
+import <type_traits>;
 
-#include <pmmintrin.h>
+import "numerics/cbrt.hpp";
+import "numerics/fma.hpp";
+import "numerics/next.hpp";
+import "quantities/numbers.hpp";
 
-#include <cmath>
-#include <type_traits>
+import principia.quantities.si;
 
-#include "quantities/si.hpp"
-#include "numerics/cbrt.hpp"
-#include "numerics/fma.hpp"
-#include "numerics/next.hpp"
+using namespace principia::quantities::si;
 
-namespace principia {
-namespace quantities {
-namespace internal_elementary_functions {
-
-using si::Radian;
+namespace principia::quantities::elementary_functions {
 
 template<typename Q1, typename Q2>
 Product<Q1, Q2> FusedMultiplyAdd(Q1 const& x,
@@ -197,6 +192,4 @@ inline Angle UnwindFrom(Angle const& previous_angle, Angle const& α) {
                  (2 * π * Radian);
 }
 
-}  // namespace internal_elementary_functions
-}  // namespace quantities
-}  // namespace principia
+}  // namespace principia::quantities::elementary_functions

@@ -3,20 +3,25 @@
 
 #include "quantities/parser.hpp"
 
+#include "base/macros.hpp"
+#include "glog/logging.h"
+
 #include <array>
+#include <cmath>
 #include <string>
 
-#include "quantities/astronomy.hpp"
-#include "quantities/bipm.hpp"
-#include "quantities/dimensions.hpp"
-#include "quantities/named_quantities.hpp"
-#include "quantities/si.hpp"
+import principia.quantities;
+import principia.quantities.astronomy;
+import principia.quantities.bipm;
+import principia.quantities.dimensions;
+import principia.quantities.names;
+import principia.quantities.si;
 
 namespace principia {
 namespace quantities {
 namespace internal_parser {
 
-using internal_dimensions::Dimensions;
+using namespace principia::quantities::dimensions;
 
 using RuntimeDimensions = std::array<std::int64_t, 8>;
 

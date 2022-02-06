@@ -14,34 +14,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="astronomy.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="bipm.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="cgs.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="constants.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="elementary_functions.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="named_quantities.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="numbers.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="quantities.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="si.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="uk.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="elementary_functions_body.hpp">
@@ -65,14 +41,8 @@
     <ClInclude Include="parser_body.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="dimensions.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="dimensions_body.hpp">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generators.hpp">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="generators_body.hpp">
       <Filter>Source Files</Filter>
@@ -114,6 +84,36 @@
     </ClCompile>
     <ClCompile Include="..\base\cpuid.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="quantities.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dimensions.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generators.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="names.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="si.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="constants.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="elementary_functions.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="astronomy.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bipm.ixx">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="uk.ixx">
+      <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

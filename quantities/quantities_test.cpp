@@ -5,13 +5,13 @@
 #include "google/protobuf/stubs/common.h"
 #include "glog/logging.h"
 #include "gtest/gtest.h"
-#include "quantities/astronomy.hpp"
-#include "quantities/bipm.hpp"
-#include "quantities/constants.hpp"
-#include "quantities/quantities.hpp"
-#include "quantities/si.hpp"
-#include "quantities/uk.hpp"
 #include "testing_utilities/algebra.hpp"
+
+import principia.quantities.astronomy;
+import principia.quantities.bipm;
+import principia.quantities.constants;
+import principia.quantities.si;
+import principia.quantities.uk;
 
 namespace principia {
 namespace quantities {

@@ -1,13 +1,4 @@
-
-#pragma once
-
-#include "quantities/dimensions.hpp"
-
-#include "base/not_constructible.hpp"
-
-namespace principia {
-namespace quantities {
-namespace internal_dimensions {
+namespace principia::quantities::dimensions {
 
 using base::not_constructible;
 
@@ -98,8 +89,7 @@ struct DimensionsAreSerializable : std::true_type {
 
 template<typename Dimensions, int n>
 struct DimensionsExponentiationGenerator : not_constructible {
-  using Type =
-      internal_dimensions::Dimensions<Dimensions::Length * n,
+  using Type = dimensions::Dimensions<Dimensions::Length * n,
                                       Dimensions::Mass * n,
                                       Dimensions::Time * n,
                                       Dimensions::Current * n,
@@ -121,8 +111,7 @@ struct DimensionsNthRootGenerator : not_constructible {
                 (Dimensions::Angle % n) == 0,
                 "Dimensions not suitable for Nth root");
 
-  using Type =
-      internal_dimensions::Dimensions<Dimensions::Length / n,
+  using Type = dimensions::Dimensions<Dimensions::Length / n,
                                       Dimensions::Mass / n,
                                       Dimensions::Time / n,
                                       Dimensions::Current / n,
@@ -158,6 +147,4 @@ struct DimensionsQuotientGenerator : not_constructible {
                           LDimensions::Angle - RDimensions::Angle>;
 };
 
-}  // namespace internal_dimensions
-}  // namespace quantities
-}  // namespace principia
+}  // namespace principia::quantities::dimensions

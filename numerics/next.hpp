@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MEOW
+#define MEOW
 
 #include <type_traits>
 
@@ -18,3 +19,4 @@ constexpr SourceFormat NextDown(SourceFormat x);
 }  // namespace principia
 
 #include "numerics/next_body.hpp"
+#endif

@@ -3,19 +3,19 @@
 #include <type_traits>
 
 #include "base/not_constructible.hpp"
-#include "quantities/named_quantities.hpp"
 #include "quantities/traits.hpp"
+
+import principia.quantities.names;
 
 namespace principia {
 namespace geometry {
 namespace internal_hilbert {
 
+using namespace principia::quantities::names;
+
 using base::not_constructible;
 using quantities::is_quantity;
 using quantities::is_quantity_v;
-using quantities::Product;
-using quantities::Quotient;
-using quantities::Square;
 
 // A trait that represents a Hilbert space, i.e., a space with an inner product
 // and (possibly) a norm.  The struct Hilbert exports a type InnerProductType

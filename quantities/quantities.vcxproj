@@ -6,41 +6,46 @@
     <ProjectName>quantities</ProjectName>
   </PropertyGroup>
   <Import Project="$(SolutionDir)principia.props" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <ShowIncludes>true</ShowIncludes>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="astronomy.hpp" />
-    <ClInclude Include="bipm.hpp" />
     <ClInclude Include="cgs.hpp" />
-    <ClInclude Include="constants.hpp" />
-    <ClInclude Include="dimensions.hpp" />
     <ClInclude Include="dimensions_body.hpp" />
-    <ClInclude Include="elementary_functions.hpp" />
     <ClInclude Include="elementary_functions_body.hpp" />
-    <ClInclude Include="generators.hpp" />
     <ClInclude Include="generators_body.hpp" />
-    <ClInclude Include="named_quantities.hpp" />
     <ClInclude Include="numbers.hpp" />
     <ClInclude Include="parser.hpp" />
     <ClInclude Include="parser_body.hpp" />
-    <ClInclude Include="quantities.hpp" />
     <ClInclude Include="quantities_body.hpp" />
     <ClInclude Include="serialization.hpp" />
     <ClInclude Include="serialization_body.hpp" />
-    <ClInclude Include="si.hpp" />
     <ClInclude Include="si_body.hpp" />
     <ClInclude Include="traits.hpp" />
     <ClInclude Include="tuples.hpp" />
     <ClInclude Include="tuples_body.hpp" />
-    <ClInclude Include="uk.hpp" />
     <ClInclude Include="wide.hpp" />
     <ClInclude Include="wide_body.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\base\cpuid.cpp" />
     <ClCompile Include="..\numerics\cbrt.cpp" />
+    <ClCompile Include="astronomy.ixx" />
+    <ClCompile Include="bipm.ixx" />
+    <ClCompile Include="constants.ixx" />
+    <ClCompile Include="dimensions.ixx" />
+    <ClCompile Include="elementary_functions.ixx" />
     <ClCompile Include="elementary_functions_test.cpp" />
+    <ClCompile Include="generators.ixx" />
+    <ClCompile Include="names.ixx" />
     <ClCompile Include="parser_test.cpp" />
+    <ClCompile Include="quantities.ixx" />
     <ClCompile Include="quantities_test.cpp" />
+    <ClCompile Include="si.ixx" />
     <ClCompile Include="traits_test.cpp" />
+    <ClCompile Include="uk.ixx" />
     <ClCompile Include="wide_test.cpp" />
   </ItemGroup>
 </Project>

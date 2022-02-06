@@ -1,11 +1,27 @@
-﻿
-#pragma once
+﻿export module principia.quantities.names;
 
-#include "quantities/generators.hpp"
-#include "quantities/quantities.hpp"
+import <type_traits>;
+import <utility>;
 
-namespace principia {
-namespace quantities {
+import principia.quantities;
+import principia.quantities.dimensions;
+import principia.quantities.generators;
+
+using namespace principia::quantities::dimensions;
+using namespace principia::quantities::generators;
+
+export namespace principia::quantities::names {
+
+// Base quantities.
+using Length            = Quantity<Dimensions<1, 0, 0, 0, 0, 0, 0, 0>>;
+using Mass              = Quantity<Dimensions<0, 1, 0, 0, 0, 0, 0, 0>>;
+using Time              = Quantity<Dimensions<0, 0, 1, 0, 0, 0, 0, 0>>;
+using Current           = Quantity<Dimensions<0, 0, 0, 1, 0, 0, 0, 0>>;
+using Temperature       = Quantity<Dimensions<0, 0, 0, 0, 1, 0, 0, 0>>;
+using Amount            = Quantity<Dimensions<0, 0, 0, 0, 0, 1, 0, 0>>;
+using LuminousIntensity = Quantity<Dimensions<0, 0, 0, 0, 0, 0, 1, 0>>;
+// We strongly type angles.
+using Angle             = Quantity<Dimensions<0, 0, 0, 0, 0, 0, 0, 1>>;
 
 // The result type of +, -, * and / on arguments of types |Left| and |Right|.
 template<typename Left, typename Right>
@@ -22,14 +38,14 @@ using Inverse = Quotient<double, Q>;
 
 template<typename T, int exponent>
 using Exponentiation =
-    typename internal_generators::ExponentiationGenerator<T, exponent>::Type;
+    typename ExponentiationGenerator<T, exponent>::Type;
 template<typename Q>
 using Square = Exponentiation<Q, 2>;
 template<typename Q>
 using Cube = Exponentiation<Q, 3>;
 
 template<typename Q, int n>
-using NthRoot = typename internal_generators::NthRootGenerator<Q, n>::Type;
+using NthRoot = typename NthRootGenerator<Q, n>::Type;
 template<typename Q>
 using SquareRoot = NthRoot<Q, 2>;
 template<typename Q>
@@ -159,5 +175,4 @@ using Illuminance      = Quotient<LuminousFlux, Area>;
 using LuminousExposure = Product<Illuminance, Time>;
 using LuminousEfficacy = Quotient<LuminousFlux, RadiantFlux>;
 
-}  // namespace quantities
-}  // namespace principia
+}  // namespace principia::quantities::names

@@ -3,20 +3,17 @@
 
 #include <string>
 
-#include "quantities/named_quantities.hpp"
-#include "quantities/quantities.hpp"
 #include "serialization/numerics.pb.h"
+
+import principia.quantities.names;
 
 namespace principia {
 namespace numerics {
 namespace internal_double_precision {
 
+using namespace principia::quantities::names;
+
 using base::not_null;
-using quantities::Angle;
-using quantities::Difference;
-using quantities::Product;
-using quantities::Quotient;
-using quantities::Sum;
 
 // A simple container for accumulating a value using double precision.  The
 // type of the value must be an affine space.  The notations follow [HLB08].

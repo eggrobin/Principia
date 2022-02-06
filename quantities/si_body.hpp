@@ -1,13 +1,4 @@
-﻿
-#pragma once
-
-#include "quantities/si.hpp"
-
-#include <string>
-
-namespace principia {
-namespace quantities {
-namespace si {
+﻿namespace principia::quantities::si {
 
 template<typename D>
 constexpr Quantity<D> Yotta(Quantity<D> base) {
@@ -90,6 +81,4 @@ constexpr Quantity<D> Yocto(Quantity<D> base) {
   return 1e-24 * base;
 }
 
-}  // namespace si
-}  // namespace quantities
-}  // namespace principia
+}  // namespace principia::quantities::si

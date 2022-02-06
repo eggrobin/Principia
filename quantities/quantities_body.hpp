@@ -1,20 +1,11 @@
-﻿
-#pragma once
+﻿namespace principia::quantities {
 
-#include "quantities/quantities.hpp"
-
-#include <cmath>
-#include <cstdio>
-#include <limits>
-#include <string>
-
-#include "base/macros.hpp"
-
-namespace principia {
-namespace quantities {
-namespace internal_quantities {
-
-using internal_dimensions::DimensionsAreSerializable;
+namespace internal {
+template<typename Q>
+constexpr Q SIUnit() {
+  return Q(1);
+}
+}  // namespace internal
 
 template<typename D>
 constexpr Quantity<D>::Quantity(uninitialized_t) {}
@@ -106,7 +97,7 @@ constexpr bool Quantity<D>::operator!=(Quantity const& right) const {
 template<typename D>
 void Quantity<D>::WriteToMessage(
     not_null<serialization::Quantity*> const message) const {
-  static_assert(internal_dimensions::DimensionsAreSerializable<D>::value,
+  static_assert(DimensionsAreSerializable<D>::value,
                 "Failed to check serializability");
   message->set_dimensions(D::representation);
   message->set_magnitude(magnitude_);
@@ -115,7 +106,7 @@ void Quantity<D>::WriteToMessage(
 template<typename D>
 Quantity<D> Quantity<D>::ReadFromMessage(
     serialization::Quantity const& message) {
-  static_assert(internal_dimensions::DimensionsAreSerializable<D>::value,
+  static_assert(DimensionsAreSerializable<D>::value,
                 "Failed to check serializability");
   CHECK_EQ(D::representation, message.dimensions());
   return Quantity(message.magnitude());
@@ -219,6 +210,4 @@ std::ostream& operator<<(std::ostream& out, Quantity<D> const& quantity) {
   return out << DebugString(quantity);
 }
 
-}  // namespace internal_quantities
-}  // namespace quantities
-}  // namespace principia
+}  // namespace principia::quantities

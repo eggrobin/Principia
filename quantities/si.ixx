@@ -1,24 +1,21 @@
-﻿
-#pragma once
+﻿export module principia.quantities.si;
 
-#include <string>
+import <string>;
 
-#include "quantities/named_quantities.hpp"
-#include "quantities/numbers.hpp"
-#include "quantities/quantities.hpp"
+import "quantities/numbers.hpp";
 
-namespace principia {
-namespace quantities {
+import principia.quantities;
+import principia.quantities.names;
 
-// This namespace contains the units and prefixes of the SI (except the
-// Becquerel, Gray and Sievert), as well as the Non-SI units accepted for use
-// with the SI.
-namespace si {
+using namespace principia::quantities;
+using namespace principia::quantities::names;
+
+export namespace principia::quantities::si {
 
 // Returns the base or derived SI unit of |Q|.
 // For instance, |si::Unit<Action>() == Joule * Second|.
 template<typename Q>
-constexpr Q Unit = internal_quantities::SIUnit<Q>();
+constexpr Q Unit = internal::SIUnit<Q>();
 template<>
 inline constexpr double Unit<double> = 1;
 
@@ -101,8 +98,6 @@ constexpr Area   Hectare   = 1e4 * Metre * Metre;
 constexpr Volume Litre     = 1e-3 * Metre * Metre * Metre;
 constexpr Mass   Tonne     = 1e3 * Kilogram;
 
-}  // namespace si
-}  // namespace quantities
-}  // namespace principia
+}  // namespace principia::quantities::si
 
 #include "quantities/si_body.hpp"

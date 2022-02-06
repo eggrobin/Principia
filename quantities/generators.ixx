@@ -1,9 +1,6 @@
+export module principia.quantities.generators;
 
-#pragma once
-
-namespace principia {
-namespace quantities {
-namespace internal_generators {
+export namespace principia::quantities::generators {
 
 // These structs have a |Type| member that is a |Quantity| suitable for
 // the result of the operation applied to argument(s) of the |Quantity| types
@@ -22,9 +19,6 @@ struct ProductGenerator;
 template<typename Left, typename Right>
 struct QuotientGenerator;
 
-}  // namespace internal_generators
-}  // namespace quantities
-}  // namespace principia
+}  // namespace principia::quantities::generators
 
-// Because of circular dependencies, this file doesn't include
-// generators_body.hpp.  This will be done by quantities.hpp.
+#include "quantities/generators_body.hpp"

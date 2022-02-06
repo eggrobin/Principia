@@ -1,22 +1,21 @@
-﻿
-#pragma once
-
-#include "quantities/constants.hpp"
-#include "quantities/elementary_functions.hpp"
-#include "quantities/named_quantities.hpp"
-#include "quantities/numbers.hpp"
-#include "quantities/quantities.hpp"
-#include "quantities/si.hpp"
-
-namespace principia {
-namespace quantities {
-
-// This namespace contains the imperial units as defined by the international
+// This module contains the imperial units as defined by the international
 // yard and pound agreement, as well as the units of the English Engineering
 // system.
-namespace uk {
+export module principia.quantities.uk;
 
-constexpr Mass Pound  = 0.45359237 * si::Kilogram;
+import principia.quantities.constants;
+import principia.quantities.elementary_functions;
+import principia.quantities.names;
+import principia.quantities.si;
+
+using namespace principia::quantities::constants;
+using namespace principia::quantities::elementary_functions;
+using namespace principia::quantities::names;
+using namespace principia::quantities::si;
+
+export namespace principia::quantities::uk {
+
+constexpr Mass Pound  = 0.45359237 * Kilogram;
 constexpr Mass Ounce  = Pound / 16;
 constexpr Mass Drachm = Pound / 256;
 constexpr Mass Grain  = Pound / 7000;
@@ -27,7 +26,7 @@ constexpr Mass Quarter       = 2 * Stone;
 constexpr Mass Hundredweight = 4 * Quarter;
 constexpr Mass Ton           = 20 * Hundredweight;
 
-constexpr Length Yard = 0.9144 * si::Metre;
+constexpr Length Yard = 0.9144 * Metre;
 constexpr Length Foot = Yard / 3;
 constexpr Length Inch = Foot / 12;
 constexpr Length Thou = Inch / 1000;
@@ -50,16 +49,15 @@ constexpr Area Perch = Pow<2>(Rod);
 constexpr Area Rood  = Furlong * Rod;
 constexpr Area Acre  = Furlong * Chain;
 
-constexpr Volume FluidOunce = 28.4130625 * si::Milli(si::Litre);
+constexpr Volume FluidOunce = 28.4130625 * Milli(Litre);
 constexpr Volume Gill       = 5 * FluidOunce;
 constexpr Volume Pint       = 4 * Gill;
 constexpr Volume Quart      = 2 * Pint;
 constexpr Volume Gallon     = 4 * Quart;
 
-constexpr Force    PoundForce         = Pound * constants::StandardGravity;
-constexpr Power    HorsePower         = 550 * PoundForce * Foot / si::Second;
+constexpr Force    PoundForce         = Pound * StandardGravity;
+
+constexpr Power    HorsePower         = 550 * PoundForce * Foot / Second;
 constexpr Pressure PoundPerSquareInch = PoundForce / Pow<2>(Inch);
 
-}  // namespace uk
-}  // namespace quantities
-}  // namespace principia
+}  // namespace principia::quantities::uk

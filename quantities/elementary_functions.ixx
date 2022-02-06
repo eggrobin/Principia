@@ -1,12 +1,12 @@
-﻿
-#pragma once
+﻿export module principia.quantities.elementary_functions;
 
-#include "quantities/named_quantities.hpp"
-#include "quantities/quantities.hpp"
+import principia.quantities;
+import principia.quantities.names;
 
-namespace principia {
-namespace quantities {
-namespace internal_elementary_functions {
+using namespace principia::quantities;
+using namespace principia::quantities::names;
+
+export namespace principia::quantities::elementary_functions {
 
 // Equivalent to |std::fma(x, y, z)|.
 template<typename Q1, typename Q2>
@@ -81,34 +81,6 @@ Angle ArcTanh(double x);
 // |previous_angle|.
 Angle UnwindFrom(Angle const& previous_angle, Angle const& α);
 
-}  // namespace internal_elementary_functions
-
-using internal_elementary_functions::Abs;
-using internal_elementary_functions::ArcCos;
-using internal_elementary_functions::ArcCosh;
-using internal_elementary_functions::ArcSin;
-using internal_elementary_functions::ArcSinh;
-using internal_elementary_functions::ArcTan;
-using internal_elementary_functions::ArcTanh;
-using internal_elementary_functions::Cbrt;
-using internal_elementary_functions::Cos;
-using internal_elementary_functions::Cosh;
-using internal_elementary_functions::FusedMultiplyAdd;
-using internal_elementary_functions::FusedMultiplySubtract;
-using internal_elementary_functions::FusedNegatedMultiplyAdd;
-using internal_elementary_functions::FusedNegatedMultiplySubtract;
-using internal_elementary_functions::Mod;
-using internal_elementary_functions::NextDown;
-using internal_elementary_functions::NextUp;
-using internal_elementary_functions::Pow;
-using internal_elementary_functions::Sin;
-using internal_elementary_functions::Sinh;
-using internal_elementary_functions::Sqrt;
-using internal_elementary_functions::Tan;
-using internal_elementary_functions::Tanh;
-using internal_elementary_functions::UnwindFrom;
-
-}  // namespace quantities
-}  // namespace principia
+}  // namespace principia::quantities::elementary_functions
 
 #include "quantities/elementary_functions_body.hpp"
