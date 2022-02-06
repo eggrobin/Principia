@@ -2,7 +2,10 @@
 #include "quantities/traits.hpp"
 
 #include "gtest/gtest.h"
-#include "quantities/named_quantities.hpp"
+
+import principia.quantities.names;
+
+using namespace principia::quantities::names;
 
 namespace principia {
 namespace quantities {

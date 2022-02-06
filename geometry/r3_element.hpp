@@ -8,6 +8,7 @@
 
 #include "base/not_null.hpp"
 #include "base/tags.hpp"
+#include "quantities/traits.hpp"
 #include "serialization/geometry.pb.h"
 
 import principia.quantities.names;
@@ -16,7 +17,7 @@ namespace principia {
 namespace geometry {
 namespace internal_r3_element {
 
-using namespace principia.quantities.names;
+using namespace principia::quantities::names;
 
 using base::not_null;
 using base::uninitialized_t;

@@ -4,7 +4,6 @@
 #include <cfloat>
 #include <cstdint>
 
-#include <complex>
 #include <string>
 
 #include "geometry/complexification.hpp"

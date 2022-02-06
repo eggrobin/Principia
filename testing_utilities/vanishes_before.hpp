@@ -7,7 +7,6 @@
 #include <string>
 
 #include "gmock/gmock.h"
-#include "quantities/quantities.hpp"
 
 namespace principia {
 namespace testing_utilities {

@@ -4,14 +4,15 @@
 #include "geometry/hilbert.hpp"
 
 #include "geometry/grassmann.hpp"
-#include "quantities/elementary_functions.hpp"
 #include "hilbert.hpp"
+
+import principia.quantities.elementary_functions;
 
 namespace principia {
 namespace geometry {
 namespace internal_hilbert {
 
-using quantities::Abs;
+using namespace principia::quantities::elementary_functions;
 
 template<typename T1, typename T2>
 auto Hilbert<T1, T2,

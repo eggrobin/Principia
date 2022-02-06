@@ -6,7 +6,6 @@
 #include "base/not_null.hpp"
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
-#include "quantities/quantities.hpp"
 #include "quantities/serialization.hpp"
 
 namespace principia {

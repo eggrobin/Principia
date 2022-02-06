@@ -7,6 +7,8 @@
   </PropertyGroup>
   <Import Project="$(SolutionDir)principia.props" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile />
+    <ClCompile />
     <ClCompile>
       <ShowIncludes>true</ShowIncludes>
     </ClCompile>

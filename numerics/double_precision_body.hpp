@@ -14,25 +14,26 @@
 #include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
 #include "geometry/serialization.hpp"
-#include "quantities/elementary_functions.hpp"
-#include "quantities/quantities.hpp"
-#include "quantities/si.hpp"
+
+import principia.quantities.elementary_functions;
+import principia.quantities.si;
 
 namespace principia {
 namespace numerics {
 namespace internal_double_precision {
+
+using namespace principia::quantities::elementary_functions;
+using namespace principia::quantities::si;
+
+using principia::quantities::elementary_functions::FusedMultiplySubtract;
 
 using geometry::DoubleOrQuantityOrMultivectorSerializer;
 using geometry::DoubleOrQuantityOrPointOrMultivectorSerializer;
 using geometry::Multivector;
 using geometry::Point;
 using geometry::R3Element;
-using quantities::Abs;
-using quantities::FusedMultiplySubtract;
 using quantities::is_quantity;
 using quantities::Quantity;
-using quantities::si::Radian;
-namespace si = quantities::si;
 
 // A helper to check that the preconditions of QuickTwoSum are met.  Annoyingly
 // complicated as it needs to peel off all of our abstractions until it reaches

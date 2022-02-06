@@ -9,17 +9,17 @@
 
 #include "base/macros.hpp"
 #include "glog/logging.h"
-#include "quantities/elementary_functions.hpp"
-#include "quantities/quantities.hpp"
+
+import principia.quantities.elementary_functions;
 
 namespace principia {
 namespace geometry {
 namespace internal_r3x3_matrix {
 
+using namespace principia::quantities::elementary_functions;
+
 using base::uninitialized;
 using geometry::Dot;
-using quantities::Abs;
-using quantities::Sqrt;
 
 template<typename Scalar>
 R3x3Matrix<Scalar>::R3x3Matrix(uninitialized_t) {}

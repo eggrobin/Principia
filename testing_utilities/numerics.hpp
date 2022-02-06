@@ -6,7 +6,6 @@
 #include "geometry/grassmann.hpp"
 #include "geometry/point.hpp"
 #include "geometry/r3_element.hpp"
-#include "quantities/quantities.hpp"
 
 namespace principia {
 namespace testing_utilities {

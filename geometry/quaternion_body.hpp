@@ -7,16 +7,16 @@
 
 #include "geometry/r3_element.hpp"
 #include "geometry/sign.hpp"
-#include "quantities/elementary_functions.hpp"
-#include "quantities/quantities.hpp"
+
+import principia.quantities.elementary_functions;
 
 namespace principia {
 namespace geometry {
 namespace internal_quaternion {
 
-using quantities::Abs;
+using namespace principia::quantities::elementary_functions;
+
 using quantities::DebugString;
-using quantities::Sqrt;
 
 inline Quaternion::Quaternion(double const real_part)
     : real_part_(real_part) {}

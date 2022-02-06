@@ -8,8 +8,9 @@
 
 #include "base/traits.hpp"
 #include "geometry/barycentre_calculator.hpp"
-#include "quantities/quantities.hpp"
 #include "serialization/geometry.pb.h"
+
+import principia.quantities.names;
 
 namespace principia {
 namespace geometry {
@@ -17,7 +18,7 @@ namespace internal_point {
 
 using base::not_null;
 using quantities::is_quantity_v;
-using quantities::Product;
+using namespace principia::quantities::names;
 
 // Point<Vector> is an affine space on the vector space Vector. Vector should
 // be equipped with operators +, -, +=, -=, ==, !=, as well as Vector * Weight

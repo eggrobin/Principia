@@ -5,16 +5,14 @@
 #include <ostream>
 
 #include "geometry/hilbert.hpp"
-#include "quantities/named_quantities.hpp"
+
+import principia.quantities.names;
 
 namespace principia {
 namespace geometry {
 namespace internal_complexification {
 
-using quantities::Difference;
-using quantities::Product;
-using quantities::Quotient;
-using quantities::Sum;
+using namespace principia::quantities::names;
 
 template<typename Vector>
 class Complexification {

@@ -8,9 +8,10 @@
 #include "base/not_null.hpp"
 #include "base/traits.hpp"
 #include "geometry/r3_element.hpp"
-#include "quantities/quantities.hpp"
 #include "quantities/traits.hpp"
 #include "serialization/geometry.pb.h"
+
+import principia.quantities.names;
 
 namespace principia {
 namespace geometry {
@@ -22,12 +23,9 @@ FORWARD_DECLARE_FROM(rotation,
 namespace internal_grassmann {
 
 using base::not_null;
-using quantities::Angle;
 using quantities::is_quantity_v;
-using quantities::Product;
-using quantities::Quantity;
-using quantities::Quotient;
-using quantities::Square;
+
+using namespace principia::quantities::names;
 
 // A multivector of rank |rank| on a three-dimensional real inner product
 // space bearing the dimensionality of |Scalar|, i.e., an element of

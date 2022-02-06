@@ -6,15 +6,15 @@
 
 #include "base/tags.hpp"
 #include "numerics/transposed_view.hpp"
-#include "quantities/named_quantities.hpp"
+
+import principia.quantities.names;
 
 namespace principia {
 namespace numerics {
 namespace internal_fixed_arrays {
 
 using base::uninitialized_t;
-using quantities::Difference;
-using quantities::Product;
+using namespace principia::quantities::names;
 
 template<typename Scalar, int rows, int columns>
 class FixedMatrix;

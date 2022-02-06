@@ -4,7 +4,6 @@
 #include <string>
 
 #include "base/not_null.hpp"
-#include "quantities/quantities.hpp"
 #include "serialization/geometry.pb.h"
 
 namespace principia {

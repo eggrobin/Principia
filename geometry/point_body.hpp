@@ -9,19 +9,16 @@
 #include "base/not_constructible.hpp"
 #include "geometry/grassmann.hpp"
 #include "glog/logging.h"
-#include "quantities/elementary_functions.hpp"
-#include "quantities/quantities.hpp"
+
+import principia.quantities.elementary_functions;
 
 namespace principia {
 namespace geometry {
 namespace internal_point {
 
+using namespace principia::quantities::elementary_functions;
+
 using base::not_constructible;
-using quantities::FusedMultiplyAdd;
-using quantities::FusedNegatedMultiplyAdd;
-using quantities::NextDown;
-using quantities::NextUp;
-using quantities::Product;
 using quantities::Quantity;
 
 template<typename Vector>

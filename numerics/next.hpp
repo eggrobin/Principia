@@ -1,5 +1,5 @@
-#ifndef MEOW
-#define MEOW
+#ifndef PRINCIPIA_NUMERICS_NEXT_HPP_
+#define PRINCIPIA_NUMERICS_NEXT_HPP_
 
 #include <type_traits>
 
@@ -19,4 +19,4 @@ constexpr SourceFormat NextDown(SourceFormat x);
 }  // namespace principia
 
 #include "numerics/next_body.hpp"
-#endif
+#endif  // PRINCIPIA_NUMERICS_NEXT_HPP_

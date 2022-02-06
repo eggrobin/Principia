@@ -10,20 +10,19 @@
 #include "base/macros.hpp"
 #include "base/tags.hpp"
 #include "geometry/r3_element.hpp"
-#include "quantities/named_quantities.hpp"
-#include "quantities/quantities.hpp"
 #include "serialization/geometry.pb.h"
+
+import principia.quantities.names;
 
 namespace principia {
 namespace geometry {
 namespace internal_r3x3_matrix {
 
+using namespace principia::quantities::names;
+
 using base::not_null;
 using base::uninitialized_t;
-using quantities::Cube;
 using quantities::is_quantity_v;
-using quantities::Product;
-using quantities::Quotient;
 
 // An |R3x3Matrix| is an element of the associative algebra of 3-by-3 matrices
 // over |Scalar|.  |Scalar| should be a vector space over ℝ, represented by

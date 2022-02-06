@@ -1,5 +1,5 @@
-﻿
-#pragma once
+﻿#ifndef PRINCIPIA_BASE_NOT_NULL_HPP_
+#define PRINCIPIA_BASE_NOT_NULL_HPP_
 
 #include <memory>
 #include <type_traits>
@@ -328,3 +328,4 @@ not_null<Result> dynamic_cast_not_null(not_null<std::unique_ptr<T>>&& pointer);
 }  // namespace principia
 
 #include "base/not_null_body.hpp"
+#endif  // PRINCIPIA_BASE_NOT_NULL_HPP_

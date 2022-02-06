@@ -4,7 +4,6 @@
 #include "quantities/serialization.hpp"
 
 #include "base/not_null.hpp"
-#include "quantities/quantities.hpp"
 
 namespace principia {
 namespace quantities {

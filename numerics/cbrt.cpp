@@ -11,13 +11,14 @@
 
 #include "numerics/double_precision.hpp"
 #include "numerics/fma.hpp"
-#include "quantities/elementary_functions.hpp"
+
+import principia.quantities.elementary_functions;
 
 namespace principia {
 namespace numerics {
 namespace internal_cbrt {
 
-using quantities::Sqrt;
+using namespace principia::quantities::elementary_functions;
 
 // The computations in this file are described in documentation/cbrt.pdf; the
 // identifiers match the notation in that document.

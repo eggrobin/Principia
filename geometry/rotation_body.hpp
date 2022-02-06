@@ -11,17 +11,19 @@
 #include "geometry/quaternion.hpp"
 #include "geometry/r3_element.hpp"
 #include "geometry/sign.hpp"
-#include "quantities/elementary_functions.hpp"
+
+import principia.quantities.elementary_functions;
+import principia.quantities.names;
 
 namespace principia {
 namespace geometry {
 namespace internal_rotation {
+    
+using namespace principia::quantities::elementary_functions;
+using namespace principia::quantities::names;
 
 using base::is_same_template_v;
 using base::not_null;
-using quantities::ArcTan;
-using quantities::Cos;
-using quantities::Sin;
 
 // Well-conditioned conversion of a rotation matrix to a quaternion.  See
 // http://en.wikipedia.org/wiki/Rotation_matrix#Quaternion and
@@ -69,7 +71,7 @@ FORCE_INLINE(inline) Quaternion ToQuaternion(R3x3Matrix<double> const& matrix) {
 
 // Returns a rotation of |angle| around |axis|.  |axis| must be normalized.
 inline Quaternion AngleAxis(Angle const& angle, R3Element<double> const& axis) {
-  quantities::Angle const half_angle = 0.5 * angle;
+  Angle const half_angle = 0.5 * angle;
   return Quaternion(Cos(half_angle), Sin(half_angle) * axis);
 }
 
@@ -87,7 +89,7 @@ Rotation<FromFrame, ToFrame>::Rotation(Quaternion const& quaternion)
 
 template<typename FromFrame, typename ToFrame>
 template<typename Scalar, typename F, typename T, typename>
-Rotation<FromFrame, ToFrame>::Rotation(quantities::Angle const& angle,
+Rotation<FromFrame, ToFrame>::Rotation(Angle const& angle,
                                        Bivector<Scalar, FromFrame> const& axis)
     : Rotation(AngleAxis(angle, Normalize(axis).coordinates())) {}
 

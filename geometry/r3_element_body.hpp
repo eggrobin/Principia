@@ -10,23 +10,22 @@
 
 #include "base/macros.hpp"
 #include "glog/logging.h"
-#include "quantities/elementary_functions.hpp"
-#include "quantities/quantities.hpp"
 #include "quantities/serialization.hpp"
 #include "quantities/wide.hpp"
+#include "numerics/fma.hpp"
+
+import principia.quantities.elementary_functions;
 
 namespace principia {
 namespace geometry {
 namespace internal_r3_element {
 
+using namespace principia::quantities::elementary_functions;
+
 using numerics::CanEmitFMAInstructions;
-using quantities::ArcSin;
-using quantities::ArcTan;
-using quantities::Cos;
 using quantities::DebugString;
 using quantities::DoubleOrQuantitySerializer;
 using quantities::Quantity;
-using quantities::Sin;
 using quantities::ToM128D;
 
 // We want zero initialization here, so the default constructor won't do.
@@ -146,7 +145,7 @@ R3Element<Scalar>& R3Element<Scalar>::operator/=(double const right) {
 
 template<typename Scalar>
 Scalar R3Element<Scalar>::Norm() const {
-  return quantities::Sqrt(Norm²());
+  return Sqrt(Norm²());
 }
 
 template<typename Scalar>

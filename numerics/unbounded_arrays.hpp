@@ -8,16 +8,16 @@
 
 #include "base/tags.hpp"
 #include "numerics/transposed_view.hpp"
-#include "quantities/named_quantities.hpp"
+
+import principia.quantities.names;
 
 namespace principia {
 namespace numerics {
 namespace internal_unbounded_arrays {
 
+using namespace principia::quantities::names;
+
 using base::uninitialized_t;
-using quantities::Product;
-using quantities::Quotient;
-using quantities::SquareRoot;
 
 // An allocator that does not initialize the allocated objects.
 template<class T>

@@ -76,9 +76,6 @@
     <ClCompile Include="wide_test.cpp">
       <Filter>Test Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\numerics\cbrt.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="traits_test.cpp">
       <Filter>Test Files</Filter>
     </ClCompile>
@@ -114,6 +111,9 @@
     </ClCompile>
     <ClCompile Include="uk.ixx">
       <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\numerics\cbrt.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

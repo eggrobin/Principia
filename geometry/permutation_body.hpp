@@ -11,11 +11,14 @@
 #include "geometry/quaternion.hpp"
 #include "geometry/r3_element.hpp"
 #include "geometry/sign.hpp"
-#include "quantities/elementary_functions.hpp"
+
+import principia.quantities.elementary_functions;
 
 namespace principia {
 namespace geometry {
 namespace internal_permutation {
+
+using namespace principia::quantities::elementary_functions;
 
 using base::is_same_template_v;
 
@@ -81,7 +84,7 @@ LinearMap<FromFrame, ToFrame> Permutation<FromFrame, ToFrame>::Forget() const {
                 is_same_template_v<LinearMap, Rotation>,
                 "Unable to forget permutation");
   Quaternion quaternion;
-  static double const sqrt_half = quantities::Sqrt(0.5);
+  static double const sqrt_half = Sqrt(0.5);
   static std::array<Quaternion, 6> const quaternions = {
       /*XYZ*/ Quaternion(1),
       /*YZX*/ Quaternion(0.5, {-0.5, -0.5, -0.5}),

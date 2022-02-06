@@ -4,13 +4,13 @@
 #include <vector>
 #include <utility>
 
-#include "quantities/named_quantities.hpp"
+import principia.quantities.names;
 
 namespace principia {
 namespace geometry {
 namespace internal_barycentre_calculator {
 
-using quantities::Product;
+using namespace principia::quantities::names;
 
 // |Vector| must be a vector space over the field |Scalar|.
 template<typename Vector, typename Scalar>

@@ -9,16 +9,15 @@
 #include "geometry/permutation.hpp"
 #include "geometry/rotation.hpp"
 
+import principia.quantities.elementary_functions;
+
 namespace principia {
 namespace geometry {
 namespace internal_grassmann {
 
+using namespace principia::quantities::elementary_functions;
+
 using base::not_constructible;
-using quantities::ArcTan;
-using quantities::FusedMultiplyAdd;
-using quantities::FusedMultiplySubtract;
-using quantities::FusedNegatedMultiplyAdd;
-using quantities::FusedNegatedMultiplySubtract;
 
 template<typename Scalar, typename Frame>
 Multivector<Scalar, Frame, 1>::Multivector(R3Element<Scalar> const& coordinates)
@@ -60,7 +59,7 @@ Scalar Multivector<Scalar, Frame, 2>::Norm() const {
 template<typename Scalar, typename Frame>
 Scalar Multivector<Scalar, Frame, 3>::Norm() const {
   // When |Scalar| is double, ADL will not find |Abs|.
-  return quantities::Abs(coordinates_);
+  return Abs(coordinates_);
 }
 
 template<typename Scalar, typename Frame>

@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "base/not_null.hpp"
 #include "serialization/numerics.pb.h"
 
 import principia.quantities.names;

@@ -7,13 +7,14 @@
 #include <string>
 
 #include "base/macros.hpp"
-#include "quantities/si.hpp"
+
+import principia.quantities.si;
 
 namespace principia {
 namespace geometry {
 namespace internal_sign {
 
-namespace si = quantities::si;
+namespace si = principia::quantities::si;
 
 // Must be defined first because it is called by member functions below.
 template<typename T>

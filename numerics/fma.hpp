@@ -1,5 +1,5 @@
-﻿#ifndef PRINCIPIA_FMA_HPP
-#define PRINCIPIA_FMA_HPP
+﻿#ifndef PRINCIPIA_NUMERICS_FMA_HPP_
+#define PRINCIPIA_NUMERICS_FMA_HPP_
 
 #include <immintrin.h>
 
@@ -54,4 +54,4 @@ using internal_fma::UseHardwareFMA;
 
 #include "numerics/fma_body.hpp"
 
-#endif  // !1
+#endif  // PRINCIPIA_NUMERICS_FMA_HPP_

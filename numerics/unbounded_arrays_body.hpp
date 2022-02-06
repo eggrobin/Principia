@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "base/macros.hpp"
-#include "quantities/elementary_functions.hpp"
 #include "unbounded_arrays.hpp"
 
 namespace principia {
@@ -15,7 +14,6 @@ namespace numerics {
 namespace internal_unbounded_arrays {
 
 using base::uninitialized;
-using quantities::Sqrt;
 
 template<class T>
 template<class U, class... Args>
