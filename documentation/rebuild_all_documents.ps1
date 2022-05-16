@@ -4,6 +4,9 @@ $ancient_files = @('Hamiltonian Mechanics', 'ODEs and Runge-Kutta integrators')
 # The UTC second nearest J2000 (which would be 946727935.816 using TT(TAI)).
 $env:SOURCE_DATE_EPOCH=946727936
 
+rm *.bcf
+rm *.aux
+
 foreach ($f in ls *.tex) {
   for ($i = 0; $i -lt 3; ++$i) {
     if ($ancient_files.contains($f.basename)) {
@@ -13,7 +16,7 @@ foreach ($f in ls *.tex) {
      biber $f.basename
      if (-not $?) { return $? }
     }
-    xelatex $f.basename
-    if (-not $?) { return $? }
+    xelatex -interaction=nonstopmode $f.basename
+    #if (-not $?) { return $? }
   }
 }
