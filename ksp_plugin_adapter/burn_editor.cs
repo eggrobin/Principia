@@ -21,18 +21,21 @@ class BurnEditor : ScalingRenderer {
         unit             : L10N.CacheFormat("#Principia_BurnEditor_SpeedUnit"),
         log10_lower_rate : log10_Δv_lower_rate,
         log10_upper_rate : log10_Δv_upper_rate,
+        formatter        : FormatΔv,
         text_colour      : Style.Tangent);
     Δv_normal_ = new DifferentialSlider(
         label            : L10N.CacheFormat("#Principia_BurnEditor_ΔvNormal"),
         unit             : L10N.CacheFormat("#Principia_BurnEditor_SpeedUnit"),
         log10_lower_rate : log10_Δv_lower_rate,
         log10_upper_rate : log10_Δv_upper_rate,
+        formatter        : FormatΔv,
         text_colour      : Style.Normal);
     Δv_binormal_ = new DifferentialSlider(
         label            : L10N.CacheFormat("#Principia_BurnEditor_ΔvBinormal"),
         unit             : L10N.CacheFormat("#Principia_BurnEditor_SpeedUnit"),
         log10_lower_rate : log10_Δv_lower_rate,
         log10_upper_rate : log10_Δv_upper_rate,
+        formatter        : FormatΔv,
         text_colour      : Style.Binormal);
     previous_coast_duration_ = new DifferentialSlider(
         label            : L10N.CacheFormat("#Principia_BurnEditor_InitialTime"),
@@ -138,27 +141,34 @@ class BurnEditor : ScalingRenderer {
         }
         reference_frame_selector_.RenderButton();
       }
-      if (is_inertially_fixed_ !=
-          UnityEngine.GUILayout.Toggle(
-              is_inertially_fixed_,
-              L10N.CacheFormat("#Principia_BurnEditor_InertiallyFixed"))) {
-        changed = true;
-        is_inertially_fixed_ = !is_inertially_fixed_;
+      using (new UnityEngine.GUILayout.HorizontalScope()) {
+        if (is_inertially_fixed_ !=
+            UnityEngine.GUILayout.Toggle(
+                is_inertially_fixed_,
+                L10N.CacheFormat("#Principia_BurnEditor_InertiallyFixed"))) {
+          changed = true;
+          is_inertially_fixed_ = !is_inertially_fixed_;
+        }
+        high_precision_ = UnityEngine.GUILayout.Toggle(high_precision_, "5.10");
       }
       changed |= changed_reference_frame_;
 
       // The Δv controls are disabled for an anomalous manœuvre as they have no
       // effect.
-      changed |= Δv_tangent_.Render(enabled : !anomalous);
-      changed |= Δv_normal_.Render(enabled : !anomalous);
-      changed |= Δv_binormal_.Render(enabled : !anomalous);
+      changed |= Δv_tangent_.Render(enabled     : !anomalous,
+                                    show_slider : !high_precision_);
+      changed |= Δv_normal_.Render(enabled     : !anomalous,
+                                   show_slider : !high_precision_);
+      changed |= Δv_binormal_.Render(enabled     : !anomalous,
+                                     show_slider : !high_precision_);
       {
         var render_time_base = time_base;
         previous_coast_duration_.value_if_different =
             initial_time_ - render_time_base;
         // The duration of the previous coast is always enabled as it can make
         // a manœuvre non-anomalous.
-        if (previous_coast_duration_.Render(enabled : true)) {
+        if (previous_coast_duration_.Render(enabled     : true,
+                                            show_slider : !high_precision_)) {
           changed = true;
           initial_time_ = previous_coast_duration_.value + render_time_base;
         }
@@ -355,10 +365,17 @@ class BurnEditor : ScalingRenderer {
     specific_impulse_in_seconds_g0_ = range;
   }
 
+  internal string FormatΔv(double metres_per_second) {
+    return high_precision_
+        ? metres_per_second.ToString("00000.0000000000", Culture.culture)
+        : metres_per_second.ToString("#,0.000", Culture.culture);
+  }
+
   internal string FormatPreviousCoastDuration(double seconds) {
     return new PrincipiaTimeSpan(seconds).FormatPositive(
         with_leading_zeroes: true,
-        with_seconds: true);
+        with_seconds: true,
+        second_decimals: high_precision_ ? 6 : 1);
   }
 
   internal bool TryParsePreviousCoastDuration(string text, out double value) {
@@ -407,6 +424,7 @@ class BurnEditor : ScalingRenderer {
   private readonly Func<int, BurnEditor> get_burn_at_index_;
   private readonly PrincipiaPluginAdapter adapter_;
 
+  public bool high_precision_ = false;
   private bool changed_reference_frame_ = false;
   private string engine_warning_ = "";
   

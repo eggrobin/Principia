@@ -21,7 +21,8 @@ internal class DifferentialSlider : ScalingRenderer {
                             ValueParser parser = null,
                             UnityEngine.Color? text_colour = null,
                             int label_width = 3,
-                            int field_width = 5) {
+                            int field_width = 5,
+                            Func<bool> show_slider = null) {
     label_ = label;
     label_width_ = label_width;
     field_width_ = field_width;
@@ -88,7 +89,7 @@ internal class DifferentialSlider : ScalingRenderer {
 
   // Renders the |DifferentialSlider|.  Returns true if and only if |value|
   // changed.
-  public bool Render(bool enabled) {
+  public bool Render(bool enabled, bool show_slider = true) {
     bool value_changed = false;
 
     using (new UnityEngine.GUILayout.HorizontalScope()) {
@@ -133,7 +134,8 @@ internal class DifferentialSlider : ScalingRenderer {
         formatted_value_ = UnityEngine.GUILayout.TextField(
             text    : formatted_value_,
             style   : style,
-            options : GUILayoutWidth(field_width_));
+            options : GUILayoutWidth(show_slider ? field_width_
+                                                 : field_width_ + 3));
         var text_field = UnityEngine.GUILayoutUtility.GetLastRect();
 
         DisplayDigitAdjustmentIndicators(text_field, style);
@@ -223,7 +225,7 @@ internal class DifferentialSlider : ScalingRenderer {
                                   options : GUILayoutWidth(
                                       unit_ == null ? 0 : 2));
 
-      if (enabled) {
+      if (enabled && show_slider) {
         if (!UnityEngine.Input.GetMouseButton(0)) {
           slider_position_ = 0;
         }
@@ -344,7 +346,6 @@ internal class DifferentialSlider : ScalingRenderer {
   private readonly ValueFormatter formatter_;
   private readonly ValueParser parser_;
   private readonly UnityEngine.Color? text_colour_;
-
   private float slider_position_ = 0.0f;
   private DateTime last_time_;
   private double max_value_;

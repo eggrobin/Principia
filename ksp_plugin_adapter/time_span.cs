@@ -46,7 +46,10 @@ class PrincipiaTimeSpan {
            FormatPositive(with_leading_zeroes, with_seconds);
   }
 
-  public string FormatPositive(bool with_leading_zeroes, bool with_seconds) {
+  public string FormatPositive(
+      bool with_leading_zeroes,
+      bool with_seconds,
+      int second_decimals = 1) {
     if (!Split(out int days,
                out int hours,
                out int minutes,
@@ -82,7 +85,9 @@ class PrincipiaTimeSpan {
       components.Add($"{nbsp}min");
     }
     if (with_seconds) {
-      components.Add($"{nbsp}" + seconds.ToString("00.0;00.0") + $"{nbsp}s");
+      string fractional_0s = new string('0', second_decimals);
+      string seconds_format = $"00.{fractional_0s};00.{fractional_0s}";
+      components.Add($"{nbsp}{seconds.ToString(seconds_format)}{nbsp }s");
     }
     return string.Join("", components.ToArray());
   }
