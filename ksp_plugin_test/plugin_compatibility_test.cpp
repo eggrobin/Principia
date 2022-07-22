@@ -252,10 +252,13 @@ TEST_F(PluginCompatibilityTest, Reach) {
                  << ifnity->flight_plan().actual_final_time();
     } else {
       LOG(ERROR) << "10^" << exponent << " m/s: "
+                 << ifnity->flight_plan().GetManœuvre(0).final_time()
                  << ((ifnity->flight_plan().GetAllSegments().EvaluatePosition(
                           venus_flyby_6_time) -
                       plugin->ephemeris_->trajectory(venus)->EvaluatePosition(
-                          venus_flyby_6_time)).Norm() - venus->mean_radius());
+                          venus_flyby_6_time))
+                         .Norm() -
+                     venus->mean_radius());
     }
   }
 
