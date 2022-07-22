@@ -200,9 +200,69 @@ TEST_F(PluginCompatibilityTest, Reach) {
                           Pair("1977-07-28T22:47:53"_DateTime,
                                1.39666705839172456e-01 * (Metre / Second))));
 
+  std::map<Instant, string> flybys;
+  physics::MassiveBody const* venus = nullptr;
+  for (auto const body : plugin->ephemeris_->bodies()) {
+    if (body->name() == "Venus") {
+      venus = body;
+    }
+    DiscreteTrajectory<Barycentric> apoapsides;
+    DiscreteTrajectory<Barycentric> periapsides;
+    physics::ComputeApsides(
+        *plugin->ephemeris_->trajectory(body),
+        ifnity->flight_plan().GetAllSegments(),
+        ifnity->flight_plan().GetAllSegments().begin(),
+        ifnity->flight_plan().GetAllSegments().end(),
+        std::numeric_limits<int>::max(),
+        apoapsides,
+        periapsides);
+    for (auto const& [t, dof] : periapsides) {
+      Length const periapsis_distance =
+          (plugin->ephemeris_->trajectory(body)->EvaluatePosition(t) -
+           dof.position()).Norm();
+      double radii = periapsis_distance / body->mean_radius();
+      if (radii < 100) {
+        flybys.emplace(
+            t,
+            (std::stringstream{}
+             << t << ": " << body->name() << " @ " << radii << " radii, "
+             << (periapsis_distance - body->mean_radius()) / Kilo(Metre)
+             << " km alt.")
+                .str());
+      }
+    }
+  }
+  for (auto const& [t, line] : flybys) {
+    LOG(ERROR) << line;
+  }
+  auto const venus_flyby_6_time = "1976-04-26T17:38:08"_TT + 0.1963192224502563 * Second;
+  auto const Δv = ifnity->flight_plan().GetManœuvre(0).Δv();
+  auto modified_burn = ifnity->flight_plan().GetManœuvre(0).burn();
+  modified_burn.intensity.direction.reset();
+  modified_burn.intensity.duration.reset();
+  modified_burn.timing.time_of_half_Δv.reset();
+  for (double exponent = -3; exponent >= -10; exponent -= .25) {
+    modified_burn.intensity.Δv = Velocity<Frenet<ksp_plugin::Navigation>>(
+        {Δv.coordinates().x + std::pow(10, exponent) * Metre / Second,
+         Δv.coordinates().y,
+         Δv.coordinates().z});
+    LOG(ERROR) << ifnity->flight_plan().Replace(modified_burn, 0);
+    if (ifnity->flight_plan().actual_final_time() < venus_flyby_6_time) {
+      LOG(ERROR) << "10^" << exponent << " m/s: times out at "
+                 << ifnity->flight_plan().actual_final_time();
+    } else {
+      LOG(ERROR) << "10^" << exponent << " m/s: "
+                 << ((ifnity->flight_plan().GetAllSegments().EvaluatePosition(
+                          venus_flyby_6_time) -
+                      plugin->ephemeris_->trajectory(venus)->EvaluatePosition(
+                          venus_flyby_6_time)).Norm() - venus->mean_radius());
+    }
+  }
+
   // Make sure that we can upgrade, save, and reload.
   WriteAndReadBack(std::move(plugin));
 }
+
 #endif
 
 TEST_F(PluginCompatibilityTest, DISABLED_Butcher) {

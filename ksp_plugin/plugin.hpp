@@ -524,8 +524,10 @@ class Plugin {
   std::map<PartId, not_null<Vessel*>> part_id_to_vessel_;
   IndexToOwnedCelestial celestials_;
 
+ public:
   // Not null after initialization.
   std::unique_ptr<Ephemeris<Barycentric>> ephemeris_;
+ private:
 
   // The parameters for computing the various trajectories.
   DiscreteTrajectorySegment<Barycentric>::DownsamplingParameters
