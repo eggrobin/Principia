@@ -79,7 +79,7 @@ class BurnEditor : ScalingRenderer {
     previous_coast_duration_.max_value = burn_final_time - time_base;
     using (new UnityEngine.GUILayout.HorizontalScope()) {
       if (UnityEngine.GUILayout.Button(
-              minimized ? "+" : "-", GUILayoutWidth(1))) {
+              minimized ? "+" : "−", GUILayoutWidth(1))) {
         minimized = !minimized;
         return minimized ? Event.Minimized : Event.Maximized;
       }
@@ -149,18 +149,35 @@ class BurnEditor : ScalingRenderer {
           changed = true;
           is_inertially_fixed_ = !is_inertially_fixed_;
         }
+        bool precision_was_high = high_precision_;
         high_precision_ = UnityEngine.GUILayout.Toggle(high_precision_, "5.10");
+        if (precision_was_high != high_precision_) {
+          // This resets the formatted values.
+          Δv_tangent_.value = Δv_tangent_.value;
+          Δv_normal_.value = Δv_normal_.value;
+          Δv_binormal_.value = Δv_binormal_.value;
+          previous_coast_duration_.value = previous_coast_duration_.value;
+        }
       }
       changed |= changed_reference_frame_;
+
+      // In high precision mode, the number of fractional digits varies, and we
+      // pad with 0s on the left, so we align left.
+      var alignment = high_precision_
+          ? UnityEngine.TextAnchor.MiddleLeft
+          : UnityEngine.TextAnchor.MiddleRight;
 
       // The Δv controls are disabled for an anomalous manœuvre as they have no
       // effect.
       changed |= Δv_tangent_.Render(enabled     : !anomalous,
-                                    show_slider : !high_precision_);
+                                    show_slider : !high_precision_,
+                                    alignment);
       changed |= Δv_normal_.Render(enabled     : !anomalous,
-                                   show_slider : !high_precision_);
+                                   show_slider : !high_precision_,
+                                   alignment);
       changed |= Δv_binormal_.Render(enabled     : !anomalous,
-                                     show_slider : !high_precision_);
+                                     show_slider : !high_precision_,
+                                     alignment);
       {
         var render_time_base = time_base;
         previous_coast_duration_.value_if_different =
@@ -168,7 +185,8 @@ class BurnEditor : ScalingRenderer {
         // The duration of the previous coast is always enabled as it can make
         // a manœuvre non-anomalous.
         if (previous_coast_duration_.Render(enabled     : true,
-                                            show_slider : !high_precision_)) {
+                                            show_slider : !high_precision_,
+                                            alignment)) {
           changed = true;
           initial_time_ = previous_coast_duration_.value + render_time_base;
         }
@@ -366,9 +384,23 @@ class BurnEditor : ScalingRenderer {
   }
 
   internal string FormatΔv(double metres_per_second) {
-    return high_precision_
-        ? metres_per_second.ToString("00000.0000000000", Culture.culture)
-        : metres_per_second.ToString("#,0.000", Culture.culture);
+    if (high_precision_) {
+      // The granularity of Instant in 1950.
+      double dt = 2.3841857910156250e-7;  // 2⁻²² s.
+      double initial_acceleration =
+          thrust_in_kilonewtons_ / initial_mass_in_tonnes_;
+      double Isp = specific_impulse_in_seconds_g0_ * 9.80665;
+      // Allow an increment in speed which, if applied to the norm of the
+      // velocity, will always result in a change in the duration of the
+      // integrated burn.
+      double dv = dt * Math.Exp(Δv() / Isp) * initial_acceleration;
+      int fractional_digits = (int)Math.Min(Math.Floor(-Math.Log10(dv)), 10);
+      string unsigned_format = "00000." + new string('0', fractional_digits);
+      string format = $"+{unsigned_format};−{unsigned_format}";
+      return metres_per_second.ToString(format, Culture.culture);
+    } else {
+      return metres_per_second.ToString("#,0.000", Culture.culture);
+    }
   }
 
   internal string FormatPreviousCoastDuration(double seconds) {

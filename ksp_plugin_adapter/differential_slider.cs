@@ -21,8 +21,7 @@ internal class DifferentialSlider : ScalingRenderer {
                             ValueParser parser = null,
                             UnityEngine.Color? text_colour = null,
                             int label_width = 3,
-                            int field_width = 5,
-                            Func<bool> show_slider = null) {
+                            int field_width = 5) {
     label_ = label;
     label_width_ = label_width;
     field_width_ = field_width;
@@ -34,9 +33,10 @@ internal class DifferentialSlider : ScalingRenderer {
       formatter_ = formatter;
     }
     if (parser == null) {
-      // As a special exemption we allow a comma as the decimal separator.
+      // As a special exemption we allow a comma as the decimal separator and
+      // the HYPHEN-MINUS as a MINUS SIGN.
       parser_ = (string s, out double value) => double.TryParse(
-          s.Replace(',', '.'),
+          s.Replace('-', '−').Replace(',', '.'),
           NumberStyles.AllowDecimalPoint |
           NumberStyles.AllowLeadingSign |
           NumberStyles.AllowLeadingWhite |
@@ -89,7 +89,10 @@ internal class DifferentialSlider : ScalingRenderer {
 
   // Renders the |DifferentialSlider|.  Returns true if and only if |value|
   // changed.
-  public bool Render(bool enabled, bool show_slider = true) {
+  public bool Render(bool enabled,
+                     bool show_slider = true,
+                     UnityEngine.TextAnchor alignment =
+                         UnityEngine.TextAnchor.MiddleRight) {
     bool value_changed = false;
 
     using (new UnityEngine.GUILayout.HorizontalScope()) {
@@ -107,7 +110,7 @@ internal class DifferentialSlider : ScalingRenderer {
         // If the text is not syntactically correct, or it exceeds the upper
         // bound, inform the user by drawing it in the warning style.  Note the
         // fudge factor to account for uncertainty in text/double conversions.
-        var style = Style.RightAligned(UnityEngine.GUI.skin.textField);
+        var style = Style.Aligned(alignment, UnityEngine.GUI.skin.textField);
         if (!parser_(formatted_value_, out double v1) ||
             v1 > max_value_ + 0.1) {
           style = Style.Warning(style);
@@ -134,8 +137,8 @@ internal class DifferentialSlider : ScalingRenderer {
         formatted_value_ = UnityEngine.GUILayout.TextField(
             text    : formatted_value_,
             style   : style,
-            options : GUILayoutWidth(show_slider ? field_width_
-                                                 : field_width_ + 3));
+            options : show_slider ? GUILayoutWidth(field_width_)
+                                  : UnityEngine.GUILayout.ExpandWidth(true));
         var text_field = UnityEngine.GUILayoutUtility.GetLastRect();
 
         DisplayDigitAdjustmentIndicators(text_field, style);
@@ -216,7 +219,8 @@ internal class DifferentialSlider : ScalingRenderer {
         }
       } else {
         UnityEngine.GUILayout.Label(text    : formatted_value_,
-                                    style   : Style.RightAligned(
+                                    style   : Style.Aligned(
+                                        alignment,
                                         UnityEngine.GUI.skin.label),
                                     options : GUILayoutWidth(
                                         5 + (unit_ == null ? 2 : 0)));
