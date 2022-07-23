@@ -221,7 +221,7 @@ TEST_F(PluginCompatibilityTest, Reach) {
           (plugin->ephemeris_->trajectory(body)->EvaluatePosition(t) -
            dof.position()).Norm();
       double radii = periapsis_distance / body->mean_radius();
-      if (radii < 100) {
+      if (radii < 1000) {
         flybys.emplace(
             t,
             (std::stringstream{}
@@ -235,6 +235,7 @@ TEST_F(PluginCompatibilityTest, Reach) {
   for (auto const& [t, line] : flybys) {
     LOG(ERROR) << line;
   }
+  LOG(ERROR) << ifnity->flight_plan().actual_final_time();
   auto const venus_flyby_6_time = "1976-04-26T17:38:08"_TT + 0.1963192224502563 * Second;
   auto const Δv = ifnity->flight_plan().GetManœuvre(0).Δv();
   auto modified_burn = ifnity->flight_plan().GetManœuvre(0).burn();
