@@ -150,7 +150,9 @@ class BurnEditor : ScalingRenderer {
           is_inertially_fixed_ = !is_inertially_fixed_;
         }
         bool precision_was_high = high_precision_;
-        high_precision_ = UnityEngine.GUILayout.Toggle(high_precision_, "5.10");
+        high_precision_ = UnityEngine.GUILayout.Toggle(
+            high_precision_, "5.10",
+            GUILayoutWidth(3));
         if (precision_was_high != high_precision_) {
           // This resets the formatted values.
           Δv_tangent_.value = Δv_tangent_.value;

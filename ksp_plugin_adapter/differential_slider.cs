@@ -229,15 +229,17 @@ internal class DifferentialSlider : ScalingRenderer {
                                   options : GUILayoutWidth(
                                       unit_ == null ? 0 : 2));
 
-      if (enabled && show_slider) {
+      if (enabled) {
         if (!UnityEngine.Input.GetMouseButton(0)) {
           slider_position_ = 0;
         }
-        slider_position_ = UnityEngine.GUILayout.HorizontalSlider(
-            value      : slider_position_,
-            leftValue  : -1,
-            rightValue : 1,
-            options    : UnityEngine.GUILayout.ExpandWidth(true));
+        if (show_slider) {
+          slider_position_ = UnityEngine.GUILayout.HorizontalSlider(
+              value      : slider_position_,
+              leftValue  : -1,
+              rightValue : 1,
+              options    : UnityEngine.GUILayout.ExpandWidth(true));
+        }
 
         if (UnityEngine.GUILayout.Button("0", GUILayoutWidth(1))) {
           value_changed = true;
