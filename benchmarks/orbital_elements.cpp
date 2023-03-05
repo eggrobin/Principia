@@ -75,14 +75,14 @@ class OrbitalElementsBenchmark : public benchmark::Fixture {
     }();
   }
 
-  static not_null<std::unique_ptr<DiscreteTrajectory<GCRS>>>
-  EarthCentredTrajectory(
+  static not_null<std::unique_ptr<DiscreteTrajectory<ICRS>>>
+  EarthOrbitTrajectory(
       KeplerianElements<GCRS> const& initial_osculating_elements,
       Instant const& initial_time,
       Instant const& final_time) {
     BodyCentredNonRotatingDynamicFrame<ICRS, GCRS> gcrs{ephemeris_, earth_};
-    DiscreteTrajectory<ICRS> icrs_trajectory;
-    icrs_trajectory.segments().front().SetDownsampling(
+    auto icrs_trajectory = make_not_null_unique<DiscreteTrajectory<ICRS>>();
+    icrs_trajectory->segments().front().SetDownsampling(
         DiscreteTrajectorySegment<ICRS>::DownsamplingParameters{
             .max_dense_intervals = 10'000,
             .tolerance = 1 * Milli(Metre),
@@ -92,13 +92,13 @@ class OrbitalElementsBenchmark : public benchmark::Fixture {
         MasslessBody{},
         initial_osculating_elements,
         initial_time};
-    CHECK_OK(icrs_trajectory.Append(
+    CHECK_OK(icrs_trajectory->Append(
         initial_time,
         gcrs.FromThisFrameAtTime(initial_time)(
             DegreesOfFreedom<GCRS>{GCRS::origin, GCRS::unmoving} +
             initial_osculating_orbit.StateVectors(initial_time))));
     auto instance = ephemeris_->NewInstance(
-        {&icrs_trajectory},
+        {icrs_trajectory.get()},
         Ephemeris<ICRS>::NoIntrinsicAccelerations,
         Ephemeris<ICRS>::FixedStepParameters(
             SymmetricLinearMultistepIntegrator<
@@ -106,12 +106,7 @@ class OrbitalElementsBenchmark : public benchmark::Fixture {
                 Ephemeris<ICRS>::NewtonianMotionEquation>(),
             /*step=*/10 * Second));
     CHECK_OK(ephemeris_->FlowWithFixedStep(final_time, *instance));
-    auto result = make_not_null_unique<DiscreteTrajectory<GCRS>>();
-    for (auto const& [time, degrees_of_freedom] : icrs_trajectory) {
-      CHECK_OK(result->Append(
-          time, gcrs.ToThisFrameAtTime(time)(degrees_of_freedom)));
-    }
-    return result;
+    return icrs_trajectory;
   }
 
   static SolarSystem<ICRS>* solar_system_;
@@ -136,11 +131,17 @@ BENCHMARK_F(OrbitalElementsBenchmark, ComputeOrbitalElementsEquatorial)(
   initial_osculating.longitude_of_ascending_node = 10 * Degree;
   initial_osculating.argument_of_periapsis = 20 * Degree;
   initial_osculating.mean_anomaly = 30 * Degree;
+  BodyCentredNonRotatingDynamicFrame<ICRS, GCRS> gcrs{ephemeris_, earth_};
   auto const trajectory =
-      EarthCentredTrajectory(initial_osculating, J2000, final_time);
+      EarthOrbitTrajectory(initial_osculating, J2000, final_time);
   for (auto _ : state) {
-    benchmark::DoNotOptimize(
-        OrbitalElements::ForTrajectory(*trajectory, *earth_, MasslessBody{}));
+    DiscreteTrajectory<GCRS> gcrs_trajectory;
+    for (auto const& [time, degrees_of_freedom] : *trajectory) {
+      CHECK_OK(gcrs_trajectory.Append(
+          time, gcrs.ToThisFrameAtTime(time)(degrees_of_freedom)));
+    }
+    benchmark::DoNotOptimize(OrbitalElements::ForTrajectory(
+        gcrs_trajectory, *earth_, MasslessBody{}));
   }
 }
 
@@ -157,11 +158,17 @@ BENCHMARK_F(OrbitalElementsBenchmark, ComputeOrbitalElementsInclined)(
   initial_osculating.longitude_of_ascending_node = 10 * Degree;
   initial_osculating.argument_of_periapsis = 20 * Degree;
   initial_osculating.mean_anomaly = 30 * Degree;
+  BodyCentredNonRotatingDynamicFrame<ICRS, GCRS> gcrs{ephemeris_, earth_};
   auto const trajectory =
-      EarthCentredTrajectory(initial_osculating, J2000, final_time);
+      EarthOrbitTrajectory(initial_osculating, J2000, final_time);
   for (auto _ : state) {
-    benchmark::DoNotOptimize(
-        OrbitalElements::ForTrajectory(*trajectory, *earth_, MasslessBody{}));
+    DiscreteTrajectory<GCRS> gcrs_trajectory;
+    for (auto const& [time, degrees_of_freedom] : *trajectory) {
+      CHECK_OK(gcrs_trajectory.Append(
+          time, gcrs.ToThisFrameAtTime(time)(degrees_of_freedom)));
+    }
+    benchmark::DoNotOptimize(OrbitalElements::ForTrajectory(
+        gcrs_trajectory, *earth_, MasslessBody{}));
   }
 }
 
