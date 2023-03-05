@@ -135,13 +135,8 @@ BENCHMARK_F(OrbitalElementsBenchmark, ComputeOrbitalElementsEquatorial)(
   auto const trajectory =
       EarthOrbitTrajectory(initial_osculating, J2000, final_time);
   for (auto _ : state) {
-    DiscreteTrajectory<GCRS> gcrs_trajectory;
-    for (auto const& [time, degrees_of_freedom] : *trajectory) {
-      CHECK_OK(gcrs_trajectory.Append(
-          time, gcrs.ToThisFrameAtTime(time)(degrees_of_freedom)));
-    }
     benchmark::DoNotOptimize(OrbitalElements::ForTrajectory(
-        gcrs_trajectory, *earth_, MasslessBody{}));
+        *trajectory, gcrs, *earth_, MasslessBody{}));
   }
 }
 
@@ -168,7 +163,7 @@ BENCHMARK_F(OrbitalElementsBenchmark, ComputeOrbitalElementsInclined)(
           time, gcrs.ToThisFrameAtTime(time)(degrees_of_freedom)));
     }
     benchmark::DoNotOptimize(OrbitalElements::ForTrajectory(
-        gcrs_trajectory, *earth_, MasslessBody{}));
+        *trajectory, gcrs, *earth_, MasslessBody{}));
   }
 }
 
