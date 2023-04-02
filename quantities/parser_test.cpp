@@ -13,7 +13,10 @@ namespace principia {
 namespace quantities {
 
 using namespace principia::quantities::_astronomy;
+using namespace principia::quantities::_elementary_functions;
+using namespace principia::quantities::_named_quantities;
 using namespace principia::quantities::_parser;
+using namespace principia::quantities::_quantities;
 using namespace principia::quantities::_si;
 using namespace principia::testing_utilities::_almost_equals;
 

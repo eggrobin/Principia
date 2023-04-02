@@ -387,11 +387,6 @@ DoublePrecision<Quotient<T, U>> operator/(DoublePrecision<T> const& left,
 
 template<typename T>
 std::string DebugString(DoublePrecision<T> const& double_precision) {
-  // We use |DebugString| to get all digits when |T| is |double|.  In that case
-  // ADL will not find it, so we need the |using|.  For some values of |T|,
-  // |DebugString| will come from elsewhere, so we cannot directly call
-  // |quantities::Multivector|.
-  using quantities::DebugString;
   return DebugString(double_precision.value) + "|" +
          DebugString(double_precision.error);
 }

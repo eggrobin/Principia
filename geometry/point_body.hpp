@@ -186,7 +186,6 @@ NextDown(Point<Vector> const x) {
 
 template<typename Vector>
 std::string DebugString(Point<Vector> const& point) {
-  using quantities::DebugString;
   return DebugString(point.coordinates_);
 }
 

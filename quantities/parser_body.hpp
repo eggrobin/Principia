@@ -17,8 +17,10 @@ namespace _parser {
 namespace internal {
 
 using namespace principia::quantities::_astronomy;
-using namespace principia::quantities::_dimensions;
 using namespace principia::quantities::_bipm;
+using namespace principia::quantities::_dimensions;
+using namespace principia::quantities::_quantities;
+using namespace principia::quantities::_si;
 
 using RuntimeDimensions = std::array<std::int64_t, 8>;
 

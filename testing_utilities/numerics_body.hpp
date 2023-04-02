@@ -12,9 +12,12 @@ namespace testing_utilities {
 namespace _numerics {
 namespace internal {
 
+using namespace principia::quantities::_elementary_functions;
+using namespace principia::quantities::_si;
+
 template<typename Scalar>
 double DoubleValue(Scalar const& scalar) {
-  return scalar / quantities::si::Unit<Scalar>;
+  return scalar / si::Unit<Scalar>;
 }
 
 template<typename T, typename NormType>
@@ -30,15 +33,13 @@ NormType AbsoluteError(T const& expected, T const& actual,
 }
 
 inline double AbsoluteError(double const expected, double const actual) {
-  return AbsoluteError(expected, actual, &quantities::Abs<double>);
+  return AbsoluteError(expected, actual, &Abs<double>);
 }
 
 template<typename Dimensions>
-quantities::Quantity<Dimensions> AbsoluteError(
-    quantities::Quantity<Dimensions> const& expected,
-    quantities::Quantity<Dimensions> const& actual) {
-  return AbsoluteError(
-      expected, actual, &quantities::Abs<quantities::Quantity<Dimensions>>);
+Quantity<Dimensions> AbsoluteError(Quantity<Dimensions> const& expected,
+                                   Quantity<Dimensions> const& actual) {
+  return AbsoluteError(expected, actual, &Abs<Quantity<Dimensions>>);
 }
 
 template<typename Scalar>
@@ -94,14 +95,14 @@ double RelativeError(T const& expected, T const& actual,
 }
 
 inline double RelativeError(double const expected, double const actual) {
-  return RelativeError(expected, actual, &quantities::Abs<double>);
+  return RelativeError(expected, actual, &Abs<double>);
 }
 
 template<typename Dimensions>
-double RelativeError(quantities::Quantity<Dimensions> const& expected,
-                     quantities::Quantity<Dimensions> const& actual) {
+double RelativeError(Quantity<Dimensions> const& expected,
+                     Quantity<Dimensions> const& actual) {
   return RelativeError(
-      expected, actual, &quantities::Abs<quantities::Quantity<Dimensions>>);
+      expected, actual, &Abs<Quantity<Dimensions>>);
 }
 
 template<typename Scalar>

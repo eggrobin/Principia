@@ -16,6 +16,8 @@ namespace testing_utilities {
 namespace _matchers {
 namespace internal {
 
+using namespace principia::quantities::_quantities;
+
 // This is not defined in base/status_utilities.hpp to avoid pulling gmock in
 // non-test code.
 #define EXPECT_OK(value) \
@@ -49,15 +51,15 @@ MATCHER_P(StatusIs,
 
 MATCHER_P(SSEHighHalfIs,
           value,
-          std::string(negation ? "does not have" : "has") + " high half: " +
-              ::principia::quantities::DebugString(value)) {
+          std::string(negation ? "does not have" : "has") +
+              " high half: " + DebugString(value)) {
   return _mm_cvtsd_f64(_mm_unpackhi_pd(arg, arg)) == value;
 }
 
 MATCHER_P(SSELowHalfIs,
           value,
-          std::string(negation ? "does not have" : "has") + " low half: " +
-              ::principia::quantities::DebugString(value)) {
+          std::string(negation ? "does not have" : "has") +
+              " low half: " + DebugString(value)) {
   return _mm_cvtsd_f64(arg) == value;
 }
 

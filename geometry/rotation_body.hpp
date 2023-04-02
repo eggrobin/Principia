@@ -67,7 +67,7 @@ FORCE_INLINE(inline) Quaternion ToQuaternion(R3x3Matrix<double> const& matrix) {
 
 // Returns a rotation of |angle| around |axis|.  |axis| must be normalized.
 inline Quaternion AngleAxis(Angle const& angle, R3Element<double> const& axis) {
-  quantities::Angle const half_angle = 0.5 * angle;
+  Angle const half_angle = 0.5 * angle;
   return Quaternion(Cos(half_angle), Sin(half_angle) * axis);
 }
 
@@ -85,7 +85,7 @@ Rotation<FromFrame, ToFrame>::Rotation(Quaternion const& quaternion)
 
 template<typename FromFrame, typename ToFrame>
 template<typename Scalar, typename F, typename T, typename>
-Rotation<FromFrame, ToFrame>::Rotation(quantities::Angle const& angle,
+Rotation<FromFrame, ToFrame>::Rotation(Angle const& angle,
                                        Bivector<Scalar, FromFrame> const& axis)
     : Rotation(AngleAxis(angle, Normalize(axis).coordinates())) {}
 
