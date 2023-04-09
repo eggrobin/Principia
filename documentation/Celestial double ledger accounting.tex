@@ -1,0 +1,222 @@
+\documentclass[10pt, a4paper, twoside]{basestyle}
+
+\usepackage{tikz}
+\usetikzlibrary{cd}
+
+\usepackage[Mathematics]{semtex}
+
+%%%% Shorthands.
+
+%%%% Title and authors.
+
+\title{Celestial double ledger accounting}
+\date{\printdate{2023-04-08}}
+\author{Lamont~Granquist and Robin~Leroy (egg)}
+\begin{document}
+\maketitle
+
+\section{Introduction}\label{introduction}
+Consider a rocket with $9\,000\text{ m/s}$ of vacuum $\increment v$, \idest,
+capable of reaching $9\,000\text{ m/s}$ from a standstill in a vacuum.
+Launch it from Earth; it starts out going at $400\text{ m/s}$ eastward, yet
+it runs out of fuel in orbit going $7\,800\text{ m/s}$.
+What happened to $1\,400\text{ m/s}$?
+Consider another rocket with $12\,000\text{ m/s}$ of vacuum $\increment v$,
+launch it from Earth, it runs out of fuel reaching the same orbit as the other one.
+What happened to another $3\,000\text{ m/s}$?
+
+The vacuum $\increment v$ of a rocket is
+\begin{equation}
+\increment v_{\text{vac}}=
+\log\frac{m_{\text{final}}}{m_{\text{initial}}}
+I_{\text{sp vac}}
+=
+\int{m_{\text{initial}}}[m_{\text{final}}]
+\frac{I_{\text{sp vac}}}{m} \diffd m \text,\label{vacuumΔv}
+\end{equation}
+where we use specific impulse \emph{stricto sensu},
+impulse divided by mass\footnote{For specific
+impulse with a dimension of time, multiply it by standard gravity to
+give it the dimension of impulse divided by mass;
+we do not involve standard gravity in the equations here
+as it would only serve to obscure the physics.},
+whose SI unit is the Newton-second per kilogram.
+
+
+\section{Losses}
+Consider a rocket of time-varying mass $m$ with velocity $\vv$, subject to 
+an overall force $\vF$.
+The rate of change of its speed is
+\begin{equation}
+\deriv t v = \derivop t \sqrt{\scal{\vv}{\vv}}
+= \frac{\scal{\TimeDerivative\vv}{\vv}}{\sqrt{\scal{\vv}{\vv}}}
+= \scal{\TimeDerivative\vv}{\hat{\vv}}
+= \scal{\frac{\vF}{m}}{\hat{\vv}}\text.\label{speedDerivative}
+\end{equation}
+Splitting up the force $\vF$, working in an inertial reference frame
+so that we do not get fictitious forces, we get
+\begin{equation}
+\deriv t v =
+\scal{\frac{\vF_{\text{thrust}}}{m}}{\hat{\vv}} +
+\scal{\frac{\vF_{\text{aerodynamic}}}{m}}{\hat{\vv}} +
+\scal{\frac{\vF_{\text{gravitational}}}{m}}{\hat{\vv}}\text.
+\label{forces}
+\end{equation}
+Aerodynamic forces along the direction of travel have a name,
+and they really go \emph{against} the direction of travel:
+\[
+\deriv t v =
+\scal{\frac{\vF_{\text{thrust}}}{m}}{\hat{\vv}} -
+\frac{F_{\text{drag}}}{m} +
+\scal{\frac{\vF_{\text{gravitational}}}{m}}{\hat{\vv}}\text.
+\]
+Only the thrust along the direction of travel
+contributes to the increase in velocity:
+\[
+\deriv t v =
+\frac{F_{\text{thrust}}}{m} -
+\frac{F_{\text{thrust}}}{m}
+\pa{1-\scal{\hat{\vF}_{\text{thrust}}}{\hat{\vv}}} -
+\frac{F_{\text{drag}}}{m} +
+\scal{\frac{\vF_{\text{gravitational}}}{m}}{\hat{\vv}}\text.
+\]
+The thrust of a rocket depends on the current specific impulse and mass flow:
+\[
+\deriv t v =
+\frac{I_{\text{sp}}}{m} \TimeDerivative m -
+\frac{F_{\text{thrust}}}{m}
+\pa{1-\scal{\hat{\vF}_{\text{thrust}}}{\hat{\vv}}} -
+\frac{F_{\text{drag}}}{m} +
+\scal{\frac{\vF_{\text{gravitational}}}{m}}{\hat{\vv}}\text.
+\]
+In turn the specific impulse diminishes with atmospheric pressure:
+\[
+\deriv t v =
+\frac{I_{\text{sp vac}}}{m} \TimeDerivative m -
+\frac{\increment I_{\text{sp}}\of{P}}	{m} \TimeDerivative m -
+\frac{F_{\text{thrust}}}{m}
+\pa{1-\scal{\hat{\vF}_{\text{thrust}}}{\hat{\vv}}} -
+\frac{F_{\text{drag}}}{m} +
+\scal{\frac{\vF_{\text{gravitational}}}{m}}{\hat{\vv}}\text.
+\label{instantaneouslosses}
+\]
+Compare with (\ref{vacuumΔv}) and observe that the first term here is the rate of consumption of vacuum $\increment v$.
+Integrating over the ascent, we get the relation between the actual change in speed
+and the expended vacuum $\increment v$:
+\begin{align}
+\increment v_{\text{actual}} =
+\increment v_{\text{vac}} &-
+\underbrace{
+\int{}
+\increment I_{\text{sp}}\of{P} \frac{\diffd m}{m}
+}_{\text{backpressure losses}} -
+\underbrace{
+\int{}
+\frac{F_{\text{thrust}}}{m}
+\pa{1-\scal{\hat{\vF}_{\text{thrust}}}{\hat{\vv}}}\diffd t
+}_{\text{steering losses}}\nonumber
+ \\&-
+\underbrace{
+\int{}
+\frac{F_{\text{drag}}}{m}\diffd t
+}_{\text{drag losses}} +
+\underbrace{
+\int{}
+\scal{\frac{\vF_{\text{gravitational}}}{m}}{\hat{\vv}}\diffd t
+}_{\text{gravity losses}}\text.\label{losses}
+\end{align}
+The terms that account for the difference between the actual change in speed
+and the expended vacuum $\increment v$ are termed \emph{losses}.
+The names \emph{steering}, \emph{drag}, and \emph{gravity} losses are from [TODO CITE].
+
+Backpressure and drag losses are reasonably self-explanatory;
+in order to better understand the other two terms, we will consider the case where they vanish,
+\idest, a vacuum, in the remainder of this document:
+\begin{equation}
+\increment v_{\text{actual}} =
+\increment v_{\text{vac}} -
+\underbrace{
+\int{t_{\text{initial}}}[t_{\text{final}}]
+\frac{F_{\text{thrust}}}{m}
+\pa{1-\scal{\hat{\vF}_{\text{thrust}}}{\hat{\vv}}}\diffd t
+}_{\text{steering losses}}
++
+\underbrace{
+\int{t_{\text{initial}}}[t_{\text{final}}]
+\scal{\frac{\vF_{\text{gravitational}}}{m}}{\hat{\vv}}\diffd t
+}_{\text{gravity losses}}\text.\label{lossesVacuum}
+\end{equation}
+
+\section{Work and Oberth}
+
+While equation (\ref{losses}) accounts for the difference described in Section \ref{introduction},
+not all terms represent actual losses. In particular, in free fall, gravity losses accrue
+when going up, but are recouped when going down; they cycle over the course of a revolution 
+on an eccentric orbit.
+
+Consider the specific kinetic energy $T=\frac{v^2}{2}$. Its rate of change is\begin{equation}
+\TimeDerivative T = \deriv t v v = \scal{\frac{\vF}{m}}{\vv}\text,\label{kineticEnergyDerivative}
+\end{equation}
+the specific work done by $\vF$, where we have used (\ref{speedDerivative}).
+Thus each term in (\ref{forces}) corresponds to the work done by one of the forces.
+In particular, steering losses correspond to thrust not doing work, \idest, not contributing to
+the orbital energy.
+
+The interpretation of gravity losses is more complex;
+gravity preserves the sum of the specific kinetic energy and the
+specific gravitational potential energy:
+work done by gravity is gained as potential energy.
+We could split and integrate (\ref{kineticEnergyDerivative}) like (\ref{speedDerivative}) to get\begin{equation}
+\increment T =
+\underbrace{
+\int{}\frac{F_{\text{thrust}}}{m}\diffd s
+}_{E_{\text{thrust}}} -
+\underbrace{
+\int{}\frac{F_{\text{thrust}}}{m}\pa{1-\scal{\hat{\vF}_{\text{thrust}}}{\diffd \vs}}
+}_{E_{\text{thrust}}-W_{\text{thrust}}} +
+\increment V_{\text{gravitational}}\text.
+\label{energies}
+\end{equation}
+There is however an important difference between equations (\ref{energies}) and (\ref{lossesVacuum}).
+The energy $E_{\text{thrust}}$ is not a fixed property of the rocket like the $\increment v$ budget;
+it is path dependent, as the same $\increment v$ applied at greater speed results in a greater gain
+in kinetic energy; thus in order to maximize the gain in orbital energy, beyond thrusting along
+the direction of travel, one needs to maximize the speed at which thrust is applied: this is the Oberth effect [TODO CITE Oberth Ch. 12].
+
+Conversely, whereas $\increment V_{\text{gravitational}}$ is path-independent in (\ref{energies}),
+gravity losses are path-dependent, \idest, they describe some property of the ascent profile.
+Specifically, gravity losses are lessened if the rocket has a greater speed (in any direction) when
+rising in the potential.
+In turn this means that this speed should have been gained lower in the potential, thus
+while going faster: this is a roundabout expression of the Oberth effect.
+\paragraph{Summary:}\begin{enumerate}
+\item steering losses are $\increment v$ expended not increasing the orbital energy;
+\item gravity losses are a combination of:\begin{enumerate}
+\item $\increment v$ turned into
+gravitational potential energy (thus they can never be $0$, even with a horizontal
+instant impulse, so long as the orbit is above the ground),
+\item an expression of the Oberth effect (so they depend on the ascent profile).
+\end{enumerate}
+\end{enumerate}
+
+\section{Thrust up bad, thrust sideways good}
+KSP players have a strong intuition that thrust expended upward is wasted.
+
+There are cases where upward thrust is related to the losses described in preceding section;
+for instance, at launch on a rotating planet, thrust upward is pure steering losses, being
+orthogonal to the direction of motion.
+With low thrust, thrusting upward also causes the rocket to rise in the potential with a
+lower speed than thrusting sideways, so it causes gravity losses; but this is a fairly
+high order effect.
+Indeed, if one considers a launch with instant impulse from a non-rotating planet,
+there are no steering losses and the impulse takes full advantage of the Oberth effect;
+yet in a sense that impulse is still wasted,
+in that it will not help the vessel get into orbit.
+
+The intuition that thrust should be sideways is instead related to the other invariant of the orbit,
+angular momentum: only horizontal thrust contributes to it.
+An accounting of horizontal speed similar to (\ref{losses}) may be used to express that.
+
+[TODO(egg): do it.]
+
+\end{document}
