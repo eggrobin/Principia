@@ -198,6 +198,7 @@ instant impulse, so long as the orbit is above the ground),
 \item an expression of the Oberth effect (so they depend on the ascent profile).
 \end{enumerate}
 \end{enumerate}
+[TODO(egg): Can we split gravity losses between these potential and Oberth parts?]
 
 \section{Thrust up bad, thrust sideways good}
 KSP players have a strong intuition that thrust expended upward is wasted.
@@ -217,6 +218,23 @@ The intuition that thrust should be sideways is instead related to the other inv
 angular momentum: only horizontal thrust contributes to it.
 An accounting of horizontal speed similar to (\ref{losses}) may be used to express that.
 
-[TODO(egg): do it.]
+Let $\hat{\vz}$ be the unit zenithal vector.
+Vertical speed is $v_z\DefineAs\scal{\vv}{\hat{\vz}}$.
+Horizontal velocity is $\vv_{xy}\DefineAs\vv-v_z\hat{\vz}$,
+horizontal speed $v_{xy}$ is its norm.
+The derivative of the unit zenithal vector is\[
+\deriv t {\hat{\vz}} = \frac{\vv_{xy}}{r}\text,
+\]
+where $r$ is the distance from the centre of the planet.
+For the derivative of horizontal speed, we have
+\begin{align*}
+\deriv t {v_{xy}}
+= \frac{\scal{\vv_{xy}}{\deriv t {\vv_{xy}}}}{v_{xy}}
+&= \scal{\hat{\vv}_{xy}}{\pascal{\TimeDerivative\vv-\hat{\vz}\deriv t {v_z} - v_z \deriv t{\hat{\vz}}}}\\
+&= \scal{\hat{\vv}_{xy}}{\pascal{\TimeDerivative\vv- v_z \deriv t{\hat{\vz}}}}\\
+\intertext{where we have used the orthogonality of $\hat{\vz}$ and $\hat{\vv}_{xy}$,}
+&= \scal{\hat{\vv}_{xy}}{\TimeDerivative\vv}- \frac{v_zv_{xy}}{r}\\
+\end{align*}
+[TODO(egg): Finish this.]
 
 \end{document}
