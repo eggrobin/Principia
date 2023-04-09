@@ -107,21 +107,21 @@ and the expended vacuum $\increment v$:
 \increment v_{\text{actual}} =
 \increment v_{\text{vac}} &-
 \underbrace{
-\int{}
+\integralSign
 \increment I_{\text{sp}}\of{P} \frac{\diffd m}{m}
 }_{\text{backpressure losses}} -
 \underbrace{
-\int{}
+\integralSign
 \frac{F_{\text{thrust}}}{m}
 \pa{1-\scal{\hat{\vF}_{\text{thrust}}}{\hat{\vv}}}\diffd t
 }_{\text{steering losses}}\nonumber
  \\&-
 \underbrace{
-\int{}
+\integralSign
 \frac{F_{\text{drag}}}{m}\diffd t
 }_{\text{drag losses}} +
 \underbrace{
-\int{}
+\integralSign
 \scal{\frac{\vF_{\text{gravitational}}}{m}}{\hat{\vv}}\diffd t
 }_{\text{gravity losses}}\text.\label{losses}
 \end{align}
@@ -136,13 +136,13 @@ in order to better understand the other two terms, we will consider the case whe
 \increment v_{\text{actual}} =
 \increment v_{\text{vac}} -
 \underbrace{
-\int{}
+\integralSign
 \frac{F_{\text{thrust}}}{m}
 \pa{1-\scal{\hat{\vF}_{\text{thrust}}}{\hat{\vv}}}\diffd t
 }_{\text{steering losses}}
 +
 \underbrace{
-\int{}
+\integralSign
 \scal{\frac{\vF_{\text{gravitational}}}{m}}{\hat{\vv}}\diffd t
 }_{\text{gravity losses}}\text.\label{lossesVacuum}
 \end{equation}
@@ -169,10 +169,10 @@ work done by gravity is gained as potential energy.
 We could split and integrate (\ref{kineticEnergyDerivative}) like (\ref{speedDerivative}) to get\begin{equation}
 \increment T =
 \underbrace{
-\int{}\frac{F_{\text{thrust}}}{m}\diffd s
+\integralSign\frac{F_{\text{thrust}}}{m}\diffd s
 }_{E_{\text{thrust}}} -
 \underbrace{
-\int{}\frac{F_{\text{thrust}}}{m}\pa{1-\scal{\hat{\vF}_{\text{thrust}}}{\diffd \vs}}
+\integralSign\frac{F_{\text{thrust}}}{m}\pa{1-\scal{\hat{\vF}_{\text{thrust}}}{\diffd \vs}}
 }_{E_{\text{thrust}}-W_{\text{thrust}}} +
 \increment V_{\text{gravitational}}\text.
 \label{energies}
