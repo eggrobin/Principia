@@ -30,7 +30,7 @@ jobs:
         $event = (Get-Content -Raw $env:GITHUB_EVENT_PATH | ConvertFrom-Json)
         echo $event
         echo $event.after
-        $event.pull_request.title + $event.pull_request.body
+        $event.head_commit.message
         | Should -Not -MatchExactly (
               [System.Text.ASCIIEncoding]::new().GetString(
                   [System.Text.Encoding]::GetEncoding(20866).GetBytes(
