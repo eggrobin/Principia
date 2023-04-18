@@ -28,6 +28,8 @@ jobs:
       shell: pwsh
       run: |
         $event = (Get-Content -Raw $env:GITHUB_EVENT_PATH | ConvertTo-Json)
+        echo $event
+        echo $event.after
         $event.pull_request.title + $event.pull_request.body
         | Should -Not -MatchExactly (
               [System.Text.ASCIIEncoding]::new().GetString(
