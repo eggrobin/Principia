@@ -15,10 +15,7 @@ jobs:
       shell: pwsh
       run: |
         ls -Recurse
-        | sls -CaseSensitive (
-              [System.Text.ASCIIEncoding]::new().GetString(
-                  [System.Text.Encoding]::GetEncoding(20866).GetBytes(
-                      "реможе бефоре флигхт").ForEach({$_ -band 0x7F})))
+        | sls -CaseSensitive "REMOVE BEFORE FLIGHT"
         | Should -Be @()
 
   check-pull-request:
