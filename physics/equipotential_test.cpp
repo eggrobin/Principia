@@ -659,6 +659,7 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
     logger.Append("argMaximorum", arg_maximorum, ExpressIn(Metre));
     std::vector<SpecificEnergy> maxima;
     SpecificEnergy maximum_maximorum = -Infinity<SpecificEnergy>;
+    SpecificEnergy minimum_maximorum = Infinity<SpecificEnergy>;
 
     Position<World> const earth_position =
         reference_frame.ToThisFrameAtTimeSimilarly(t0_).similarity()(
@@ -669,6 +670,7 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
     for (auto const& arg_maximum : arg_maximorum) {
       maxima.push_back(potential(arg_maximum));
       maximum_maximorum = std::max(maximum_maximorum, maxima.back());
+      minimum_maximorum = std::min(minimum_maximorum, maxima.back());
     }
     logger.Append("maxima", maxima, ExpressIn(Metre, Second));
 
@@ -727,15 +729,16 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
       }
     }
     std::vector<SpecificEnergy> l245_separators{approx_l2_energy};
-    for (auto const maximum : maxima) {
-      l245_separators.push_back(
-          maximum - (maximum - approx_l1_energy) /
-                        (4 * Sqrt(reference_frame.primaries()
-                                      .front()
-                                      ->gravitational_parameter() /
-                                  reference_frame.secondaries()
-                                      .front()
-                                      ->gravitational_parameter())));
+    SpecificEnergy const fine =
+        (maximum_maximorum - approx_l1_energy) /
+        (4 *
+         Sqrt(
+             reference_frame.primaries().front()->gravitational_parameter() /
+             reference_frame.secondaries().front()->gravitational_parameter()));
+    SpecificEnergy maximum_separator = maximum_maximorum;
+    while (maximum_separator >= minimum_maximorum) {
+      maximum_separator -= fine;
+      l245_separators.push_back(maximum_separator);
     }
     for (SpecificEnergy const energy : l245_separators) {
       auto& equipotentials_at_energy = equipotentials_at_t.emplace_back();
