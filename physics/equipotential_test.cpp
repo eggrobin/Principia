@@ -595,10 +595,10 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
   std::vector<AngularVelocity<Barycentric>> angular_velocities;
   std::vector<AngularVelocity<World>> angular_velocities_in_world;
   for (auto const [primaries, secondaries] :
-       {//std::pair{std::vector{sun}, std::vector{uranus}},
-        /*std::pair{
+       {std::pair{std::vector{sun}, std::vector{uranus}},
+        std::pair{
             std::vector{sun},
-            std::vector{uranus, miranda, ariel, umbriel, titania, oberon}},*/
+            std::vector{uranus, miranda, ariel, umbriel, titania, oberon}},
         /*std::pair{
             std::vector{
                 sun, mercury, venus, earth, moon, mars, jupiter, saturn},
@@ -708,7 +708,7 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
           .Norm();
     };
     SpecificEnergy const ΔV = maximum_maximorum - approx_l1_energy;
-    for (int i = 1; i <= 12; ++i) {
+    for (int i = 1; i <= 8; ++i) {
       SpecificEnergy const energy = maximum_maximorum - i * (1.0 / 7.0 * ΔV);
       std::vector<std::vector<Position<World>>>& equipotentials_at_energy =
           equipotentials_at_t.emplace_back();
@@ -738,8 +738,8 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
              reference_frame.primaries().front()->gravitational_parameter() /
              reference_frame.secondaries().front()->gravitational_parameter()));
     SpecificEnergy maximum_separator = maximum_maximorum;
-    while (maximum_separator >= minimum_maximorum) {
-      maximum_separator -= fine;
+    for (int n = 0; maximum_separator >= minimum_maximorum; ++n) {
+      maximum_separator = maximum_maximorum - fine * std::exp(n);
       l245_separators.push_back(maximum_separator);
     }
     for (SpecificEnergy const energy : l245_separators) {
