@@ -595,14 +595,14 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
   std::vector<AngularVelocity<Barycentric>> angular_velocities;
   std::vector<AngularVelocity<World>> angular_velocities_in_world;
   for (auto const [primaries, secondaries] :
-       {std::pair{std::vector{sun}, std::vector{uranus}},
-        std::pair{
+       {//std::pair{std::vector{sun}, std::vector{uranus}},
+        /*std::pair{
             std::vector{sun},
-            std::vector{uranus, miranda, ariel, umbriel, titania, oberon}},
-        std::pair{
+            std::vector{uranus, miranda, ariel, umbriel, titania, oberon}},*/
+        /*std::pair{
             std::vector{
                 sun, mercury, venus, earth, moon, mars, jupiter, saturn},
-            std::vector{uranus, miranda, ariel, umbriel, titania, oberon}},
+            std::vector{uranus, miranda, ariel, umbriel, titania, oberon}},*/
         std::pair{
             all_inner,
             std::vector{uranus, miranda, ariel, umbriel, titania, oberon}}}) {
@@ -699,6 +699,8 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
         std::pair(moon_position,
                   World::origin + 2 * (moon_position - World::origin)),
         std::pair(arg_approx_l2, 1 - arg_approx_l2)));
+    logger.Append("approxL1Energy", approx_l1_energy, ExpressIn(Metre, Second));
+    logger.Append("approxL2Energy", approx_l2_energy, ExpressIn(Metre, Second));
     // TODO(egg): Somehow extract that from the reference frame.
     auto const r = [&](Instant const& t) -> Length {
       return (ephemeris_->trajectory(sun)->EvaluatePosition(t) -
