@@ -594,6 +594,7 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
       equipotentials;
   std::vector<AngularVelocity<Barycentric>> angular_velocities;
   std::vector<AngularVelocity<World>> angular_velocities_in_world;
+  std::vector<std::vector<SpecificEnergy>> energies;
   for (auto const [primaries, secondaries] :
        {std::pair{std::vector{sun}, std::vector{uranus}},
         std::pair{
@@ -606,6 +607,7 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
         std::pair{
             all_inner,
             std::vector{uranus, miranda, ariel, umbriel, titania, oberon}}}) {
+    energies.emplace_back();
     auto const reference_frame(
         RotatingPulsatingReferenceFrame<Barycentric, World>(
             ephemeris_.get(), primaries, secondaries));
@@ -707,9 +709,21 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
               ephemeris_->trajectory(uranus)->EvaluatePosition(t))
           .Norm();
     };
-    SpecificEnergy const ΔV = maximum_maximorum - approx_l1_energy;
-    for (int i = 1; i <= 8; ++i) {
-      SpecificEnergy const energy = maximum_maximorum - i * (1.0 / 7.0 * ΔV);
+    SpecificEnergy const ΔV =
+        (maximum_maximorum - approx_l1_energy) /
+        (4 *
+         Sqrt(
+             reference_frame.primaries().front()->gravitational_parameter() /
+             reference_frame.secondaries().front()->gravitational_parameter()));
+    SpecificEnergy const a =
+        (maximum_maximorum - approx_l1_energy) / 8 *
+        std::pow((maximum_maximorum - approx_l1_energy) / (8 * ΔV), 1.0 / 7.0);
+    double const k =
+        8 * std::log((maximum_maximorum - approx_l1_energy) / (8 * ΔV));
+    for (int i = 1; i <= 9; ++i) {
+      SpecificEnergy const energy =
+          maximum_maximorum - a * i * std::exp(-k / i);
+      energies.back().push_back(energy);
       std::vector<std::vector<Position<World>>>& equipotentials_at_energy =
           equipotentials_at_t.emplace_back();
       auto const& lines = equipotential.ComputeLines(
@@ -730,19 +744,7 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
         }
       }
     }
-    std::vector<SpecificEnergy> l245_separators{approx_l2_energy};
-    SpecificEnergy const fine =
-        (maximum_maximorum - approx_l1_energy) /
-        (4 *
-         Sqrt(
-             reference_frame.primaries().front()->gravitational_parameter() /
-             reference_frame.secondaries().front()->gravitational_parameter()));
-    SpecificEnergy maximum_separator = maximum_maximorum;
-    for (int n = 0; maximum_separator >= minimum_maximorum; ++n) {
-      maximum_separator = maximum_maximorum - fine * std::exp(n);
-      l245_separators.push_back(maximum_separator);
-    }
-    for (SpecificEnergy const energy : l245_separators) {
+    for (SpecificEnergy const energy : {approx_l2_energy}) {
       auto& equipotentials_at_energy = equipotentials_at_t.emplace_back();
       auto lines = equipotential.ComputeLines(
           plane,
@@ -763,6 +765,7 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
       }
     }
   }
+  logger.Set("energies", energies, ExpressIn(Metre, Second));
   logger.Set("angularVelocitiesSunNeptune",
              angular_velocities,
              ExpressIn(Radian, Second));
