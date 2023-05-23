@@ -715,12 +715,12 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
          Sqrt(
              reference_frame.primaries().front()->gravitational_parameter() /
              reference_frame.secondaries().front()->gravitational_parameter()));
-    SpecificEnergy const ΔV_max = (maximum_maximorum - approx_l1_energy) / 7;
+    SpecificEnergy const ΔV_max = (maximum_maximorum - approx_l1_energy) / 3;
     SpecificEnergy energy = maximum_maximorum;
-    double β = e;
+    double β = 2;
     for (int i = 0; energy >= approx_l1_energy; ++i) {
-      if (ΔV * e <= ΔV_max) {
-        ΔV *= e;
+      if (ΔV * β <= ΔV_max) {
+        ΔV *= β;
       }
       energy -= ΔV;
       energies.back().push_back(energy);
