@@ -709,20 +709,20 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
               ephemeris_->trajectory(uranus)->EvaluatePosition(t))
           .Norm();
     };
-    SpecificEnergy const ΔV =
+    SpecificEnergy ΔV =
         (maximum_maximorum - approx_l1_energy) /
         (4 *
          Sqrt(
              reference_frame.primaries().front()->gravitational_parameter() /
              reference_frame.secondaries().front()->gravitational_parameter()));
-    SpecificEnergy const a =
-        (maximum_maximorum - approx_l1_energy) / 8 *
-        std::pow((maximum_maximorum - approx_l1_energy) / (8 * ΔV), 1.0 / 7.0);
-    double const k =
-        8 * std::log((maximum_maximorum - approx_l1_energy) / (8 * ΔV));
-    for (int i = 1; i <= 9; ++i) {
-      SpecificEnergy const energy =
-          maximum_maximorum - a * i * std::exp(-k / i);
+    SpecificEnergy const ΔV_max = (maximum_maximorum - approx_l1_energy) / 7;
+    SpecificEnergy energy = maximum_maximorum;
+    double β = e;
+    for (int i = 0; energy >= approx_l1_energy; ++i) {
+      if (ΔV * e <= ΔV_max) {
+        ΔV *= e;
+      }
+      energy -= ΔV;
       energies.back().push_back(energy);
       std::vector<std::vector<Position<World>>>& equipotentials_at_energy =
           equipotentials_at_t.emplace_back();
@@ -744,7 +744,7 @@ TEST_F(EquipotentialTest, RotatingPulsating_SunNeptune) {
         }
       }
     }
-    for (SpecificEnergy const energy : {approx_l2_energy}) {
+    for (SpecificEnergy const energy : {approx_l1_energy, approx_l2_energy}) {
       auto& equipotentials_at_energy = equipotentials_at_t.emplace_back();
       auto lines = equipotential.ComputeLines(
           plane,
