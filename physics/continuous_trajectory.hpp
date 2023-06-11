@@ -8,6 +8,7 @@
 #include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
 #include "base/not_null.hpp"
+#include "base/non_static_thread_local.hpp"
 #include "geometry/instant.hpp"
 #include "geometry/space.hpp"
 #include "numerics/piecewise_poisson_series.hpp"
@@ -29,6 +30,7 @@ namespace _continuous_trajectory {
 namespace internal {
 
 using namespace principia::base::_not_null;
+using namespace principia::base::_non_static_thread_local;
 using namespace principia::base::_traits;
 using namespace principia::geometry::_instant;
 using namespace principia::geometry::_space;
@@ -228,6 +230,11 @@ class ContinuousTrajectory : public Trajectory<Frame> {
 
   // The polynomials are in increasing time order.
   InstantPolynomialPairs polynomials_ GUARDED_BY(lock_);
+
+  mutable non_static_thread_local<std::pair<Instant, Position<Frame>>>
+      last_evaluated_position_ = {Instant() + NaN<Time>, Frame::origin};
+  mutable non_static_thread_local<std::pair<Instant, Velocity<Frame>>>
+      last_evaluated_velocity_ = {Instant() + NaN<Time>, Frame::unmoving};
 
   // Lookups into |polynomials_| are expensive because they entail a binary
   // search into a vector that grows over time.  In benchmarks, this can be as

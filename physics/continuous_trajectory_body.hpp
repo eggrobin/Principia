@@ -182,6 +182,9 @@ Instant ContinuousTrajectory<Frame>::t_max() const {
 template<typename Frame>
 Position<Frame> ContinuousTrajectory<Frame>::EvaluatePosition(
     Instant const& time) const {
+  if (last_evaluated_position_().first == time) {
+    return last_evaluated_position_().second;
+  }
   absl::ReaderMutexLock l(&lock_);
   return EvaluatePositionLocked(time);
 }
@@ -189,6 +192,9 @@ Position<Frame> ContinuousTrajectory<Frame>::EvaluatePosition(
 template<typename Frame>
 Velocity<Frame> ContinuousTrajectory<Frame>::EvaluateVelocity(
     Instant const& time) const {
+  if (last_evaluated_velocity_().first == time) {
+    return last_evaluated_velocity_().second;
+  }
   absl::ReaderMutexLock l(&lock_);
   return EvaluateVelocityLocked(time);
 }
@@ -196,6 +202,11 @@ Velocity<Frame> ContinuousTrajectory<Frame>::EvaluateVelocity(
 template<typename Frame>
 DegreesOfFreedom<Frame> ContinuousTrajectory<Frame>::EvaluateDegreesOfFreedom(
     Instant const& time) const {
+  if (last_evaluated_position_().first == time &&
+      last_evaluated_velocity_().first == time) {
+    return {last_evaluated_position_().second,
+            last_evaluated_velocity_().second};
+  }
   absl::ReaderMutexLock l(&lock_);
   return EvaluateDegreesOfFreedomLocked(time);
 }
@@ -604,7 +615,8 @@ Position<Frame> ContinuousTrajectory<Frame>::EvaluatePositionLocked(
   auto const it = FindPolynomialForInstantLocked(time);
   CHECK(it != polynomials_.end());
   auto const& polynomial = *it->polynomial;
-  return polynomial(time);
+  last_evaluated_position_() = {time, polynomial(time)};
+  return last_evaluated_position_().second;
 }
 
 template<typename Frame>
@@ -615,7 +627,8 @@ Velocity<Frame> ContinuousTrajectory<Frame>::EvaluateVelocityLocked(
   auto const it = FindPolynomialForInstantLocked(time);
   CHECK(it != polynomials_.end());
   auto const& polynomial = *it->polynomial;
-  return polynomial.EvaluateDerivative(time);
+  last_evaluated_velocity_() = {time, polynomial.EvaluateDerivative(time)};
+  return last_evaluated_velocity_().second;
 }
 
 template<typename Frame>
@@ -627,8 +640,10 @@ ContinuousTrajectory<Frame>::EvaluateDegreesOfFreedomLocked(
   auto const it = FindPolynomialForInstantLocked(time);
   CHECK(it != polynomials_.end());
   auto const& polynomial = *it->polynomial;
-  return DegreesOfFreedom<Frame>(polynomial(time),
-                                 polynomial.EvaluateDerivative(time));
+  last_evaluated_position_() = {time, polynomial(time)};
+  last_evaluated_velocity_() = {time, polynomial.EvaluateDerivative(time)};
+  return DegreesOfFreedom<Frame>(last_evaluated_position_().second,
+                                 last_evaluated_velocity_().second);
 }
 
 template<typename Frame>
