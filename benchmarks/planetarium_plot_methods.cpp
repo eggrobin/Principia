@@ -303,6 +303,8 @@ void BM_PlanetariumPlotMethod3(
   int iterations = 0;
   // This is the time of a lunar eclipse in January 2000.
   constexpr Instant now = "2000-01-21T04:41:30,5"_TT;
+  //principia::physics::_continuous_trajectory::internal::
+  //    log_cache_hits_and_misses = true;
   for (auto _ : state) {
     line.clear();
     planetarium.PlotMethod3(
@@ -316,6 +318,8 @@ void BM_PlanetariumPlotMethod3(
         /*max_points=*/std::numeric_limits<int>::max());
     ++iterations;
   }
+  //principia::physics::_continuous_trajectory::internal::
+  //    log_cache_hits_and_misses = false;
   Interval<double> x;
   Interval<double> y;
   Interval<double> z;

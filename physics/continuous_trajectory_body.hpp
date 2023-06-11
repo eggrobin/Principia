@@ -183,8 +183,12 @@ template<typename Frame>
 Position<Frame> ContinuousTrajectory<Frame>::EvaluatePosition(
     Instant const& time) const {
   if (last_evaluated_position_().first == time) {
+    //LOG_IF(ERROR, log_cache_hits_and_misses) << "U P  HIT  " << time << " = "
+    //           << last_evaluated_position_().first;
     return last_evaluated_position_().second;
   }
+  //LOG_IF(ERROR, log_cache_hits_and_misses) << "U P  MISS " << time << " ≠ "
+  //           << last_evaluated_position_().first;
   absl::ReaderMutexLock l(&lock_);
   return EvaluatePositionLocked(time);
 }
@@ -193,8 +197,12 @@ template<typename Frame>
 Velocity<Frame> ContinuousTrajectory<Frame>::EvaluateVelocity(
     Instant const& time) const {
   if (last_evaluated_velocity_().first == time) {
+    //LOG_IF(ERROR, log_cache_hits_and_misses) << "U V HIT  " << time << " = "
+    //           << last_evaluated_velocity_().first;
     return last_evaluated_velocity_().second;
   }
+  //LOG_IF(ERROR, log_cache_hits_and_misses) << "U V MISS " << time << " ≠ "
+  //           << last_evaluated_velocity_().first;
   absl::ReaderMutexLock l(&lock_);
   return EvaluateVelocityLocked(time);
 }
@@ -204,9 +212,19 @@ DegreesOfFreedom<Frame> ContinuousTrajectory<Frame>::EvaluateDegreesOfFreedom(
     Instant const& time) const {
   if (last_evaluated_position_().first == time &&
       last_evaluated_velocity_().first == time) {
+    //LOG_IF(ERROR, log_cache_hits_and_misses) << "U PV HIT  " << time << " = "
+    //           << last_evaluated_position_().first;
+    //LOG_IF(ERROR, log_cache_hits_and_misses) << "        " << time << " = "
+    //           << last_evaluated_velocity_().first;
     return {last_evaluated_position_().second,
             last_evaluated_velocity_().second};
   }
+  //LOG_IF(ERROR, log_cache_hits_and_misses) << "U PV MISS " << time
+  //           << (last_evaluated_position_().first == time ? " = " : " ≠ ")
+  //           << last_evaluated_position_().first;
+  //LOG_IF(ERROR, log_cache_hits_and_misses) << "        " << time
+  //           << (last_evaluated_velocity_().first == time ? " = " : " ≠ ")
+  //           << last_evaluated_velocity_().first;
   absl::ReaderMutexLock l(&lock_);
   return EvaluateDegreesOfFreedomLocked(time);
 }
@@ -610,6 +628,12 @@ Instant ContinuousTrajectory<Frame>::t_max_locked() const {
 template<typename Frame>
 Position<Frame> ContinuousTrajectory<Frame>::EvaluatePositionLocked(
     Instant const& time) const {
+  if (last_evaluated_position_().first == time) {
+    //LOG_IF(ERROR, log_cache_hits_and_misses) << "L P  HIT  " << time << " = "
+    //         << last_evaluated_position_().first;
+    return last_evaluated_position_().second;
+  }
+  //LOG_IF(ERROR, log_cache_hits_and_misses) << "L P  MISS " << time << " ≠ " << last_evaluated_position_().first;
   CHECK_LE(t_min_locked(), time);
   CHECK_GE(t_max_locked(), time);
   auto const it = FindPolynomialForInstantLocked(time);
@@ -622,6 +646,13 @@ Position<Frame> ContinuousTrajectory<Frame>::EvaluatePositionLocked(
 template<typename Frame>
 Velocity<Frame> ContinuousTrajectory<Frame>::EvaluateVelocityLocked(
     Instant const& time) const {
+  if (last_evaluated_velocity_().first == time) {
+    //LOG_IF(ERROR, log_cache_hits_and_misses) << "L V HIT  " << time << " = "
+    //           << last_evaluated_velocity_().first;
+    return last_evaluated_velocity_().second;
+  }
+  //LOG_IF(ERROR, log_cache_hits_and_misses) << "L V MISS " << time << " ≠ "
+  //           << last_evaluated_velocity_().first;
   CHECK_LE(t_min_locked(), time);
   CHECK_GE(t_max_locked(), time);
   auto const it = FindPolynomialForInstantLocked(time);
@@ -635,6 +666,21 @@ template<typename Frame>
 DegreesOfFreedom<Frame>
 ContinuousTrajectory<Frame>::EvaluateDegreesOfFreedomLocked(
     Instant const& time) const {
+  if (last_evaluated_position_().first == time &&
+      last_evaluated_velocity_().first == time) {
+    //LOG_IF(ERROR, log_cache_hits_and_misses) << "L PV HIT  " << time << " = "
+    //           << last_evaluated_position_().first;
+    //LOG_IF(ERROR, log_cache_hits_and_misses) << "        " << time << " = "
+    //           << last_evaluated_velocity_().first;
+    return {last_evaluated_position_().second,
+            last_evaluated_velocity_().second};
+  }
+  //LOG_IF(ERROR, log_cache_hits_and_misses) << "L PV MISS " << time
+  //           << (last_evaluated_position_().first == time ? " = " : " ≠ ")
+  //           << last_evaluated_position_().first;
+  //LOG_IF(ERROR, log_cache_hits_and_misses) << "        " << time
+  //           << (last_evaluated_velocity_().first == time ? " = " : " ≠ ")
+  //           << last_evaluated_velocity_().first;
   CHECK_LE(t_min_locked(), time);
   CHECK_GE(t_max_locked(), time);
   auto const it = FindPolynomialForInstantLocked(time);

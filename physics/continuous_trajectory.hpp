@@ -42,6 +42,8 @@ using namespace principia::physics::_degrees_of_freedom;
 using namespace principia::physics::_trajectory;
 using namespace principia::quantities::_quantities;
 
+//static constexpr bool log_cache_hits_and_misses = false;
+
 // This class is thread-safe, but the client must be aware that if, for
 // instance, the trajectory is appended to asynchronously, successive calls to
 // |t_max()| may return different values.
