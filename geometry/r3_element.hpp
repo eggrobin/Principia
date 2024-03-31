@@ -30,12 +30,20 @@ struct SphericalCoordinates;
 // space over ℝ, represented by |double|. |R3Element| is the underlying data
 // type for more advanced strongly typed structures suchas |Multivector|.
 template<typename Scalar>
-struct alignas(16) R3Element final {
+struct
+#if PRINCIPIA_USE_AVX2_INTRINSICS()
+    alignas(32)
+#else
+    alignas(16)
+#endif
+        R3Element final {
  public:
   constexpr R3Element();
   constexpr explicit R3Element(uninitialized_t);
+  R3Element(double const (&xyz)[3]) requires std::is_same_v<Scalar, double>;
   R3Element(Scalar const& x, Scalar const& y, Scalar const& z);
   R3Element(__m128d xy, __m128d zt);
+  R3Element(__m256d xyzt);
 
   Scalar& operator[](int index);
   Scalar const& operator[](int index) const;
@@ -71,6 +79,7 @@ struct alignas(16) R3Element final {
       __m128d xy;
       __m128d zt;
     };
+    __m256d xyzt;
   };
 };
 

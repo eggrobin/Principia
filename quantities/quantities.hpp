@@ -102,6 +102,9 @@ class Quantity final {
 
   template<typename Dimensions>
   friend __m128d ToM128D(Quantity<Dimensions> x);
+
+  template<typename Dimensions>
+  friend __m256d ToM256D(Quantity<Dimensions> x);
 };
 
 template<typename LDimensions, typename RDimensions>
@@ -122,8 +125,11 @@ operator/(double, Quantity<RDimensions> const&);
 template<typename Q>
 constexpr Q SIUnit() { return Q(1); };
 
+inline __m256d ToM256D(double x);
 inline __m128d ToM128D(double x);
 
+template<typename Dimensions>
+__m256d ToM256D(Quantity<Dimensions> x);
 template<typename Dimensions>
 __m128d ToM128D(Quantity<Dimensions> x);
 
@@ -169,6 +175,7 @@ using internal::Quantity;
 using internal::Temperature;
 using internal::Time;
 using internal::ToM128D;
+using internal::ToM256D;
 
 }  // namespace _quantities
 }  // namespace quantities

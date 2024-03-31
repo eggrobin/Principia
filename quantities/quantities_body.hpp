@@ -127,6 +127,10 @@ constexpr Quotient<double, Quantity<RDimensions>> operator/(
   return Quotient<double, Quantity<RDimensions>>(left / right.magnitude_);
 }
 
+inline __m256d ToM256D(double const x) {
+  return _mm256_set1_pd(x);
+}
+
 inline __m128d ToM128D(double const x) {
   return _mm_set1_pd(x);
 }
@@ -134,6 +138,11 @@ inline __m128d ToM128D(double const x) {
 template<typename Dimensions>
 __m128d ToM128D(Quantity<Dimensions> const x) {
   return _mm_set1_pd(x.magnitude_);
+}
+
+template<typename Dimensions>
+__m256d ToM256D(Quantity<Dimensions> const x) {
+  return _mm256_set1_pd(x.magnitude_);
 }
 
 template<typename Q>

@@ -18,7 +18,17 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Release AVX2|x64">
+      <Configuration>Release AVX2</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
+
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release AVX2'">
+    <ClCompile>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
+  </ItemDefinitionGroup>
 
   <!--Microsoft C++ stuff.-->
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

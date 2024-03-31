@@ -120,6 +120,8 @@ char const* const Architecture = "x86-64";
 #define PRINCIPIA_USE_FMA_IF_AVAILABLE() !_DEBUG
 #endif
 
+#define PRINCIPIA_USE_AVX2_INTRINSICS() (!_DEBUG && __AVX2__)
+
 #ifndef PRINCIPIA_CONFIGURABLE_TEST_SUFFIX
 #define PRINCIPIA_CONFIGURABLE_TEST_SUFFIX
 #endif
