@@ -33,6 +33,12 @@
     <ClCompile Include="sin_cos_test.cpp">
       <Filter>Test Files</Filter>
     </ClCompile>
+    <ClCompile Include="benchmarking.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sin_cos_benchmark.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="multiprecision.hpp">
@@ -43,6 +49,9 @@
     </ClInclude>
     <ClInclude Include="accurate_table_generator_body.hpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="benchmarking.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

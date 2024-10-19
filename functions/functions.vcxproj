@@ -7,12 +7,15 @@
   <ItemGroup>
     <ClInclude Include="accurate_table_generator.hpp" />
     <ClInclude Include="accurate_table_generator_body.hpp" />
+    <ClInclude Include="benchmarking.hpp" />
     <ClInclude Include="multiprecision.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="accurate_table_generator_test.cpp" />
+    <ClCompile Include="benchmarking.cpp" />
     <ClCompile Include="core_math_accuracy_test.cpp" />
     <ClCompile Include="multiprecision.cpp" />
+    <ClCompile Include="sin_cos_benchmark.cpp" />
     <ClCompile Include="sin_cos_test.cpp" />
     <ClCompile Include="std_accuracy_test.cpp" />
   </ItemGroup>
