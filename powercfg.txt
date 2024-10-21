@@ -1,0 +1,2 @@
+powercfg -attributes sub_processor perfboostmode -attrib_hide
+powercfg /query scheme_current sub_processor PERFBOOSTMODE
