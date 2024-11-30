@@ -2,6 +2,8 @@
 
 #include "absl/strings/str_format.h"
 #include "geometry/sign.hpp"
+#include "mathematica/logger.hpp"
+#include "mathematica/mathematica.hpp"
 #include "numerics/root_finders.hpp"
 #include "quantities/elementary_functions.hpp"
 #include "quantities/quantities.hpp"
@@ -11,6 +13,8 @@ namespace functions {
 namespace _benchmarking {
 
 using namespace principia::geometry::_sign;
+using namespace principia::mathematica::_logger;
+using namespace principia::mathematica::_mathematica;
 using namespace principia::numerics::_root_finders;
 using namespace principia::quantities::_elementary_functions;
 using namespace principia::quantities::_quantities;
@@ -155,20 +159,22 @@ __declspec(noinline) MeasurementResult
   constexpr std::int64_t n = 1 << 16;
   for (int j = 0; j < samples; ++j) {
     std::array<double, static_cast<std::size_t>(n)> inputs;
-    for (std::int64_t i = 0; i < n; ++i) {
+    /* for (std::int64_t i = 0; i < n; ++i) {
       inputs[i] = get_input();
-    }
+    }*/
     auto const start = __rdtsc();
     double x = inputs[0];
     for (std::int64_t i = 0; i < n; ++i) {
       double const result = f(x);
-      x = result + inputs[i] - result;
+      x = result + get_input() - result;
     }
     auto const stop = __rdtsc();
     LOG(INFO) << x;
     cycle_counts.push_back((double)(stop - start) / n);
   }
   MeasurementResult latency = LogNormalTerminus(cycle_counts);
+  static Logger logger(TEMP_DIR / "meow.wl");
+  logger.Append("counts", cycle_counts);
   latency = {.value = latency.value - identity_latency.value,
              .standard_uncertainty =
                  Sqrt(Pow<2>(latency.standard_uncertainty) +

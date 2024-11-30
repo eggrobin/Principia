@@ -30,7 +30,7 @@ TEST_F(SinCosBenchmark, StdSinLatency) {
   // calling convention.
   std::cout << "std::sin latency: "
             << BenchmarkFunctionLatency(
-                   &std::sin, [this]() { return uniformly_at_(random_); }, 10000)
+                   &std::sin, [this]() { return uniformly_at_(random_); }, 100000)
                    .ToGUMString()
             << " cycles\n";
 }
@@ -38,7 +38,7 @@ TEST_F(SinCosBenchmark, StdSinLatency) {
 TEST_F(SinCosBenchmark, PrincipiaSinLatency) {
   std::cout << "Principia Sin latency: "
             << BenchmarkFunctionLatency(
-                   &Sin, [this]() { return uniformly_at_(random_); }, 10000)
+                   &Sin, [this]() { return uniformly_at_(random_); }, 100000)
                    .ToGUMString()
             << " cycles\n";
 }
@@ -46,7 +46,7 @@ TEST_F(SinCosBenchmark, PrincipiaSinLatency) {
 TEST_F(SinCosBenchmark, StdSinThroughput) {
   std::cout << "std::sin reciprocal throughput: "
             << BenchmarkFunctionThroughput(
-                   &std::sin, [this]() { return uniformly_at_(random_); }, 10000)
+                   &std::sin, [this]() { return uniformly_at_(random_); }, 100000)
                    .ToGUMString()
             << " cycles\n";
 }
@@ -54,7 +54,7 @@ TEST_F(SinCosBenchmark, StdSinThroughput) {
 TEST_F(SinCosBenchmark, PrincipiaSinThroughput) {
   std::cout << "Principia Sin reciprocal throughput: "
             << BenchmarkFunctionThroughput(
-                   &Sin, [this]() { return uniformly_at_(random_); }, 10000)
+                   &Sin, [this]() { return uniformly_at_(random_); }, 100000)
                    .ToGUMString()
             << " cycles\n";
 }
