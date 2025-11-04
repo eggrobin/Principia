@@ -100,6 +100,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="date_time_test.cpp" />
+    <ClCompile Include="fishy_test.cpp" />
     <ClCompile Include="ksp_fingerprint_test.cpp" />
     <ClCompile Include="ksp_resonance_test.cpp" />
     <ClCompile Include="ksp_system_test.cpp" />

@@ -326,5 +326,8 @@
     <ClCompile Include="лидов_古在_test.cpp">
       <Filter>Test Files</Filter>
     </ClCompile>
+    <ClCompile Include="fishy_test.cpp">
+      <Filter>Test Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
