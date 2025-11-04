@@ -8,6 +8,7 @@
 #include "physics/body_centred_non_rotating_reference_frame.hpp"
 #include "base/status_utilities.hpp"
 #include "mathematica/logger.hpp"
+#include "physics/apsides.hpp"
 #include "numerics/root_finders.hpp"
 
 namespace principia {
@@ -48,6 +49,7 @@ using namespace principia::numerics::_polynomial_in_monomial_basis;
 using namespace principia::mathematica::_logger;
 using namespace principia::mathematica::_mathematica;
 using namespace principia::numerics::_root_finders;
+using namespace principia::physics::_apsides;
 
 class FishyTest : public ::testing::Test {
  protected:
@@ -87,6 +89,8 @@ struct FishyParameters {
   int max_degree;
   bool zonal_only;
   bool srp;
+  Instant min_t0;
+  double aspect_ratio;
 };
 
 TEST_F(FishyTest, Geometric) {
@@ -96,24 +100,72 @@ TEST_F(FishyTest, Geometric) {
             .max_degree = 0,
             .zonal_only = true,
             .srp = false,
+            .min_t0 = J2000,
+              .aspect_ratio = 2,
            },
            {
                .name = "J2",
               .max_degree = 2,
               .zonal_only = true,
               .srp = false,
+              .min_t0 = J2000,
+              .aspect_ratio = 2,
+           },
+           {
+               .name = "J2AdjustedEllipse",
+              .max_degree = 2,
+              .zonal_only = true,
+              .srp = false,
+              .min_t0 = J2000,
+              .aspect_ratio = 2 / 1.0037,
            },
            {
                .name = "FullGeopotential",
               .max_degree = std::numeric_limits<int>::max(),
               .zonal_only = false,
               .srp = false,
+              .min_t0 = J2000,
+              .aspect_ratio = 2 / 1.0037,
            },
            {
                .name = "SRP",
               .max_degree = std::numeric_limits<int>::max(),
               .zonal_only = false,
               .srp = true,
+              .min_t0 = J2000,
+              .aspect_ratio = 2 / 1.0037,
+           },
+           {
+               .name = "FullGeopotentialMay",
+              .max_degree = std::numeric_limits<int>::max(),
+              .zonal_only = false,
+              .srp = false,
+              .min_t0 = "2000-05-07T12:00:00"_TT,
+              .aspect_ratio = 2 / 1.0037,
+           },
+           {
+               .name = "FullGeopotentialSolstice",
+              .max_degree = std::numeric_limits<int>::max(),
+              .zonal_only = false,
+              .srp = false,
+              .min_t0 = "2000-06-21T12:00:00"_TT,
+              .aspect_ratio = 2 / 1.0037,
+           },
+           {
+               .name = "SRPMay",
+              .max_degree = std::numeric_limits<int>::max(),
+              .zonal_only = false,
+              .srp = true,
+              .min_t0 = "2000-05-07T12:00:00"_TT,
+              .aspect_ratio = 2 / 1.0037,
+           },
+           {
+               .name = "SRPSolstice",
+              .max_degree = std::numeric_limits<int>::max(),
+              .zonal_only = false,
+              .srp = true,
+              .min_t0 = "2000-06-21T12:00:00"_TT,
+              .aspect_ratio = 2 / 1.0037,
            },
        }) {
   SolarSystem<ICRS> solar_system_1950_(
@@ -144,7 +196,8 @@ TEST_F(FishyTest, Geometric) {
     CHECK_OK(ephemeris_->Prolong(
         ParseTT(std::format("2000-{:02}-01T00:00:00", month))));
   }
-  CHECK_OK(ephemeris_->Prolong(J2000 + 1 * JulianYear));
+  Instant const t_max = J2000 + 1 * JulianYear;
+  CHECK_OK(ephemeris_->Prolong(t_max));
     double inclination = 97.95; /*
     std::cout << "Enter inclination in degrees ]90, 100[: ";
     std::cin >> inclination;
@@ -181,38 +234,106 @@ TEST_F(FishyTest, Geometric) {
       ephemeris_.get(),
       [&]() -> Trajectory<ICRS> const& { return central_icrs_trajectory; },
       &earth_);
+
+  Pressure const P0_srp = TotalSolarIrradiance / SpeedOfLight;
+  LOG(INFO) << "P0 = " << P0_srp;
+  Mass const m = 575 * Kilogram;
+  double const Cr = parameters.srp ? 1.5 : 0;
+  Area const A_sat = 105 * Pow<2>(Metre);
+
+  Instant t0 = J2000;
+  Length a_osculating_at_t0 =
+      *initial_osculating_orbit.elements_at_epoch().semimajor_axis;
+  if (parameters.min_t0 != J2000) {
+    LOG(INFO) << "Flowing central satellite to " << TTDay(parameters.min_t0)
+              << "...";
+    CHECK_OK(ephemeris_->FlowWithAdaptiveStep(
+        &central_icrs_trajectory,
+        [&](Instant const& t,
+            DegreesOfFreedom<ICRS> const& dof) -> Vector<Acceleration, ICRS> {
+          auto const satellite_sun =
+              ephemeris_->trajectory(&sun_)->EvaluatePosition(t) -
+              dof.position();
+          auto const satellite_earth =
+              ephemeris_->trajectory(&earth_)->EvaluatePosition(t) -
+              dof.position();
+          Length const ray_height =
+              satellite_earth.OrthogonalizationAgainst(satellite_sun).Norm() -
+              earth_.mean_radius();
+          if (ray_height < Length{}) {
+            return {};
+          } else {
+            Pressure const P_srp =
+                P0_srp * (Pow<2>(AstronomicalUnit) / satellite_sun.Norm²());
+            return -Normalize(satellite_sun) * P_srp * Cr * A_sat / m;
+          }
+        },
+        parameters.min_t0 + 2 * *initial_osculating_orbit.elements_at_epoch().period,
+        Ephemeris<ICRS>::GeneralizedAdaptiveStepParameters(
+            EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
+                Fine1987RKNG34,
+                Ephemeris<ICRS>::GeneralizedNewtonianMotionEquation>(),
+            /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
+            /*length_integration_tolerance=*/1 * Centi(Metre),
+            /*speed_integration_tolerance=*/1 * Centi(Metre) / Second)));
+    DiscreteTrajectory<GCRS> central_gcrs_trajectory;
+    for (auto it = central_icrs_trajectory.lower_bound(parameters.min_t0);
+         it != central_icrs_trajectory.end();
+         ++it) {
+      CHECK_OK(central_gcrs_trajectory.Append(
+          it->time, gcrs_.ToThisFrameAtTime(it->time)(it->degrees_of_freedom)));
+    }
+    DiscreteTrajectory<GCRS> ascending;
+    DiscreteTrajectory<GCRS> descending;
+    CHECK_OK(
+        ComputeNodes(central_gcrs_trajectory,
+                     central_gcrs_trajectory.upper_bound(parameters.min_t0),
+                     central_gcrs_trajectory.end(),
+                     central_gcrs_trajectory.back().time,
+                     Vector<double, GCRS>({0, 0, 1}),
+                     /*max_points=*/std::numeric_limits<int>::max(),
+                     ascending,
+                     descending));
+    t0 = ascending.front().time;
+    a_osculating_at_t0 = *KeplerOrbit<ICRS>(
+        earth_,
+        MasslessBody{},
+        central_icrs_trajectory.EvaluateDegreesOfFreedom(t0) -
+            ephemeris_->trajectory(&earth_)->EvaluateDegreesOfFreedom(t0),
+        t0).elements_at_epoch().semimajor_axis;
+  }
   Length δ = 150 * Metre;
   int S1 = -1;
   for (int x = -10; x <= 10; ++x) {
     for (int y = -10; y <= 10; ++y) {
-      if (x == 0 && y == 0) {
+      if (x == 0) {
         continue;
       }
       Displacement<LVLH> const r({x * δ,
                                   y * δ, 0 * Metre});
       Displacement<LVLH> const r_circular(
-          {r.coordinates().x * 2, r.coordinates().y, 0 * Metre});
+          {r.coordinates().x * parameters.aspect_ratio, r.coordinates().y, 0 * Metre});
       if (r_circular.Norm() > 1 * Kilo(Metre)) {
         continue;
       }
       Bivector<double, LVLH> orbit_normal({0, 0, 1});
       auto const circular_tangent = Normalize(orbit_normal * r_circular);
       Vector<double, LVLH> elliptical_tangent(
-          {circular_tangent.coordinates().x / 2,
+          {circular_tangent.coordinates().x / parameters.aspect_ratio,
            circular_tangent.coordinates().y,
            circular_tangent.coordinates().z});
       auto const Δa = [&](Speed const v_lvlh) {
         return *KeplerOrbit<ICRS>(
                     earth_,
                     MasslessBody{},
-                    lvlh.FromThisFrameAtTime(J2000)(
+                    lvlh.FromThisFrameAtTime(t0)(
                         {LVLH::origin + r, elliptical_tangent * v_lvlh}) -
                         ephemeris_->trajectory(&earth_)
-                            ->EvaluateDegreesOfFreedom(J2000),
-                    J2000)
+                            ->EvaluateDegreesOfFreedom(t0),
+                    t0)
                     .elements_at_epoch()
                     .semimajor_axis -
-               *initial_osculating_orbit.elements_at_epoch().semimajor_axis;
+               a_osculating_at_t0;
       };
       absl::btree_set<Speed> v_lvlh =
           DoubleBrent(Δa,
@@ -239,20 +360,18 @@ TEST_F(FishyTest, Geometric) {
 
       icrs_trajectories.emplace_back();
       CHECK_OK(icrs_trajectories.back().Append(
-          J2000,
-          lvlh.FromThisFrameAtTime(J2000)(
+          t0,
+          lvlh.FromThisFrameAtTime(t0)(
               {LVLH::origin + r, elliptical_tangent * *v_lvlh.begin()})));
     }
   }
   LOG(INFO) << "Flowing " << icrs_trajectories.size() << " trajectories...";
   for (int i = 1; i <= 52; ++i) {
-    Mass const m = 575 * Kilogram;
-    double const Cr = parameters.srp ? 1.5 : 0;
-    Area const A_sat = 105 * Pow<2>(Metre);
-    Instant const t = J2000 + (i / 52.0) * JulianYear;
+    Instant const t = J2000 + i * ((t_max - J2000) / 52);
+    if (t < t0) {
+      continue;
+    }
     Bundle bundle;
-    Pressure const P0_srp = TotalSolarIrradiance / SpeedOfLight;
-    LOG(INFO) << "P0 = " << P0_srp;
     LOG(INFO) << "Flowing to " << TTDay(t);
     for (auto& trajectory : icrs_trajectories) {
       bundle.Add([&]() {
@@ -297,7 +416,8 @@ TEST_F(FishyTest, Geometric) {
     }
     CHECK_OK(bundle.Join());
   }
-  Logger logger(TEMP_DIR / "fishy.wl");
+  Logger logger(TEMP_DIR / ("fishy" + parameters.name + ".wl"),
+                /*make_unique=*/false);
   std::vector <DiscreteTrajectory<GCRS>> gcrs_trajectories;
   std::vector<std::optional<OrbitalElements>> mean_elements;
   std::vector<std::optional<OrbitGroundTrack>> ground_tracks;
@@ -342,17 +462,16 @@ TEST_F(FishyTest, Geometric) {
   LOG(INFO) << "Nodal period: " << mean_elements[0]->nodal_period();
   LOG(INFO) << "Initial osculating period: "
             << *initial_osculating_orbit.elements_at_epoch().period;
-  LOG(INFO) << "S1 LVLH y at J2000: "
-            << (lvlh.ToThisFrameAtTime(J2000).rigid_transformation()(
-                    icrs_trajectories[S1].EvaluatePosition(J2000)) -
+  LOG(INFO) << "S1 LVLH y at t0: "
+            << (lvlh.ToThisFrameAtTime(t0).rigid_transformation()(
+                    icrs_trajectories[S1].EvaluatePosition(t0)) -
                 LVLH::origin)
                    .coordinates()
                    .y;
   Time const shape_cycle = Brent(
       [&](Time const Δt) {
-        return (lvlh.ToThisFrameAtTime(J2000 + Δt)
-                    .rigid_transformation()(
-                        icrs_trajectories[S1].EvaluatePosition(J2000 + Δt)) -
+        return (lvlh.ToThisFrameAtTime(t0 + Δt).rigid_transformation()(
+                    icrs_trajectories[S1].EvaluatePosition(t0 + Δt)) -
                 LVLH::origin)
             .coordinates()
             .y;
@@ -363,10 +482,10 @@ TEST_F(FishyTest, Geometric) {
   Time const sampling_period = shape_cycle;
   std::vector<Instant> times;
   for (int k = 0; k <= 24; ++k) {
-    times.push_back(J2000 + k * sampling_period / 12);
+    times.push_back(t0 + k * sampling_period / 12);
   }
-  for (int n = 3; n * sampling_period < 1 * JulianYear; ++n) {
-    times.push_back(J2000 + n * sampling_period);
+  for (int n = 3; t0 + n * sampling_period < t_max; ++n) {
+    times.push_back(t0 + n * sampling_period);
   }
   logger.Set("times" + parameters.name, times, ExpressInSIUnits);
   for (int i = 0; i < icrs_trajectories.size(); ++i) {
@@ -391,8 +510,7 @@ TEST_F(FishyTest, Geometric) {
     };
     std::vector<Instant> eclipse_starts;
     std::vector<Instant> eclipse_ends;
-    for (Instant t = J2000 + mean_elements[0]->nodal_period() / 2;
-         t < J2000 + 1 * JulianYear;
+    for (Instant t = t0 + mean_elements[0]->nodal_period() / 2; t < t_max;
          t += mean_elements[0]->nodal_period() / 2) {
       lvlh_positions.push_back(lvlh.ToThisFrameAtTime(t).rigid_transformation()(
           icrs_trajectories[i].EvaluatePosition(t)));
