@@ -10,10 +10,13 @@
 #include "mathematica/logger.hpp"
 #include "physics/apsides.hpp"
 #include "numerics/root_finders.hpp"
+#include "numerics/gradient_descent.hpp"
+#include "numerics/global_optimization.hpp"
 
 namespace principia {
 namespace astronomy {
 
+using namespace principia::quantities::_arithmetic;
 using namespace principia::base::_bundle;
 using namespace principia::astronomy::_orbital_elements;
 using namespace principia::astronomy::_epoch;
@@ -50,6 +53,7 @@ using namespace principia::mathematica::_logger;
 using namespace principia::mathematica::_mathematica;
 using namespace principia::numerics::_root_finders;
 using namespace principia::physics::_apsides;
+using namespace principia::numerics::_gradient_descent;
 
 class FishyTest : public ::testing::Test {
  protected:
@@ -98,6 +102,7 @@ TEST_F(FishyTest, FishyConstant) {
       SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
       SOLUTION_DIR / "astronomy" /
           "sol_initial_state_jd_2451545_000000000.proto.txt");
+  Logger logger(TEMP_DIR / "fischbacher_field.wl", /*make_unique=*/false);
   solar_system_1950_.LimitOblatenessToDegree("Earth", 2);
   solar_system_1950_.LimitOblatenessToZonal("Earth");
 
@@ -118,21 +123,10 @@ TEST_F(FishyTest, FishyConstant) {
                                                                &earth_);
   Instant const t_max = J2000 + 2 * Day;
   CHECK_OK(ephemeris_->Prolong(t_max));
-  double inclination = 97.95; /*
-  std::cout << "Enter inclination in degrees ]90, 100[: ";
-  std::cin >> inclination;
-  if (!(inclination > 90 && inclination < 100)) {
-    continue;
-  }*/
-  double lan = 10;            /*
-  std::cout << "Enter longitude of ascending in degrees [0, 360[: ";
-  std::cin >> lan;
-  if (!(lan >= 0 && lan < 360)) {
-    continue;
-  }*/
-  auto Δx² = [&](Speed const vx) -> Area {
+  double inclination = 97.95;
+  double lan = 10;
     std::vector<DiscreteTrajectory<ICRS>> icrs_trajectories;
-    icrs_trajectories.reserve(400);
+    icrs_trajectories.reserve(1600);
     icrs_trajectories.emplace_back();
     auto& central_icrs_trajectory = icrs_trajectories.back();
     KeplerOrbit<ICRS> initial_osculating_orbit(
@@ -214,25 +208,48 @@ TEST_F(FishyTest, FishyConstant) {
             .upper_bound(
                 t0 + *initial_osculating_orbit.elements_at_epoch().period / 2)
             ->time;
-    Length δ = 150 * Metre;
-    for (int x = -10; x <= 10; ++x) {
-      for (int y = -10; y <= 10; ++y) {
+    Length δ = 50 * Metre;
+    for (int x = -20; x <= 20; ++x) {
+      for (int y = -20; y <= 20; ++y) {
         if (x == 0) {
           continue;
         }
         Displacement<LVLH> const r({x * δ, y * δ, 0 * Metre});
         Displacement<LVLH> const r_circular(
             {r.coordinates().x * 2, r.coordinates().y, 0 * Metre});
-        if (r.Norm() > 1 * Kilo(Metre)) {
+        if (r_circular.Norm() > 1 * Kilo(Metre)) {
           continue;
         }
+
         Bivector<double, LVLH> orbit_normal({0, 0, 1});
-        auto const Δy = [&](Speed const vy) {
+        auto const circular_tangent = Normalize(orbit_normal * r_circular);
+        Vector<double, LVLH> elliptical_tangent(
+            {circular_tangent.coordinates().x / 2,
+             circular_tangent.coordinates().y,
+             circular_tangent.coordinates().z});
+        auto const Δa = [&](Speed const v_lvlh) {
+          return *KeplerOrbit<ICRS>(
+                      earth_,
+                      MasslessBody{},
+                      lvlh.FromThisFrameAtTime(t0)(
+                          {LVLH::origin + r, elliptical_tangent * v_lvlh}) -
+                          ephemeris_->trajectory(&earth_)
+                              ->EvaluateDegreesOfFreedom(t0),
+                      t0)
+                      .elements_at_epoch()
+                      .semimajor_axis -
+                 *initial_osculating_orbit.elements_at_epoch().semimajor_axis;
+        };
+        absl::btree_set<Speed> v_lvlh_keplerian =
+            DoubleBrent(Δa,
+                        /*lower_bound=*/-100 * Metre / Second,
+                        /*lower_bound=*/100 * Metre / Second);
+        CHECK_EQ(v_lvlh_keplerian.size(), 1);
+
+        auto const Δr² = [&](Velocity<LVLH> const& v_lvlh) {
           DiscreteTrajectory<ICRS> trial;
           CHECK_OK(trial.Append(
-              t0,
-              lvlh.FromThisFrameAtTime(t0)(
-                  {LVLH::origin + r, Velocity<LVLH>({vx, vy, 0 * Metre / Second})})));
+              t0, lvlh.FromThisFrameAtTime(t0)({LVLH::origin + r, v_lvlh})));
           CHECK_OK(ephemeris_->FlowWithAdaptiveStep(
               &trial,
               a_srp,
@@ -248,133 +265,93 @@ TEST_F(FishyTest, FishyConstant) {
                        trial.EvaluatePosition(t_node)) -
                    LVLH::origin) -
                   r)
-              .coordinates()
-              .y;
+              .Norm²();
         };
-        absl::btree_set<Speed> vy =
-            DoubleBrent(Δy,
-                        /*lower_bound=*/-100 * Metre / Second,
-                        /*lower_bound=*/100 * Metre / Second);
-        if (vy.size() == 0) {
-          LOG(INFO)
-              << "x = " << x << "δ, y = " << y
-              << "δ: could not find a solution for Δy = 0, with vx = "
-              << vx << ". Skipping.";
-          continue;
-        } else if (vy.size() > 1) {
-          LOG(INFO) << "x = " << x << "δ, y = " << y
-                    << "δ: multiple solutions for vy:";
-          for (auto const& v : vy) {
-            LOG(INFO) << "        " << v;
-          }
-        } else {
-          LOG(INFO) << "x = " << x << "δ, y = " << y
-                    << "δ: vy = " << *vy.begin();
-        }
+        auto const grad_Δr² = [&](Velocity<LVLH> const& v_lvlh) {
+          Speed const δv = 1 * Micro(Metre) / Second;
+          auto const Δr²_v_lvlh = Δr²(v_lvlh);
+          return Vector<Quotient<Area, Speed>, LVLH>(
+              {(Δr²(v_lvlh +
+                    Velocity<LVLH>(
+                        {δv, 0 * Metre / Second, 0 * Metre / Second})) -
+                Δr²_v_lvlh) /
+                   δv,
+               (Δr²(v_lvlh +
+                    Velocity<LVLH>(
+                        {0 * Metre / Second, δv, 0 * Metre / Second})) -
+                Δr²_v_lvlh) /
+                   δv,
+               0 * Metre * Second});
+        };
 
+        auto const result = BroydenFletcherGoldfarbShanno<Area, Velocity<LVLH>>(
+            /*start_argument=*/elliptical_tangent * *v_lvlh_keplerian.begin(),
+            Δr²,
+            grad_Δr²,
+            10 * Micro(Metre) / Second);
+        auto const v_lvlh = result.value();
+
+
+        LOG(INFO) << "x = " << x << "δ, y = " << y << "δ:\n    v_lvlh = " << v_lvlh
+                  << ";\n    Δr² = " << Δr²(v_lvlh);
         icrs_trajectories.emplace_back();
         CHECK_OK(icrs_trajectories.back().Append(
-            t0,
-            lvlh.FromThisFrameAtTime(t0)(
-                {LVLH::origin + r,
-                 Velocity<LVLH>({vx, *vy.begin(), 0 * Metre / Second})})));
-      }
-      if (icrs_trajectories.size() > 2) {
-        break;
+            t0, lvlh.FromThisFrameAtTime(t0)({LVLH::origin + r, v_lvlh})));
+        CHECK_OK(ephemeris_->FlowWithAdaptiveStep(
+            &icrs_trajectories.back(),
+            a_srp,
+            t_node,
+            Ephemeris<ICRS>::GeneralizedAdaptiveStepParameters(
+                EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
+                    Fine1987RKNG34,
+                    Ephemeris<ICRS>::GeneralizedNewtonianMotionEquation>(),
+                /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
+                /*length_integration_tolerance=*/1 * Centi(Metre),
+                /*speed_integration_tolerance=*/1 * Centi(Metre) / Second)));
+
+        logger.Append("fischbacherField", std::tuple{r, v_lvlh}, ExpressInSIUnits);
       }
     }
-    LOG(INFO) << "Flowing " << icrs_trajectories.size() << " trajectories...";
-    for (int i = 1; i <= 52; ++i) {
-      Instant const t = J2000 + i * ((t_max - J2000) / 52);
-      Bundle bundle;
-      for (auto& trajectory : icrs_trajectories) {
-        if (trajectory.back().time >= t) {
-          continue;
-        }
-        bundle.Add([&]() {
-          auto const instance = ephemeris_->NewInstance(
-              {&trajectory},
-              Ephemeris<ICRS>::NoIntrinsicAccelerations,
-              {SymmetricLinearMultistepIntegrator<
-                   Quinlan1999Order8A,
-                   Ephemeris<ICRS>::NewtonianMotionEquation>(),
-               /*step=*/10 * Second});
-          return ephemeris_->FlowWithAdaptiveStep(
-              &trajectory,
-              a_srp,
-              t,
-              Ephemeris<ICRS>::GeneralizedAdaptiveStepParameters(
-                  EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
-                      Fine1987RKNG34,
-                      Ephemeris<ICRS>::GeneralizedNewtonianMotionEquation>(),
-                  /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
-                  /*length_integration_tolerance=*/1 * Centi(Metre),
-                  /*speed_integration_tolerance=*/1 * Centi(Metre) / Second));
-        });
+    constexpr int n = 50;
+    logger.Append("abFormation", std::tuple{0, 0});
+    for (auto const& trajectory : icrs_trajectories) {
+      DiscreteTrajectory<ICRS> apoapsides;
+      DiscreteTrajectory<ICRS> periapsides;
+      if (&trajectory == &central_icrs_trajectory) {
+        continue;
       }
-      CHECK_OK(bundle.Join());
+      ComputeApsides(central_icrs_trajectory,
+                     trajectory,
+                     trajectory.begin(),
+                     trajectory.end(),
+                     trajectory.back().time,
+                     std::numeric_limits<int>::max(),
+                     apoapsides,
+                     periapsides);
+      logger.Append(
+          "abFormation",
+          std::tuple{
+              (lvlh.ToThisFrameAtTime(apoapsides.front().time)
+                   .rigid_transformation()(
+                       apoapsides.front().degrees_of_freedom.position()) -
+               LVLH::origin)
+                  .Norm(),
+              (lvlh.ToThisFrameAtTime(periapsides.front().time)
+                   .rigid_transformation()(
+                       periapsides.front().degrees_of_freedom.position()) -
+               LVLH::origin)
+                  .Norm()},
+          ExpressInSIUnits);
     }
-    std::vector<DiscreteTrajectory<GCRS>> gcrs_trajectories;
-    std::vector<std::optional<OrbitalElements>> mean_elements;
-    std::vector<std::optional<OrbitGroundTrack>> ground_tracks;
-    gcrs_trajectories.resize(icrs_trajectories.size());
-    mean_elements.resize(icrs_trajectories.size());
-    ground_tracks.resize(icrs_trajectories.size());
-    Bundle bundle;
-    for (int i = 0; i < icrs_trajectories.size(); ++i) {
-      bundle.Add([&icrs_trajectories,
-                  &gcrs_trajectories,
-                  &ground_tracks,
-                  &mean_elements,
-                  &gcrs_,
-                  &earth_,
-                  i]() {
-        for (auto const& [t, dof] : icrs_trajectories[i]) {
-          CHECK_OK(
-              gcrs_trajectories[i].Append(t, gcrs_.ToThisFrameAtTime(t)(dof)));
-        }
-        PolynomialInMonomialBasis<Angle, Instant, 2> const
-            newcomb_mean_longitude(
-                {279 * Degree + 41 * ArcMinute + 48.04 * ArcSecond,
-                 129'602'768.13 * ArcSecond / (100 * JulianYear),
-                 1.089 * ArcSecond / Pow<2>(100 * JulianYear)},
-                "1899-12-31T12:00:00"_TT);
-        OrbitGroundTrack::MeanSun const mean_sun{
-            .epoch = J2000,
-            .mean_longitude_at_epoch = newcomb_mean_longitude(J2000),
-            .year = 2 * π * Radian /
-                    newcomb_mean_longitude.EvaluateDerivative(J2000)};
-        ground_tracks[i] = OrbitGroundTrack::ForTrajectory(
-                               gcrs_trajectories[i], earth_, mean_sun)
-                               .value();
-        mean_elements[i] = OrbitalElements::ForTrajectory(
-                               gcrs_trajectories[i], earth_, MasslessBody{})
-                               .value();
-        LOG(INFO) << "Analysed orbit of #" << i;
-        return absl::OkStatus();
-      });
+    for (int i = 0; i < n; ++i) {
+      Instant const t = t0 + i * (t_node - t0) / n;
+      std::vector<Position<LVLH>> positions;
+      for (auto const& trajectory : icrs_trajectories) {
+        positions.push_back(lvlh.ToThisFrameAtTime(t).rigid_transformation()(
+            trajectory.EvaluatePosition(t)));
+      }
+      logger.Append("frames", positions, ExpressInSIUnits);
     }
-    CHECK_OK(bundle.Join());
-    LOG(INFO) << "Sidereal period: " << mean_elements[0]->sidereal_period();
-    LOG(INFO) << "Anomalistic period: "
-              << mean_elements[0]->anomalistic_period();
-    LOG(INFO) << "Nodal period: " << mean_elements[0]->nodal_period();
-    LOG(INFO) << "Initial osculating period: "
-              << *initial_osculating_orbit.elements_at_epoch().period;
-    Time const shape_cycle = t_node - t0;
-    LOG(INFO) << "Shape cycle: " << shape_cycle;
-    Instant const t = t0 + 17 * shape_cycle;
-    Displacement<LVLH> const Δ =
-        (lvlh.ToThisFrameAtTime(t)(
-             icrs_trajectories[1].EvaluateDegreesOfFreedom(t)) -
-         lvlh.ToThisFrameAtTime(t0)(
-             icrs_trajectories[1].EvaluateDegreesOfFreedom(t0)))
-            .displacement();
-    LOG(INFO) << "Δx:" << Δ.coordinates().x;
-    return Pow<2>(Δ.coordinates().x);
-  };
-  LOG(INFO) << Brent(
-      Δx², -100 * Metre / Second, 100 * Metre / Second, std::less<>());
 }
 
 TEST_F(FishyTest, Geometric) {
