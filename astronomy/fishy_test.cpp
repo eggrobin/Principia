@@ -35,6 +35,7 @@ using namespace principia::quantities::_named_quantities;
 using namespace principia::quantities::_astronomy;
 using namespace principia::numerics::_elementary_functions;
 using namespace principia::integrators::_symmetric_linear_multistep_integrator;
+using namespace principia::integrators::_embedded_explicit_runge_kutta_nyström_integrator;
 using namespace principia::integrators::_embedded_explicit_generalized_runge_kutta_nyström_integrator;
 using namespace principia::physics::_discrete_trajectory;
 using namespace principia::physics::_ephemeris;
@@ -102,9 +103,14 @@ TEST_F(FishyTest, FishyConstant) {
       SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
       SOLUTION_DIR / "astronomy" /
           "sol_initial_state_jd_2451545_000000000.proto.txt");
-  Logger logger(TEMP_DIR / "fischbacher_field.wl", /*make_unique=*/false);
+  for (auto const& body : solar_system_1950_.MakeAllMassiveBodies()) {
+    if (body->name() != "Earth") {
+      solar_system_1950_.RemoveMassiveBody(body->name());
+    }
+  }
   solar_system_1950_.LimitOblatenessToDegree("Earth", 2);
   solar_system_1950_.LimitOblatenessToZonal("Earth");
+  Logger logger(TEMP_DIR / "fischbacher_field.wl", /*make_unique=*/false);
 
   not_null<std::unique_ptr<Ephemeris<ICRS>>> ephemeris_ =
       solar_system_1950_.MakeEphemeris(
@@ -117,8 +123,6 @@ TEST_F(FishyTest, FishyConstant) {
               /*step=*/10 * Minute));
   RotatingBody<ICRS> const& earth_ =
       *solar_system_1950_.rotating_body(*ephemeris_, "Earth");
-  RotatingBody<ICRS> const& sun_ =
-      *solar_system_1950_.rotating_body(*ephemeris_, "Sun");
   BodyCentredNonRotatingReferenceFrame<ICRS, GCRS> const gcrs_(ephemeris_.get(),
                                                                &earth_);
   Instant const t_max = J2000 + 2 * Day;
@@ -150,45 +154,20 @@ TEST_F(FishyTest, FishyConstant) {
         [&]() -> Trajectory<ICRS> const& { return central_icrs_trajectory; },
         &earth_);
 
-    Pressure const P0_srp = TotalSolarIrradiance / SpeedOfLight;
-    LOG(INFO) << "P0 = " << P0_srp;
-    Mass const m = 575 * Kilogram;
-    double const Cr = 0;
-    Area const A_sat = 105 * Pow<2>(Metre);
-
-    auto a_srp =
-        [&](Instant const& t,
-            DegreesOfFreedom<ICRS> const& dof) -> Vector<Acceleration, ICRS> {
-      auto const satellite_sun =
-          ephemeris_->trajectory(&sun_)->EvaluatePosition(t) - dof.position();
-      auto const satellite_earth =
-          ephemeris_->trajectory(&earth_)->EvaluatePosition(t) - dof.position();
-      Length const ray_height =
-          satellite_earth.OrthogonalizationAgainst(satellite_sun).Norm() -
-          earth_.mean_radius();
-      if (ray_height < Length{}) {
-        return {};
-      } else {
-        Pressure const P_srp =
-            P0_srp * (Pow<2>(AstronomicalUnit) / satellite_sun.Norm²());
-        return -Normalize(satellite_sun) * P_srp * Cr * A_sat / m;
-      }
-    };
-
     Instant const t0 = J2000;
 
     
     CHECK_OK(ephemeris_->FlowWithAdaptiveStep(
         &central_icrs_trajectory,
-        a_srp,
+        Ephemeris<ICRS>::NoIntrinsicAcceleration,
         t0 + 2 * *initial_osculating_orbit.elements_at_epoch().period,
-        Ephemeris<ICRS>::GeneralizedAdaptiveStepParameters(
-            EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
-                Fine1987RKNG34,
-                Ephemeris<ICRS>::GeneralizedNewtonianMotionEquation>(),
+        Ephemeris<ICRS>::AdaptiveStepParameters(
+            EmbeddedExplicitRungeKuttaNyströmIntegrator<
+                DormandالمكاوىPrince1986RKN434FM,
+                Ephemeris<ICRS>::NewtonianMotionEquation>(),
             /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
-            /*length_integration_tolerance=*/1 * Centi(Metre),
-            /*speed_integration_tolerance=*/1 * Centi(Metre) / Second)));
+            /*length_integration_tolerance=*/1 * Milli(Metre),
+            /*speed_integration_tolerance=*/1 * Milli(Metre) / Second)));
     DiscreteTrajectory<GCRS> gcrs_trajectory;
     DiscreteTrajectory<GCRS> ascending;
     DiscreteTrajectory<GCRS> descending;
@@ -252,15 +231,15 @@ TEST_F(FishyTest, FishyConstant) {
               t0, lvlh.FromThisFrameAtTime(t0)({LVLH::origin + r, v_lvlh})));
           CHECK_OK(ephemeris_->FlowWithAdaptiveStep(
               &trial,
-              a_srp,
+              Ephemeris<ICRS>::NoIntrinsicAcceleration,
               t_node,
-              Ephemeris<ICRS>::GeneralizedAdaptiveStepParameters(
-                  EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
-                      Fine1987RKNG34,
-                      Ephemeris<ICRS>::GeneralizedNewtonianMotionEquation>(),
+              Ephemeris<ICRS>::AdaptiveStepParameters(
+                  EmbeddedExplicitRungeKuttaNyströmIntegrator<
+                      DormandالمكاوىPrince1986RKN434FM,
+                      Ephemeris<ICRS>::NewtonianMotionEquation>(),
                   /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
-                  /*length_integration_tolerance=*/1 * Centi(Metre),
-                  /*speed_integration_tolerance=*/1 * Centi(Metre) / Second)));
+                  /*length_integration_tolerance=*/1 * Milli(Metre),
+                  /*speed_integration_tolerance=*/1 * Milli(Metre) / Second)));
           return ((lvlh.ToThisFrameAtTime(t_node).rigid_transformation()(
                        trial.EvaluatePosition(t_node)) -
                    LVLH::origin) -
@@ -299,15 +278,15 @@ TEST_F(FishyTest, FishyConstant) {
             t0, lvlh.FromThisFrameAtTime(t0)({LVLH::origin + r, v_lvlh})));
         CHECK_OK(ephemeris_->FlowWithAdaptiveStep(
             &icrs_trajectories.back(),
-            a_srp,
+            Ephemeris<ICRS>::NoIntrinsicAcceleration,
             t_node,
-            Ephemeris<ICRS>::GeneralizedAdaptiveStepParameters(
-                EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
-                    Fine1987RKNG34,
-                    Ephemeris<ICRS>::GeneralizedNewtonianMotionEquation>(),
+            Ephemeris<ICRS>::AdaptiveStepParameters(
+                EmbeddedExplicitRungeKuttaNyströmIntegrator<
+                    DormandالمكاوىPrince1986RKN434FM,
+                    Ephemeris<ICRS>::NewtonianMotionEquation>(),
                 /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
-                /*length_integration_tolerance=*/1 * Centi(Metre),
-                /*speed_integration_tolerance=*/1 * Centi(Metre) / Second)));
+                /*length_integration_tolerance=*/1 * Milli(Metre),
+                /*speed_integration_tolerance=*/1 * Milli(Metre) / Second)));
 
         logger.Append("fischbacherField", std::tuple{r, v_lvlh}, ExpressInSIUnits);
       }
@@ -343,7 +322,7 @@ TEST_F(FishyTest, FishyConstant) {
                   .Norm()},
           ExpressInSIUnits);
     }
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i <= n; ++i) {
       Instant const t = t0 + i * (t_node - t0) / n;
       std::vector<Position<LVLH>> positions;
       for (auto const& trajectory : icrs_trajectories) {
