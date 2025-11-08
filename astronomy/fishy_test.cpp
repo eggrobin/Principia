@@ -93,6 +93,290 @@ struct FishyParameters {
   double aspect_ratio;
 };
 
+TEST_F(FishyTest, FishyConstant) {
+  SolarSystem<ICRS> solar_system_1950_(
+      SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
+      SOLUTION_DIR / "astronomy" /
+          "sol_initial_state_jd_2451545_000000000.proto.txt");
+  solar_system_1950_.LimitOblatenessToDegree("Earth", 2);
+  solar_system_1950_.LimitOblatenessToZonal("Earth");
+
+  not_null<std::unique_ptr<Ephemeris<ICRS>>> ephemeris_ =
+      solar_system_1950_.MakeEphemeris(
+          /*accuracy_parameters=*/{/*fitting_tolerance=*/1 * Milli(Metre),
+                                   /*geopotential_tolerance=*/0x1p-24},
+          Ephemeris<ICRS>::FixedStepParameters(
+              SymmetricLinearMultistepIntegrator<
+                  QuinlanTremaine1990Order12,
+                  Ephemeris<ICRS>::NewtonianMotionEquation>(),
+              /*step=*/10 * Minute));
+  RotatingBody<ICRS> const& earth_ =
+      *solar_system_1950_.rotating_body(*ephemeris_, "Earth");
+  RotatingBody<ICRS> const& sun_ =
+      *solar_system_1950_.rotating_body(*ephemeris_, "Sun");
+  BodyCentredNonRotatingReferenceFrame<ICRS, GCRS> const gcrs_(ephemeris_.get(),
+                                                               &earth_);
+  Instant const t_max = J2000 + 2 * Day;
+  CHECK_OK(ephemeris_->Prolong(t_max));
+  double inclination = 97.95; /*
+  std::cout << "Enter inclination in degrees ]90, 100[: ";
+  std::cin >> inclination;
+  if (!(inclination > 90 && inclination < 100)) {
+    continue;
+  }*/
+  double lan = 10;            /*
+  std::cout << "Enter longitude of ascending in degrees [0, 360[: ";
+  std::cin >> lan;
+  if (!(lan >= 0 && lan < 360)) {
+    continue;
+  }*/
+  auto Δx² = [&](Speed const vx) -> Area {
+    std::vector<DiscreteTrajectory<ICRS>> icrs_trajectories;
+    icrs_trajectories.reserve(400);
+    icrs_trajectories.emplace_back();
+    auto& central_icrs_trajectory = icrs_trajectories.back();
+    KeplerOrbit<ICRS> initial_osculating_orbit(
+        earth_,
+        MasslessBody{},
+        KeplerianElements<ICRS>{
+            .eccentricity = 0,
+            .semimajor_axis = earth_.mean_radius() + 650 * Kilo(Metre),
+            .inclination = inclination * Degree,
+            .longitude_of_ascending_node = lan * Degree,
+            .argument_of_periapsis = 0 * Degree,
+            .mean_anomaly = 0 * Degree,
+        },
+        J2000);
+    CHECK_OK(central_icrs_trajectory.Append(
+        J2000,
+        ephemeris_->trajectory(&earth_)->EvaluateDegreesOfFreedom(J2000) +
+            initial_osculating_orbit.StateVectors(J2000)));
+    BodyCentredBodyDirectionReferenceFrame<ICRS, LVLH> lvlh(
+        ephemeris_.get(),
+        [&]() -> Trajectory<ICRS> const& { return central_icrs_trajectory; },
+        &earth_);
+
+    Pressure const P0_srp = TotalSolarIrradiance / SpeedOfLight;
+    LOG(INFO) << "P0 = " << P0_srp;
+    Mass const m = 575 * Kilogram;
+    double const Cr = 0;
+    Area const A_sat = 105 * Pow<2>(Metre);
+
+    auto a_srp =
+        [&](Instant const& t,
+            DegreesOfFreedom<ICRS> const& dof) -> Vector<Acceleration, ICRS> {
+      auto const satellite_sun =
+          ephemeris_->trajectory(&sun_)->EvaluatePosition(t) - dof.position();
+      auto const satellite_earth =
+          ephemeris_->trajectory(&earth_)->EvaluatePosition(t) - dof.position();
+      Length const ray_height =
+          satellite_earth.OrthogonalizationAgainst(satellite_sun).Norm() -
+          earth_.mean_radius();
+      if (ray_height < Length{}) {
+        return {};
+      } else {
+        Pressure const P_srp =
+            P0_srp * (Pow<2>(AstronomicalUnit) / satellite_sun.Norm²());
+        return -Normalize(satellite_sun) * P_srp * Cr * A_sat / m;
+      }
+    };
+
+    Instant const t0 = J2000;
+
+    
+    CHECK_OK(ephemeris_->FlowWithAdaptiveStep(
+        &central_icrs_trajectory,
+        a_srp,
+        t0 + 2 * *initial_osculating_orbit.elements_at_epoch().period,
+        Ephemeris<ICRS>::GeneralizedAdaptiveStepParameters(
+            EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
+                Fine1987RKNG34,
+                Ephemeris<ICRS>::GeneralizedNewtonianMotionEquation>(),
+            /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
+            /*length_integration_tolerance=*/1 * Centi(Metre),
+            /*speed_integration_tolerance=*/1 * Centi(Metre) / Second)));
+    DiscreteTrajectory<GCRS> gcrs_trajectory;
+    DiscreteTrajectory<GCRS> ascending;
+    DiscreteTrajectory<GCRS> descending;
+    for (auto const& [t, dof] : central_icrs_trajectory) {
+      CHECK_OK(gcrs_trajectory.Append(t, gcrs_.ToThisFrameAtTime(t)(dof)));
+    }
+    CHECK_OK(ComputeNodes(gcrs_trajectory,
+                          gcrs_trajectory.begin(),
+                          gcrs_trajectory.end(),
+                          gcrs_trajectory.back().time,
+                          Vector<double, GCRS>({0, 0, 1}),
+                          /*max_points=*/std::numeric_limits<int>::max(),
+                          ascending,
+                          descending));
+    Instant const t_node =
+        ascending
+            .upper_bound(
+                t0 + *initial_osculating_orbit.elements_at_epoch().period / 2)
+            ->time;
+    Length δ = 150 * Metre;
+    for (int x = -10; x <= 10; ++x) {
+      for (int y = -10; y <= 10; ++y) {
+        if (x == 0) {
+          continue;
+        }
+        Displacement<LVLH> const r({x * δ, y * δ, 0 * Metre});
+        Displacement<LVLH> const r_circular(
+            {r.coordinates().x * 2, r.coordinates().y, 0 * Metre});
+        if (r.Norm() > 1 * Kilo(Metre)) {
+          continue;
+        }
+        Bivector<double, LVLH> orbit_normal({0, 0, 1});
+        auto const Δy = [&](Speed const vy) {
+          DiscreteTrajectory<ICRS> trial;
+          CHECK_OK(trial.Append(
+              t0,
+              lvlh.FromThisFrameAtTime(t0)(
+                  {LVLH::origin + r, Velocity<LVLH>({vx, vy, 0 * Metre / Second})})));
+          CHECK_OK(ephemeris_->FlowWithAdaptiveStep(
+              &trial,
+              a_srp,
+              t_node,
+              Ephemeris<ICRS>::GeneralizedAdaptiveStepParameters(
+                  EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
+                      Fine1987RKNG34,
+                      Ephemeris<ICRS>::GeneralizedNewtonianMotionEquation>(),
+                  /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
+                  /*length_integration_tolerance=*/1 * Centi(Metre),
+                  /*speed_integration_tolerance=*/1 * Centi(Metre) / Second)));
+          return ((lvlh.ToThisFrameAtTime(t_node).rigid_transformation()(
+                       trial.EvaluatePosition(t_node)) -
+                   LVLH::origin) -
+                  r)
+              .coordinates()
+              .y;
+        };
+        absl::btree_set<Speed> vy =
+            DoubleBrent(Δy,
+                        /*lower_bound=*/-100 * Metre / Second,
+                        /*lower_bound=*/100 * Metre / Second);
+        if (vy.size() == 0) {
+          LOG(INFO)
+              << "x = " << x << "δ, y = " << y
+              << "δ: could not find a solution for Δy = 0, with vx = "
+              << vx << ". Skipping.";
+          continue;
+        } else if (vy.size() > 1) {
+          LOG(INFO) << "x = " << x << "δ, y = " << y
+                    << "δ: multiple solutions for vy:";
+          for (auto const& v : vy) {
+            LOG(INFO) << "        " << v;
+          }
+        } else {
+          LOG(INFO) << "x = " << x << "δ, y = " << y
+                    << "δ: vy = " << *vy.begin();
+        }
+
+        icrs_trajectories.emplace_back();
+        CHECK_OK(icrs_trajectories.back().Append(
+            t0,
+            lvlh.FromThisFrameAtTime(t0)(
+                {LVLH::origin + r,
+                 Velocity<LVLH>({vx, *vy.begin(), 0 * Metre / Second})})));
+      }
+      if (icrs_trajectories.size() > 2) {
+        break;
+      }
+    }
+    LOG(INFO) << "Flowing " << icrs_trajectories.size() << " trajectories...";
+    for (int i = 1; i <= 52; ++i) {
+      Instant const t = J2000 + i * ((t_max - J2000) / 52);
+      Bundle bundle;
+      for (auto& trajectory : icrs_trajectories) {
+        if (trajectory.back().time >= t) {
+          continue;
+        }
+        bundle.Add([&]() {
+          auto const instance = ephemeris_->NewInstance(
+              {&trajectory},
+              Ephemeris<ICRS>::NoIntrinsicAccelerations,
+              {SymmetricLinearMultistepIntegrator<
+                   Quinlan1999Order8A,
+                   Ephemeris<ICRS>::NewtonianMotionEquation>(),
+               /*step=*/10 * Second});
+          return ephemeris_->FlowWithAdaptiveStep(
+              &trajectory,
+              a_srp,
+              t,
+              Ephemeris<ICRS>::GeneralizedAdaptiveStepParameters(
+                  EmbeddedExplicitGeneralizedRungeKuttaNyströmIntegrator<
+                      Fine1987RKNG34,
+                      Ephemeris<ICRS>::GeneralizedNewtonianMotionEquation>(),
+                  /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
+                  /*length_integration_tolerance=*/1 * Centi(Metre),
+                  /*speed_integration_tolerance=*/1 * Centi(Metre) / Second));
+        });
+      }
+      CHECK_OK(bundle.Join());
+    }
+    std::vector<DiscreteTrajectory<GCRS>> gcrs_trajectories;
+    std::vector<std::optional<OrbitalElements>> mean_elements;
+    std::vector<std::optional<OrbitGroundTrack>> ground_tracks;
+    gcrs_trajectories.resize(icrs_trajectories.size());
+    mean_elements.resize(icrs_trajectories.size());
+    ground_tracks.resize(icrs_trajectories.size());
+    Bundle bundle;
+    for (int i = 0; i < icrs_trajectories.size(); ++i) {
+      bundle.Add([&icrs_trajectories,
+                  &gcrs_trajectories,
+                  &ground_tracks,
+                  &mean_elements,
+                  &gcrs_,
+                  &earth_,
+                  i]() {
+        for (auto const& [t, dof] : icrs_trajectories[i]) {
+          CHECK_OK(
+              gcrs_trajectories[i].Append(t, gcrs_.ToThisFrameAtTime(t)(dof)));
+        }
+        PolynomialInMonomialBasis<Angle, Instant, 2> const
+            newcomb_mean_longitude(
+                {279 * Degree + 41 * ArcMinute + 48.04 * ArcSecond,
+                 129'602'768.13 * ArcSecond / (100 * JulianYear),
+                 1.089 * ArcSecond / Pow<2>(100 * JulianYear)},
+                "1899-12-31T12:00:00"_TT);
+        OrbitGroundTrack::MeanSun const mean_sun{
+            .epoch = J2000,
+            .mean_longitude_at_epoch = newcomb_mean_longitude(J2000),
+            .year = 2 * π * Radian /
+                    newcomb_mean_longitude.EvaluateDerivative(J2000)};
+        ground_tracks[i] = OrbitGroundTrack::ForTrajectory(
+                               gcrs_trajectories[i], earth_, mean_sun)
+                               .value();
+        mean_elements[i] = OrbitalElements::ForTrajectory(
+                               gcrs_trajectories[i], earth_, MasslessBody{})
+                               .value();
+        LOG(INFO) << "Analysed orbit of #" << i;
+        return absl::OkStatus();
+      });
+    }
+    CHECK_OK(bundle.Join());
+    LOG(INFO) << "Sidereal period: " << mean_elements[0]->sidereal_period();
+    LOG(INFO) << "Anomalistic period: "
+              << mean_elements[0]->anomalistic_period();
+    LOG(INFO) << "Nodal period: " << mean_elements[0]->nodal_period();
+    LOG(INFO) << "Initial osculating period: "
+              << *initial_osculating_orbit.elements_at_epoch().period;
+    Time const shape_cycle = t_node - t0;
+    LOG(INFO) << "Shape cycle: " << shape_cycle;
+    Instant const t = t0 + 17 * shape_cycle;
+    Displacement<LVLH> const Δ =
+        (lvlh.ToThisFrameAtTime(t)(
+             icrs_trajectories[1].EvaluateDegreesOfFreedom(t)) -
+         lvlh.ToThisFrameAtTime(t0)(
+             icrs_trajectories[1].EvaluateDegreesOfFreedom(t0)))
+            .displacement();
+    LOG(INFO) << "Δx:" << Δ.coordinates().x;
+    return Pow<2>(Δ.coordinates().x);
+  };
+  LOG(INFO) << Brent(
+      Δx², -100 * Metre / Second, 100 * Metre / Second, std::less<>());
+}
+
 TEST_F(FishyTest, Geometric) {
   for (auto const& parameters : std::vector<FishyParameters>{
            {
@@ -117,7 +401,7 @@ TEST_F(FishyTest, Geometric) {
               .zonal_only = true,
               .srp = false,
               .min_t0 = J2000,
-              .aspect_ratio = 2 / 1.0037,
+              .aspect_ratio = 2 * 1.037,
            },
            {
                .name = "FullGeopotential",
