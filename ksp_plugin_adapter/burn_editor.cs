@@ -65,13 +65,13 @@ class BurnEditor : ScalingRenderer {
             adapter_,
             ReferenceFrameChanged,
             L10N.CacheFormat("#Principia_BurnEditor_ManœuvringFrame"));
-    if (previous_coast_analysis.primary_index.HasValue) {
+    if (previous_coast_analysis.primary_index is int primary_index) {
       // If the vessel is in a perturbed Keplerian orbit around some body B, use
       // the B-centred non-rotating frame.
       reference_frame_selector_.SetFrameParameters(
           new NavigationFrameParameters{
               Extension = FrameType.BODY_CENTRED_NON_ROTATING,
-              CentreIndex = previous_coast_analysis.primary_index.Value,
+              CentreIndex = primary_index,
               PrimaryIndices = new int[]{},
               SecondaryIndices = new int[]{},
           });
@@ -116,7 +116,7 @@ class BurnEditor : ScalingRenderer {
       string header,
       bool anomalous,
       double burn_final_time,
-      double? orbital_period) {
+      OrbitAnalysis previous_coast_analysis) {
     bool changed = false;
     previous_coast_duration_.max_value = burn_final_time - time_base;
     using (new UnityEngine.GUILayout.HorizontalScope()) {
@@ -132,10 +132,16 @@ class BurnEditor : ScalingRenderer {
                     : header);
       string info = "";
       if (!minimized &&
-          reference_frame_selector_.FrameParameters() !=
-              adapter_.plotting_frame_selector_.FrameParameters()) {
+          previous_coast_analysis.primary_index is int primary_index &&
+          reference_frame_selector_.FrameParameters().Extension !=
+              FrameType.BODY_CENTRED_NON_ROTATING &&
+          reference_frame_selector_.FrameParameters().centre_index !=
+              primary_index) {
         info = L10N.CacheFormat(
-            "#Principia_BurnEditor_Info_InconsistentFrames");
+            "#Principia_BurnEditor_Info_InconsistentFrames",
+            ReferenceFrameSelector<NavigationFrameParameters>.NavballName(
+                FrameType.BODY_CENTRED_NON_ROTATING,
+                FlightGlobals.Bodies[primary_index]));
       }
       UnityEngine.GUILayout.Label(info, Style.Info(UnityEngine.GUI.skin.label));
       if (UnityEngine.GUILayout.Button(
@@ -222,7 +228,7 @@ class BurnEditor : ScalingRenderer {
           PrincipiaPluginAdapter.LoadTextureOrDie(out increment_revolution_,
                                                   "increment_revolution.png");
         }
-        if (orbital_period is double period) {
+        if (previous_coast_analysis.elements?.nodal_period is double period) {
           if (UnityEngine.GUILayout.Button(
                   new UnityEngine.GUIContent(
                       decrement_revolution_,

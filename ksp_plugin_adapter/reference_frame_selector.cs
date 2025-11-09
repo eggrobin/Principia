@@ -230,8 +230,8 @@ internal class
     }
   }
 
-  private static string NavballName(FrameType type,
-                                    CelestialBody selected) {
+  public static string NavballName(FrameType type,
+                                   CelestialBody selected) {
     string result = Abbreviation(type, selected);
     if (result != null) {
       return result;
