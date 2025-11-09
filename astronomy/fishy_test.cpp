@@ -99,6 +99,8 @@ struct FishyParameters {
 };
 
 TEST_F(FishyTest, FishyConstant) {
+  constexpr bool optimize_ellipses = true;
+
   SolarSystem<ICRS> solar_system_1950_(
       SOLUTION_DIR / "astronomy" / "sol_gravity_model.proto.txt",
       SOLUTION_DIR / "astronomy" /
@@ -188,6 +190,7 @@ TEST_F(FishyTest, FishyConstant) {
                 t0 + *initial_osculating_orbit.elements_at_epoch().period / 2)
             ->time;
     Length δ = 50 * Metre;
+    int S1 = -1;
     for (int x = -20; x <= 20; ++x) {
       for (int y = -20; y <= 20; ++y) {
         if (x == 0) {
@@ -225,54 +228,65 @@ TEST_F(FishyTest, FishyConstant) {
                         /*lower_bound=*/100 * Metre / Second);
         CHECK_EQ(v_lvlh_keplerian.size(), 1);
 
-        auto const Δr² = [&](Velocity<LVLH> const& v_lvlh) {
-          DiscreteTrajectory<ICRS> trial;
-          CHECK_OK(trial.Append(
-              t0, lvlh.FromThisFrameAtTime(t0)({LVLH::origin + r, v_lvlh})));
-          CHECK_OK(ephemeris_->FlowWithAdaptiveStep(
-              &trial,
-              Ephemeris<ICRS>::NoIntrinsicAcceleration,
-              t_node,
-              Ephemeris<ICRS>::AdaptiveStepParameters(
-                  EmbeddedExplicitRungeKuttaNyströmIntegrator<
-                      DormandالمكاوىPrince1986RKN434FM,
-                      Ephemeris<ICRS>::NewtonianMotionEquation>(),
-                  /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
-                  /*length_integration_tolerance=*/1 * Milli(Metre),
-                  /*speed_integration_tolerance=*/1 * Milli(Metre) / Second)));
-          return ((lvlh.ToThisFrameAtTime(t_node).rigid_transformation()(
-                       trial.EvaluatePosition(t_node)) -
-                   LVLH::origin) -
-                  r)
-              .Norm²();
-        };
-        auto const grad_Δr² = [&](Velocity<LVLH> const& v_lvlh) {
-          Speed const δv = 1 * Micro(Metre) / Second;
-          auto const Δr²_v_lvlh = Δr²(v_lvlh);
-          return Vector<Quotient<Area, Speed>, LVLH>(
-              {(Δr²(v_lvlh +
-                    Velocity<LVLH>(
-                        {δv, 0 * Metre / Second, 0 * Metre / Second})) -
-                Δr²_v_lvlh) /
-                   δv,
-               (Δr²(v_lvlh +
-                    Velocity<LVLH>(
-                        {0 * Metre / Second, δv, 0 * Metre / Second})) -
-                Δr²_v_lvlh) /
-                   δv,
-               0 * Metre * Second});
-        };
+        Velocity<LVLH> v_lvlh;
 
-        auto const result = BroydenFletcherGoldfarbShanno<Area, Velocity<LVLH>>(
-            /*start_argument=*/elliptical_tangent * *v_lvlh_keplerian.begin(),
-            Δr²,
-            grad_Δr²,
-            10 * Micro(Metre) / Second);
-        auto const v_lvlh = result.value();
+        if constexpr (optimize_ellipses) {
+          auto const Δr² = [&](Velocity<LVLH> const& v_lvlh) {
+            DiscreteTrajectory<ICRS> trial;
+            CHECK_OK(trial.Append(
+                t0, lvlh.FromThisFrameAtTime(t0)({LVLH::origin + r, v_lvlh})));
+            CHECK_OK(ephemeris_->FlowWithAdaptiveStep(
+                &trial,
+                Ephemeris<ICRS>::NoIntrinsicAcceleration,
+                t_node,
+                Ephemeris<ICRS>::AdaptiveStepParameters(
+                    EmbeddedExplicitRungeKuttaNyströmIntegrator<
+                        DormandالمكاوىPrince1986RKN434FM,
+                        Ephemeris<ICRS>::NewtonianMotionEquation>(),
+                    /*max_steps=*/std::numeric_limits<std::int64_t>::max(),
+                    /*length_integration_tolerance=*/1 * Milli(Metre),
+                    /*speed_integration_tolerance=*/1 * Milli(Metre) /
+                        Second)));
+            return ((lvlh.ToThisFrameAtTime(t_node).rigid_transformation()(
+                         trial.EvaluatePosition(t_node)) -
+                     LVLH::origin) -
+                    r)
+                .Norm²();
+          };
+          auto const grad_Δr² = [&](Velocity<LVLH> const& v_lvlh) {
+            Speed const δv = 1 * Micro(Metre) / Second;
+            auto const Δr²_v_lvlh = Δr²(v_lvlh);
+            return Vector<Quotient<Area, Speed>, LVLH>(
+                {(Δr²(v_lvlh +
+                      Velocity<LVLH>(
+                          {δv, 0 * Metre / Second, 0 * Metre / Second})) -
+                  Δr²_v_lvlh) /
+                     δv,
+                 (Δr²(v_lvlh +
+                      Velocity<LVLH>(
+                          {0 * Metre / Second, δv, 0 * Metre / Second})) -
+                  Δr²_v_lvlh) /
+                     δv,
+                 0 * Metre * Second});
+          };
+          auto const result =
+              BroydenFletcherGoldfarbShanno<Area, Velocity<LVLH>>(
+                  /*start_argument=*/elliptical_tangent *
+                      *v_lvlh_keplerian.begin(),
+                  Δr²,
+                  grad_Δr²,
+                  10 * Micro(Metre) / Second);
+          v_lvlh = result.value();
+          LOG(INFO) << "x = " << x << "δ, y = " << y
+                    << "δ:\n    v_lvlh = " << v_lvlh
+                    << ";\n    Δr² = " << Δr²(v_lvlh);
+        } else {
+          v_lvlh = elliptical_tangent * *v_lvlh_keplerian.begin();
+        }
 
-
-        LOG(INFO) << "x = " << x << "δ, y = " << y << "δ:\n    v_lvlh = " << v_lvlh
-                  << ";\n    Δr² = " << Δr²(v_lvlh);
+        if (y == 0 && S1 < 0) {
+          S1 = icrs_trajectories.size();
+        }
         icrs_trajectories.emplace_back();
         CHECK_OK(icrs_trajectories.back().Append(
             t0, lvlh.FromThisFrameAtTime(t0)({LVLH::origin + r, v_lvlh})));
@@ -288,9 +302,27 @@ TEST_F(FishyTest, FishyConstant) {
                 /*length_integration_tolerance=*/1 * Milli(Metre),
                 /*speed_integration_tolerance=*/1 * Milli(Metre) / Second)));
 
-        logger.Append("fischbacherField", std::tuple{r, v_lvlh}, ExpressInSIUnits);
+        logger.Append(
+            "fischbacherField", std::tuple{r, v_lvlh}, ExpressInSIUnits);
       }
     }
+
+    Time const shape_cycle =
+        optimize_ellipses
+            ? t_node - t0
+            : Brent(
+                  [&](Time const Δt) {
+                    return (lvlh.ToThisFrameAtTime(t0 + Δt)
+                                .rigid_transformation()(
+                                    icrs_trajectories[S1].EvaluatePosition(
+                                        t0 + Δt)) -
+                            LVLH::origin)
+                        .coordinates()
+                        .y;
+                  },
+                  0.8 * (t_node - t0),
+                  t_node - t0);
+
     constexpr int n = 50;
     logger.Append("abFormation", std::tuple{0, 0});
     for (auto const& trajectory : icrs_trajectories) {
@@ -323,7 +355,7 @@ TEST_F(FishyTest, FishyConstant) {
           ExpressInSIUnits);
     }
     for (int i = 0; i <= n; ++i) {
-      Instant const t = t0 + i * (t_node - t0) / n;
+      Instant const t = t0 + i * shape_cycle / n;
       std::vector<Position<LVLH>> positions;
       for (auto const& trajectory : icrs_trajectories) {
         positions.push_back(lvlh.ToThisFrameAtTime(t).rigid_transformation()(
