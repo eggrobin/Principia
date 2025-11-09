@@ -685,7 +685,8 @@ class FlightPlanner : RequiredVesselSupervisedWindowRenderer {
                                     predicted_vessel,
                                     initial_time,
                                     get_burn_at_index : burn_editors_.
-                                        ElementAtOrDefault){
+                                        ElementAtOrDefault,
+                                    coast_analysis){
             minimized = false
         };
         Burn candidate_burn = editor.Burn();

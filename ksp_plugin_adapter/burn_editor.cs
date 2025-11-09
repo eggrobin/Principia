@@ -10,7 +10,8 @@ class BurnEditor : ScalingRenderer {
   public BurnEditor(PrincipiaPluginAdapter adapter,
                     Vessel vessel,
                     double initial_time,
-                    Func<int, BurnEditor> get_burn_at_index) {
+                    Func<int, BurnEditor> get_burn_at_index,
+                    OrbitAnalysis previous_coast_analysis) {
     adapter_ = adapter;
     vessel_ = vessel;
     initial_time_ = initial_time;
@@ -64,26 +65,39 @@ class BurnEditor : ScalingRenderer {
             adapter_,
             ReferenceFrameChanged,
             L10N.CacheFormat("#Principia_BurnEditor_ManœuvringFrame"));
-    PlottingFrameParameters plotting_frame_parameters =
-        adapter_.plotting_frame_selector_.FrameParameters();
-    if ((NavigationFrameParameters)plotting_frame_parameters is
-        NavigationFrameParameters parameters) {
-      reference_frame_selector_.SetFrameParameters(parameters);
+    if (previous_coast_analysis.primary_index.HasValue) {
+      // If the vessel is in a perturbed Keplerian orbit around some body B, use
+      // the B-centred non-rotating frame.
+      reference_frame_selector_.SetFrameParameters(
+          new NavigationFrameParameters{
+              Extension = FrameType.BODY_CENTRED_NON_ROTATING,
+              CentreIndex = previous_coast_analysis.primary_index.Value,
+              PrimaryIndices = new int[]{},
+              SecondaryIndices = new int[]{},
+          });
     } else {
-      // If the plotting frame is not a navigation frame, it is the rotating-
-      // pulsating frame; use the corresponding rotating frame as the default
-      // navigation frame.
-      // Note that the primary for the rotating frame (the body which is fixed)
-      // is the main body of the secondary system; for instance, we go from a
-      // frame which fixes the Sun and the barycentre of the Earth-Moon system
-      // to one which fixes the Earth and the direction of the Sun.
-      reference_frame_selector_.SetFrameParameters(new NavigationFrameParameters{
-          Extension = FrameType.BODY_CENTRED_PARENT_DIRECTION,
-          PrimaryIndices = new[]
-              { plotting_frame_parameters.SecondaryIndices[0] },
-          SecondaryIndices = new[]
-              { plotting_frame_parameters.PrimaryIndices[0] },
-      });
+      PlottingFrameParameters plotting_frame_parameters =
+          adapter_.plotting_frame_selector_.FrameParameters();
+      if ((NavigationFrameParameters)plotting_frame_parameters is
+          NavigationFrameParameters parameters) {
+        reference_frame_selector_.SetFrameParameters(parameters);
+      } else {
+        // If the plotting frame is not a navigation frame, it is the rotating-
+        // pulsating frame; use the corresponding rotating frame as the default
+        // navigation frame.
+        // Note that the primary for the rotating frame (the body which is
+        // fixed) is the main body of the secondary system; for instance, we go
+        // from a frame which fixes the Sun and the barycentre of the Earth-Moon
+        // system to one which fixes the Earth and the direction of the Sun.
+        reference_frame_selector_.SetFrameParameters(
+            new NavigationFrameParameters{
+                Extension = FrameType.BODY_CENTRED_PARENT_DIRECTION,
+                PrimaryIndices = new[]
+                    { plotting_frame_parameters.SecondaryIndices[0] },
+                SecondaryIndices = new[]
+                    { plotting_frame_parameters.PrimaryIndices[0] },
+            });
+      }
     }
     ComputeEngineCharacteristics();
   }
