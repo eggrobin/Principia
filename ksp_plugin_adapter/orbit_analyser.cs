@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
 
 namespace principia {
 namespace ksp_plugin_adapter {
@@ -579,27 +581,28 @@ internal abstract class OrbitAnalyser : RequiredVesselSupervisedWindowRenderer {
       eccentricity_vector_graph_ = new Graph(Width(10), Height(10));
       ground_track_graph_ = new Graph(Width(20), Height(10));
     }
+    if (elements == null) {
+      return;
+    }
     Interval t_range = Interval.Empty;
     Interval e_cos_ω_range = Interval.Empty;
     Interval e_sin_ω_range = Interval.Empty;
-    if (elements != null) {
-      if (!elements.mean_elements.IteratorAtEnd()) {
-        t_range.min = elements.mean_elements.IteratorGetPlottableElements().time;
-      }
-      if (t_range.min == last_t_min_ && !must_redraw_graphs_) {
-        return;
-      }
-      must_redraw_graphs_ = false;
-      for (;!elements.mean_elements.IteratorAtEnd();
-           elements.mean_elements.IteratorIncrement()) {
-        var elements_at_t =
-            elements.mean_elements.IteratorGetPlottableElements();
-        t_range.max = elements_at_t.time;
-        e_cos_ω_range.Include(elements_at_t.eccentricity_cos_argument_of_periapsis);
-        e_sin_ω_range.Include(elements_at_t.eccentricity_sin_argument_of_periapsis);
-      }
-      elements.mean_elements.IteratorReset();
+    if (!elements.mean_elements.IteratorAtEnd()) {
+      t_range.min = elements.mean_elements.IteratorGetPlottableElements().time;
     }
+    if (t_range.min == last_t_min_ && !must_redraw_graphs_) {
+      return;
+    }
+    must_redraw_graphs_ = false;
+    for (;!elements.mean_elements.IteratorAtEnd();
+          elements.mean_elements.IteratorIncrement()) {
+      var elements_at_t =
+          elements.mean_elements.IteratorGetPlottableElements();
+      t_range.max = elements_at_t.time;
+      e_cos_ω_range.Include(elements_at_t.eccentricity_cos_argument_of_periapsis);
+      e_sin_ω_range.Include(elements_at_t.eccentricity_sin_argument_of_periapsis);
+    }
+    elements.mean_elements.IteratorReset();
     last_t_min_ = t_range.min;
     foreach (var distance_graph in new[]{a_graph_, periapsis_graph_, apoapsis_graph_}) {
       distance_graph.PrepareCanvas(
@@ -666,11 +669,20 @@ internal abstract class OrbitAnalyser : RequiredVesselSupervisedWindowRenderer {
     ground_track_graph_.PrepareCanvas(new Interval{ min = -180, max = 180 },
                                       new Interval{ min = -90, max = 90 });
     if (primary != null && primary.pqsController != null) {
-      var maps = primary.pqsController.CreateMaps(
-          ground_track_graph_.texture.width,
-          ground_track_graph_.texture.height,
-          primary.ocean, 0, XKCDColors.Ocean);
-      ground_track_graph_.texture.SetPixels(maps[0].GetPixels());
+      if (!maps_.ContainsKey(primary)) {
+        maps_[primary] = primary.pqsController.CreateMaps(
+            ground_track_graph_.texture.width,
+            ground_track_graph_.texture.height,
+            primary.ocean, 0, XKCDColors.Ocean)[0];
+        for (int x = 0; x < maps_[primary].width; ++x) {
+          for (int y = 0; y < maps_[primary].height; ++y) {
+            var colour = maps_[primary].GetPixel(x, y);
+            colour.a = 1;
+            maps_[primary].SetPixel(x, y, colour);
+          }
+        }
+      }
+      ground_track_graph_.texture.SetPixels(maps_[primary].GetPixels());
     }
     for (;
          !analysis.ground_track.IteratorAtEnd();
@@ -1219,6 +1231,7 @@ internal abstract class OrbitAnalyser : RequiredVesselSupervisedWindowRenderer {
   private Graph лидов_graph_;
   private Graph eccentricity_vector_graph_;
   private Graph ground_track_graph_;
+  private static readonly Dictionary<CelestialBody, Texture2D> maps_ = new();
   private bool must_redraw_graphs_ = false;
   private bool show_max_e_min_i_lines_ = true;
   private bool show_min_e_max_i_lines_ = false;
