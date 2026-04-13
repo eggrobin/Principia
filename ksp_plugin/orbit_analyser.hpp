@@ -33,9 +33,11 @@ using namespace principia::astronomy::_orbital_elements;
 using namespace principia::base::_not_null;
 using namespace principia::geometry::_frame;
 using namespace principia::geometry::_instant;
+using namespace principia::geometry::_r3_element;
 using namespace principia::geometry::_interval;
 using namespace principia::ksp_plugin::_frames;
 using namespace principia::physics::_body_centred_non_rotating_reference_frame;
+using namespace principia::physics::_body_surface_reference_frame;
 using namespace principia::physics::_degrees_of_freedom;
 using namespace principia::physics::_discrete_trajectory;
 using namespace principia::physics::_ephemeris;
@@ -82,6 +84,9 @@ class OrbitAnalyser {
     // `!elements.has_value()`, updating `equatorial_crossings` if needed.
     void ResetRecurrence();
 
+    std::vector<SphericalCoordinates<Length>> const&
+    surface_trajectory() const;
+
    private:
     explicit Analysis(Instant const& first_time);
 
@@ -98,6 +103,8 @@ class OrbitAnalyser {
     std::optional<OrbitGroundTrack> ground_track_;
     std::optional<OrbitGroundTrack::EquatorCrossingLongitudes>
         equatorial_crossings_;
+
+    std::vector<SphericalCoordinates<Length>> surface_trajectory_;
 
     friend class OrbitAnalyser;
   };
@@ -141,6 +148,7 @@ class OrbitAnalyser {
 
  private:
   using PrimaryCentred = Frame<struct PrimaryCentredTag, NonRotating>;
+  using PrimarySurface = Frame<struct PrimarySurfaceTag>;
 
   // Finds the primary body and analyze our orbit around it.
   absl::Status AnalyseOrbit(Parameters const& parameters);
@@ -175,6 +183,11 @@ class OrbitAnalyser {
   static absl::StatusOr<DiscreteTrajectory<PrimaryCentred>> ToPrimaryCentred(
       BodyCentredNonRotatingReferenceFrame<Barycentric, PrimaryCentred> const&
           primary_centred,
+      DiscreteTrajectory<Barycentric> const& trajectory);
+
+  static absl::StatusOr<DiscreteTrajectory<PrimarySurface>> ToPrimarySurface(
+      BodySurfaceReferenceFrame<Barycentric, PrimarySurface> const&
+          primary_surface,
       DiscreteTrajectory<Barycentric> const& trajectory);
 
   not_null<Ephemeris<Barycentric>*> const ephemeris_;

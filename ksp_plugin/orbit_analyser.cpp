@@ -163,6 +163,19 @@ absl::Status OrbitAnalyser::AnalyseOrbit(Parameters const& parameters) {
     RETURN_IF_ERROR(status_or_primary_centred_trajectory);
     auto const& primary_centred_trajectory =
         status_or_primary_centred_trajectory.value();
+    BodySurfaceReferenceFrame<Barycentric, PrimarySurface> const
+        primary_surface(ephemeris_, primary);
+    auto const status_or_primary_surface_trajectory =
+        ToPrimarySurface(primary_surface, trajectory);
+    RETURN_IF_ERROR(status_or_primary_surface_trajectory);
+    auto const& primary_surface_trajectory =
+        status_or_primary_surface_trajectory.value();
+    for (auto const& [t, dof] : primary_surface_trajectory) {
+      analysis.surface_trajectory_.push_back(
+          (dof.position() - PrimarySurface::origin)
+              .coordinates()
+              .ToSpherical());
+    }
 
     analysis.primary_ = primary;
 
@@ -343,6 +356,22 @@ OrbitAnalyser::ToPrimaryCentred(
   return primary_centred_trajectory;
 }
 
+absl::StatusOr<DiscreteTrajectory<OrbitAnalyser::PrimarySurface>>
+OrbitAnalyser::ToPrimarySurface(
+    BodySurfaceReferenceFrame<Barycentric, PrimarySurface> const&
+        primary_surface,
+    DiscreteTrajectory<Barycentric> const& trajectory) {
+  DiscreteTrajectory<PrimarySurface> primary_surface_trajectory;
+  for (auto const& [time, degrees_of_freedom] : trajectory) {
+    RETURN_IF_STOPPED;
+    primary_surface_trajectory
+        .Append(time,
+                primary_surface.ToThisFrameAtTime(time)(degrees_of_freedom))
+        .IgnoreError();
+  }
+  return primary_surface_trajectory;
+}
+
 Instant const& OrbitAnalyser::Analysis::first_time() const {
   return first_time_;
 }
@@ -410,6 +439,11 @@ void OrbitAnalyser::Analysis::ResetRecurrence() {
     recurrence_.reset();
     equatorial_crossings_.reset();
   }
+}
+
+std::vector<SphericalCoordinates<Length>> const&
+OrbitAnalyser::Analysis::surface_trajectory() const {
+  return surface_trajectory_;
 }
 
 OrbitAnalyser::Analysis::Analysis(Instant const& first_time)

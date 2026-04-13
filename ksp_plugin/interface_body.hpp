@@ -820,6 +820,9 @@ inline not_null<OrbitAnalysis*> NewOrbitAnalysis(
       };
     }
   }
+  analysis->ground_track =
+      new TypedIterator<std::vector<SphericalCoordinates<Length>>>(
+          vessel_analysis->surface_trajectory(), &plugin);
   return analysis;
 }
 

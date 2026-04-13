@@ -259,7 +259,6 @@ internal abstract class OrbitAnalyser : RequiredVesselSupervisedWindowRenderer {
           rightValue : 1);
 
       OrbitalElements elements = analysis.elements;
-      DrawElementGraphs(elements);
       OrbitRecurrence? recurrence = analysis.recurrence;
       EquatorialCrossings? equatorial_crossings =
           analysis.ground_track_equatorial_crossings;
@@ -269,6 +268,9 @@ internal abstract class OrbitAnalyser : RequiredVesselSupervisedWindowRenderer {
                                   ? FlightGlobals.Bodies[
                                       analysis.primary_index.Value]
                                   : null;
+      if (show_graphs_) {
+        DrawElementGraphs(analysis, elements, primary);
+      }
 
       orbit_description_ = OrbitDescription(primary,
                                             mission_duration,
@@ -408,7 +410,9 @@ internal abstract class OrbitAnalyser : RequiredVesselSupervisedWindowRenderer {
           Style.LineSpacing();
           RenderNodeMeanSolarTimes(solar_times_of_nodes);
         }
-        // TODO(egg): Show the ground track?
+        if (show_graphs_) {
+          ground_track_graph_.Render(this);
+        }
       }
     }
     UnityEngine.GUI.DragWindow();
@@ -560,7 +564,9 @@ internal abstract class OrbitAnalyser : RequiredVesselSupervisedWindowRenderer {
 
   double last_t_min_ = double.PositiveInfinity;
 
-  private void DrawElementGraphs(OrbitalElements elements) {
+  private void DrawElementGraphs(OrbitAnalysis analysis,
+                                 OrbitalElements elements,
+                                 CelestialBody primary) {
     if (a_graph_ == null) {
       a_graph_ = new Graph(Width(10), Height(1));
       e_graph_ = new Graph(Width(10), Height(1));
@@ -571,6 +577,7 @@ internal abstract class OrbitAnalyser : RequiredVesselSupervisedWindowRenderer {
       apoapsis_graph_ = new Graph(Width(10), Height(1));
       лидов_graph_ = new Graph(Width(10), Height(10));
       eccentricity_vector_graph_ = new Graph(Width(10), Height(10));
+      ground_track_graph_ = new Graph(Width(20), Height(10));
     }
     Interval t_range = Interval.Empty;
     Interval e_cos_ω_range = Interval.Empty;
@@ -655,6 +662,21 @@ internal abstract class OrbitAnalyser : RequiredVesselSupervisedWindowRenderer {
                               XKCDColors.Lavender,
                               UnityEngine.TextAnchor.UpperCenter);
       }
+    }
+    ground_track_graph_.PrepareCanvas(new Interval{ min = -180, max = 180 },
+                                      new Interval{ min = -90, max = 90 });
+    if (primary != null && primary.pqsController != null) {
+      var maps = primary.pqsController.CreateMaps(
+          ground_track_graph_.texture.width,
+          ground_track_graph_.texture.height,
+          primary.ocean, 0, XKCDColors.Ocean);
+      ground_track_graph_.texture.SetPixels(maps[0].GetPixels());
+    }
+    for (;
+         !analysis.ground_track.IteratorAtEnd();
+         analysis.ground_track.IteratorIncrement()) {
+      XY coordinates = analysis.ground_track.IteratorGetGroundTrackLatitudeLongitude();
+      ground_track_graph_.PlotPoint(coordinates.y, coordinates.x, XKCDColors.Fuchsia);
     }
     if (show_min_e_max_i_lines_) {
       for (int ten_e_min = 1; ten_e_min <= 9; ++ten_e_min) {
@@ -1128,6 +1150,8 @@ internal abstract class OrbitAnalyser : RequiredVesselSupervisedWindowRenderer {
       return (int)(texture_.height * (y - y_range_.min) / y_range_.measure);
     }
 
+    public UnityEngine.Texture2D texture => texture_;
+
     private struct Label {
       public int x_pixels;
       public int y_pixels;
@@ -1194,6 +1218,7 @@ internal abstract class OrbitAnalyser : RequiredVesselSupervisedWindowRenderer {
   private Graph apoapsis_graph_;
   private Graph лидов_graph_;
   private Graph eccentricity_vector_graph_;
+  private Graph ground_track_graph_;
   private bool must_redraw_graphs_ = false;
   private bool show_max_e_min_i_lines_ = true;
   private bool show_min_e_max_i_lines_ = false;

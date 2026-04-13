@@ -104,6 +104,21 @@ double __cdecl principia__IteratorGetDistinguishedPointsTime(
       }));
 }
 
+XY __cdecl principia__IteratorGetGroundTrackLatitudeLongitude(
+    Iterator const* const iterator) {
+  journal::Method<journal::IteratorGetGroundTrackLatitudeLongitude> m({iterator});
+  CHECK(iterator != nullptr);
+  auto const typed_iterator = check_not_null(
+      dynamic_cast<
+          TypedIterator<std::vector<SphericalCoordinates<Length>>> const*>(
+          iterator));
+  return m.Return(typed_iterator->Get<XY>(
+      [](SphericalCoordinates<Length> const& coordinates) -> XY {
+        return {coordinates.latitude / Degree,
+                coordinates.longitude / Degree};
+      }));
+}
+
 Node __cdecl principia__IteratorGetNode(Iterator const* const iterator) {
   journal::Method<journal::IteratorGetNode> m({iterator});
   CHECK(iterator != nullptr);
