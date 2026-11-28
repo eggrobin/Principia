@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "base/not_null.hpp"
 #include "geometry/interval.hpp"
 #include "gmock/gmock.h"
 #include "graphics/colours.hpp"
